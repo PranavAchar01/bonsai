@@ -662,6 +662,8 @@ function renderHome() {
   const tiles = [];
   const live = running && app.sets.find(x => x.name === job.set);
   if (live) tiles.push(`<button class="tile" onclick="openAgent(null)"><span class="t-st live">● growing now</span><span class="t-name">${esc(live.name)}</span><span class="t-sc">${app.agents.filter(a => a.status === 'working').length}<small> agents working</small></span><span class="t-ft">${esc(plain(job.phase || ''))}</span></button>`);
+  // chess leads: the Elo ladder (rsi/) has no finished run stored here yet, so its tile opens the replayed games
+  if (!(live && live.key === 'chess') && !runStats.chess && app.sets.some(x => x.key === 'chess')) tiles.push(`<button class="tile" onclick="setView('replay')"><span class="t-st">chess · elo ladder</span><span class="t-name">Chess: games against Stockfish</span><span class="t-sc"><small>Haiku, one call per move</small></span><span class="t-ft">Opponents follow its rating upward · open the replayed games</span></button>`);
   for (const set of app.sets) {
     const st = runStats[set.key], mine = (app.hosted || []).find(h => h.key === set.key);
     if (live && live.key === set.key) continue;
