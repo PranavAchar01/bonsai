@@ -50,6 +50,8 @@ def store(doc: dict) -> None:
     LOG.parent.mkdir(exist_ok=True)
     with LOG.open("a") as f:
         f.write(json.dumps(doc) + "\n")
+    versions = [json.loads(line) for line in LOG.read_text().splitlines()]
+    (ROOT / "web" / "lineage.json").write_text(json.dumps({"versions": versions}))
     uri = os.getenv("MONGODB_URI")
     if uri:
         from pymongo import MongoClient
