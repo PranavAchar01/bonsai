@@ -38,6 +38,12 @@ games, mining, the bank, prescreen, exam, store and export are all real. On this
 
 ## 3. Rate the seed
 
+First, one real game as a smoke test (seed harness vs E100; about 8 minutes and $0.36 measured):
+
+```sh
+$PY -m rsi.run --smoke --run smoke1   # prints status, score, calls, cost, record and replay paths
+```
+
 ```sh
 $PY -m rsi.supervise --run seed1 --detach --args "--seed-only"
 # or in the foreground, unsupervised:
