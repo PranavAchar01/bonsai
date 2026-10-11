@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai replay</title>
+<!--
+  Two saved games side by side in 3D: the same opening under two harness versions.
+  Serve from the repo root so the page can read tasks/chess/_replays:
+    python3 -m http.server 8800
+    open "http://localhost:8800/web/replay.html?a=g0&b=g2a&game=game-italian-white"
+  Params: a, b (versions), game, secs (length of the replay, default 18), clean=1 (hide controls
+  for screen recording), src (replay folder, default ../tasks/chess/_replays).
+-->
+<style>
+  :root { --paper: #f3eee3; --ink: #1d1a16; --muted: #7a7266; --win: #2f7d4f; --loss: #b23a2b; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); overflow: hidden;
+    font: 15px/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+  canvas { display: block; }
+  .title { position: fixed; top: 22px; left: 0; right: 0; text-align: center; pointer-events: none;
+    font: 600 36px/1.2 "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif; letter-spacing: .02em; }
+  .title small { display: block; font: 13px ui-monospace, Menlo, monospace; color: var(--muted); margin-top: 6px; font-size: 16px; }
+  .side { position: fixed; top: 110px; width: 50%; text-align: center; pointer-events: none; }
+  .side.a { left: 0; } .side.b { right: 0; }
+  .side .ver { font: 600 30px Georgia, serif; }
+  .side .tag { color: var(--muted); font-size: 15px; }
+  .side .mat { margin-top: 6px; font-size: 20px; }
+  .side .stamp { margin-top: 10px; display: inline-block; padding: 4px 12px; border: 2px solid currentColor;
+    font: 700 26px Georgia, serif; opacity: 0; transform: scale(1.4); transition: all .5s ease; }
+  .side .stamp.show { opacity: 1; transform: scale(1); }
+  .side .stamp.pass { color: var(--win); } .side .stamp.fail { color: var(--loss); }
+  .move { position: fixed; bottom: 70px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 18px; pointer-events: none; }
+  .bar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px;
+    align-items: center; background: #fffaf0e6; border: 1px solid #d8cfbf; padding: 8px 10px; flex-wrap: wrap; justify-content: center; }
+  .bar select, .bar input, .bar button { font: inherit; padding: 4px 8px; border: 1px solid #c9bfae; background: #fff; color: var(--ink); }
+  .bar input { width: 90px; }
+  .bar button { cursor: pointer; }
+  .clean .bar { display: none; }
+  .clean .move { bottom: 24px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="title"><span id="gameName">—</span><small id="gameSub"></small></div>
+<div class="side a"><div class="ver" id="verA"></div><div class="tag" id="tagA"></div><div class="mat" id="matA"></div><div class="stamp" id="stampA"></div></div>
+<div class="side b"><div class="ver" id="verB"></div><div class="tag" id="tagB"></div><div class="mat" id="matB"></div><div class="stamp" id="stampB"></div></div>
+<div class="move" id="moveLine"></div>
+<div class="bar">
+  <select id="gameSel"></select>
+  <input id="aIn" placeholder="before" title="harness version on the left">
+  <input id="bIn" placeholder="after" title="harness version on the right">
+  <button id="loadBtn">Load</button>
+  <button id="playBtn">Pause</button>
+  <button id="restartBtn">Restart</button>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const P = new URLSearchParams(location.search);
+if (P.get("clean") === "1") document.body.classList.add("clean");
+const SRC = P.get("src") || "../tasks/chess/_replays";
+const SECS = +(P.get("secs") || 18);
+// ponytail: game list hardcoded to the 20 folders in tasks/chess; a static page cannot list a directory
+const OPENINGS = ["caro-kann", "english", "french", "italian", "kings-indian", "london",
+  "queens-gambit", "ruy-lopez", "scandinavian", "sicilian"];
+const GAMES = OPENINGS.flatMap(o => [`game-${o}-white`, `game-${o}-black`]);
+const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+const $ = id => document.getElementById(id);
+
+// ---------- scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf3eee3);
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0.6);
+controls.enableDamping = true;
+function frameCamera() {
+  const wide = innerWidth / innerHeight;
+  const d = wide > 1.4 ? 21 : 30 / wide;
+  camera.position.set(0, d * 0.62, d * 0.78);
+  camera.aspect = wide;
+  camera.updateProjectionMatrix();
+}
+frameCamera();
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); frameCamera(); });
+
+scene.add(new THREE.HemisphereLight(0xfff8ee, 0xb8ab94, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-6, 14, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 10, bottom: -10 });
+scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.12 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.36; ground.receiveShadow = true;
+scene.add(ground);
+
+const MAT = {
+  w: new THREE.MeshStandardMaterial({ color: 0xf4efe4, roughness: 0.45 }),
+  b: new THREE.MeshStandardMaterial({ color: 0x2b2824, roughness: 0.4 }),
+  light: new THREE.MeshStandardMaterial({ color: 0xebecd0, roughness: 0.8 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x779556, roughness: 0.8 }),
+  frame: new THREE.MeshStandardMaterial({ color: 0x5b4632, roughness: 0.7 }),
+  hiFrom: new THREE.MeshStandardMaterial({ color: 0xf5f682, roughness: 0.8, transparent: true, opacity: 0.55 }),
+};
+
+// ---------- pieces: lathe profiles plus a few primitives ----------
+const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 28);
+const BASE = [[0, 0], [0.36, 0], [0.36, 0.07], [0.3, 0.1], [0.3, 0.14], [0.22, 0.18]];
+function pieceMesh(type, color) {
+  const g = new THREE.Group(), m = MAT[color];
+  const add = (geo, y = 0, extra) => { const mesh = new THREE.Mesh(geo, m); mesh.position.y = y;
+    mesh.castShadow = true; if (extra) extra(mesh); g.add(mesh); return mesh; };
+  if (type === "p") {
+    add(lathe([...BASE, [0.14, 0.42], [0.2, 0.46], [0.1, 0.5], [0, 0.5]]));
+    add(new THREE.SphereGeometry(0.17, 24, 16), 0.62);
+  } else if (type === "r") {
+    add(lathe([...BASE, [0.2, 0.62], [0.27, 0.66], [0.27, 0.82], [0, 0.82]]));
+    for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(0.12, 0.12, 0.12), 0.88,
+      x => { const a = i * Math.PI / 2 + Math.PI / 4; x.position.x = Math.cos(a) * 0.19; x.position.z = Math.sin(a) * 0.19; });
+  } else if (type === "n") {
+    add(lathe([...BASE, [0.18, 0.4], [0, 0.4]]));
+    add(new THREE.BoxGeometry(0.26, 0.5, 0.42), 0.62, x => { x.rotation.x = -0.35; });
+    add(new THREE.BoxGeometry(0.22, 0.2, 0.38), 0.82, x => { x.position.z = 0.16; x.rotation.x = 0.5; });
+    add(new THREE.ConeGeometry(0.06, 0.14, 8), 0.98, x => { x.position.x = 0.08; x.position.z = -0.06; });
+    add(new THREE.ConeGeometry(0.06, 0.14, 8), 0.98, x => { x.position.x = -0.08; x.position.z = -0.06; });
+  } else if (type === "b") {
+    add(lathe([...BASE, [0.12, 0.58], [0.19, 0.62], [0.08, 0.66], [0, 0.66]]));
+    add(new THREE.SphereGeometry(0.17, 24, 16), 0.82, x => x.scale.set(1, 1.35, 1));
+    add(new THREE.SphereGeometry(0.06, 12, 8), 1.1);
+  } else if (type === "q") {
+    add(lathe([...BASE, [0.15, 0.7], [0.24, 0.76], [0.13, 0.82], [0.22, 0.98], [0, 0.94]]));
+    for (let i = 0; i < 8; i++) add(new THREE.SphereGeometry(0.045, 10, 8), 1.0,
+      x => { const a = i * Math.PI / 4; x.position.x = Math.cos(a) * 0.2; x.position.z = Math.sin(a) * 0.2; });
+    add(new THREE.SphereGeometry(0.08, 14, 10), 1.04);
+  } else if (type === "k") {
+    add(lathe([...BASE, [0.16, 0.76], [0.25, 0.82], [0.15, 0.88], [0.2, 1.0], [0, 1.0]]));
+    add(new THREE.BoxGeometry(0.07, 0.3, 0.07), 1.14);
+    add(new THREE.BoxGeometry(0.22, 0.07, 0.07), 1.16);
+  }
+  if (type === "n" && color === "b") g.rotation.y = Math.PI;
+  return g;
+}
+
+// ---------- one board ----------
+const sq = s => ({ f: s.charCodeAt(0) - 97, r: +s[1] - 1 });
+const START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+class Board3D {
+  constructor(x, flip) {
+    this.group = new THREE.Group();
+    this.group.position.x = x;
+    if (flip) this.group.rotation.y = Math.PI;
+    scene.add(this.group);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(8.7, 0.5, 8.7), MAT.frame);
+    frame.position.y = -0.31; frame.receiveShadow = true; frame.castShadow = true;
+    this.group.add(frame);
+    const tile = new THREE.BoxGeometry(1, 0.1, 1);
+    for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
+      const t = new THREE.Mesh(tile, (f + r) % 2 ? MAT.light : MAT.dark);
+      t.position.set(f - 3.5, -0.05, 3.5 - r); t.receiveShadow = true;
+      this.group.add(t);
+    }
+    this.hi = [0, 1].map(() => { const h = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), MAT.hiFrom);
+      h.rotation.x = -Math.PI / 2; h.position.y = 0.006; h.visible = false; this.group.add(h); return h; });
+    this.pieces = {};
+    this.anims = [];
+  }
+  pos(f, r) { return new THREE.Vector3(f - 3.5, 0, 3.5 - r); }
+  place(key, type, color) {
+    const m = pieceMesh(type, color), { f, r } = sq(key);
+    m.position.copy(this.pos(f, r));
+    this.group.add(m);
+    this.pieces[key] = { type, color, mesh: m };
+  }
+  reset() {
+    for (const k in this.pieces) this.group.remove(this.pieces[k].mesh);
+    this.pieces = {}; this.anims = []; this.hi.forEach(h => (h.visible = false));
+    START.split("/").forEach((row, i) => {
+      let f = 0;
+      for (const c of row) {
+        if (/\d/.test(c)) { f += +c; continue; }
+        const lower = c.toLowerCase();
+        this.place(String.fromCharCode(97 + f) + (8 - i), lower, c === lower ? "b" : "w");
+        f++;
+      }
+    });
+  }
+  capture(key, ms) {
+    const p = this.pieces[key];
+    if (!p) return;
+    delete this.pieces[key];
+    this.anims.push({ ms, t0: performance.now(), step: k => { p.mesh.position.y = -0.9 * k; p.mesh.scale.setScalar(1 - 0.6 * k); },
+      done: () => this.group.remove(p.mesh) });
+  }
+  slide(from, to, ms, hop) {
+    const p = this.pieces[from];
+    if (!p) return;
+    delete this.pieces[from]; this.pieces[to] = p;
+    const a = p.mesh.position.clone(), b = this.pos(sq(to).f, sq(to).r);
+    this.anims.push({ ms, t0: performance.now(), step: k => {
+      const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+      p.mesh.position.lerpVectors(a, b, e);
+      p.mesh.position.y = Math.sin(Math.PI * k) * hop;
+    } });
+  }
+  // Apply one UCI move with an animation; returns false if there is no piece on the from-square.
+  move(uci, ms) {
+    const from = uci.slice(0, 2), to = uci.slice(2, 4), promo = uci[4];
+    const p = this.pieces[from];
+    if (!p) return false;
+    const df = sq(to).f - sq(from).f;
+    if (this.pieces[to]) this.capture(to, ms * 0.6);
+    else if (p.type === "p" && df !== 0) this.capture(to[0] + from[1], ms * 0.6);  // en passant
+    if (p.type === "k" && Math.abs(df) === 2) {  // castling moves the rook too
+      const r = from[1], [rf, rt] = df > 0 ? ["h" + r, "f" + r] : ["a" + r, "d" + r];
+      this.slide(rf, rt, ms, 0.6);
+    }
+    this.slide(from, to, ms, p.type === "n" ? 1.1 : 0.35);
+    if (promo) setTimeout(() => {
+      const old = this.pieces[to]; if (!old) return;
+      this.group.remove(old.mesh); delete this.pieces[to]; this.place(to, promo, old.color);
+    }, ms);
+    [from, to].forEach((s, i) => { const { f, r } = sq(s); this.hi[i].position.set(f - 3.5, 0.006, 3.5 - r); this.hi[i].visible = true; });
+    return true;
+  }
+  material(color) {
+    let mine = 0, theirs = 0;
+    for (const k in this.pieces) { const p = this.pieces[k]; (p.color === color ? (mine += VALUE[p.type]) : (theirs += VALUE[p.type])); }
+    return mine - theirs;
+  }
+  tick(now) {
+    this.anims = this.anims.filter(a => {
+      const k = Math.min(1, (now - a.t0) / a.ms);
+      a.step(k);
+      if (k < 1) return true;
+      a.done && a.done();
+      return false;
+    });
+  }
+}
+
+// ---------- game logic for the verdict (mirrors tasks/chess/_grade.py) ----------
+// ponytail: no full rules engine in the page; checkmate vs stalemate comes from the SAN '#' suffix,
+// and an early end without '#' is shown as "game over" rather than re-deriving the result.
+function verdict(rec, cfg, mat) {
+  if (!rec) return null;
+  if (rec.forfeit) return { pass: false, text: "Forfeit: illegal moves" };
+  const last = rec.san[rec.san.length - 1] || "";
+  const agentMoved = (rec.moves.length % 2 === 1) === (rec.agent_plays === "white");
+  if (last.endsWith("#")) return agentMoved ? { pass: true, text: "Won by checkmate" } : { pass: false, text: "Checkmated" };
+  const fullmove = +rec.final_fen.split(" ")[5];
+  if (fullmove <= cfg.moves) return { pass: true, text: "Drawn" };
+  if (mat < -cfg.margin) return { pass: false, text: `Lost · ${mat} material` };
+  return { pass: true, text: `Held to move ${cfg.moves} · ${mat >= 0 ? "+" : ""}${mat}` };
+}
+
+// ---------- the replay ----------
+const boards = [new Board3D(-5.1, false), new Board3D(5.1, false)];
+let run = null, playing = true;
+
+async function getJSON(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+async function load(game, va, vb) {
+  history.replaceState(null, "", `?${new URLSearchParams({ ...Object.fromEntries(P), game, a: va, b: vb })}`);
+  const cfg = await getJSON(`../tasks/chess/${game}/game.json`).catch(() => null);
+  const recs = await Promise.all([va, vb].map(v => getJSON(`${SRC}/${v}/${game}.json`).catch(() => null)));
+  const color = cfg ? cfg.color : (recs.find(Boolean) || {}).agent_plays || "white";
+  const flip = color === "black";
+  boards.forEach((b, i) => { b.group.rotation.y = flip ? Math.PI : 0; b.reset(); });
+  const opening = cfg ? cfg.opening.length : 0;
+  const pretty = game.replace(/^game-/, "").replace(/-(white|black)$/, "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  $("gameName").textContent = `${pretty} vs Stockfish`;
+  $("gameSub").textContent = `the agent plays ${color} · same opening, two versions of its harness`;
+  [["A", va, recs[0]], ["B", vb, recs[1]]].forEach(([s, v, r]) => {
+    $("ver" + s).textContent = v || "—";
+    $("tag" + s).textContent = r ? `${r.moves.length - opening} plies after the opening` : `no replay at ${SRC}/${v}/${game}.json`;
+    $("mat" + s).textContent = ""; $("stamp" + s).className = "stamp"; $("stamp" + s).textContent = "";
+  });
+  const plies = Math.max(1, ...recs.map(r => (r ? r.moves.length : 0)));
+  // the opening is the same on both sides, so it plays fast; the rest shares the time evenly
+  const openMs = Math.min(140, (SECS * 1000 * 0.15) / Math.max(1, opening));
+  const restMs = (SECS * 1000 - openMs * opening) / Math.max(1, plies - opening);
+  run = { recs, cfg: cfg || { moves: 18, margin: 3 }, color, opening, plies, openMs, restMs, i: 0, next: performance.now() + 900 };
+}
+
+function step(now) {
+  if (!run || !playing || now < run.next || run.i >= run.plies) return;
+  const i = run.i, inOpening = i < run.opening, ms = inOpening ? run.openMs : run.restMs;
+  const anim = Math.min(ms * 0.8, 650);
+  run.recs.forEach((r, k) => { if (r && i < r.moves.length) boards[k].move(r.moves[i], anim); });
+  const ref = run.recs.find(r => r && i < r.san.length);
+  const n = Math.floor(i / 2) + 1;
+  $("moveLine").textContent = inOpening ? `opening · ${n}${i % 2 ? "…" : "."} ${ref ? ref.san[i] : ""}` :
+    `move ${n} · ${run.recs.map((r, k) => (r && r.san[i] ? `${k ? "right" : "left"} ${r.san[i]}` : "")).filter(Boolean).join("   ")}`;
+  run.i++;
+  run.next = now + ms;
+  setTimeout(() => {
+    const myColor = run.color === "white" ? "w" : "b";
+    run.recs.forEach((r, k) => {
+      const s = k ? "B" : "A";
+      if (!r) return;
+      const mat = boards[k].material(myColor);
+      $("mat" + s).textContent = `material ${mat >= 0 ? "+" : ""}${mat}`;
+      if (run.i === r.moves.length) {
+        const v = verdict(r, run.cfg, mat);
+        const el = $("stamp" + s);
+        el.textContent = v.text; el.className = `stamp show ${v.pass ? "pass" : "fail"}`;
+      }
+    });
+  }, anim + 30);
+}
+
+// ---------- controls ----------
+GAMES.forEach(g => $("gameSel").add(new Option(g.replace(/^game-/, ""), g)));
+$("gameSel").value = P.get("game") || "game-italian-white";
+$("aIn").value = P.get("a") || "g0";
+$("bIn").value = P.get("b") || "";
+const go = () => load($("gameSel").value, $("aIn").value.trim(), $("bIn").value.trim());
+$("loadBtn").onclick = go;
+$("gameSel").onchange = go;
+$("restartBtn").onclick = go;
+$("playBtn").onclick = () => { playing = !playing; $("playBtn").textContent = playing ? "Pause" : "Play"; if (playing && run) run.next = performance.now(); };
+addEventListener("keydown", e => { if (e.key === " " && e.target.tagName !== "INPUT") { e.preventDefault(); $("playBtn").click(); } });
+go();
+
+renderer.setAnimationLoop(now => {
+  step(now);
+  boards.forEach(b => b.tick(now));
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
