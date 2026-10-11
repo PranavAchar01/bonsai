@@ -71,7 +71,7 @@ def store(doc: dict) -> None:
             )
             print(f"atlas: stored {doc['id']}", file=sys.stderr, flush=True)
         except Exception as e:  # the run goes on; the local log already has the version
-            print(f"atlas: write failed for {doc['id']}: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
+            print(f"atlas: write failed for {doc['id']}: {type(e).__name__}: {str(e)[-500:]}", file=sys.stderr, flush=True)
 
 
 def results(tasks: list[str], res: dict) -> list[dict]:
@@ -126,13 +126,20 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str
         failures=digest or "(none)",
         pruned="\n".join(f"- {p}" for p in pruned) or "(none)",
     )
-    out = subprocess.run(
-        [runner.CLAUDE, "-p", prompt, "--model", model, "--output-format", "json", "--max-turns", "1",
-         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}'],
-        capture_output=True, text=True, timeout=300, cwd=ROOT / "runs",
-    )  # fmt: skip
-    text = json.loads(out.stdout)["result"]
-    reply = json.loads(text[text.index("{") : text.rindex("}") + 1])
+    for attempt in range(3):  # the proposer sometimes returns no text or broken JSON: ask again
+        out = subprocess.run(
+            [runner.CLAUDE, "-p", prompt, "--model", model, "--output-format", "json", "--max-turns", "1",
+             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}'],
+            capture_output=True, text=True, timeout=300, cwd=ROOT / "runs",
+        )  # fmt: skip
+        try:
+            text = json.loads(out.stdout)["result"]
+            reply = json.loads(text[text.index("{") : text.rindex("}") + 1])
+            reply["harness"]["tools"], reply["harness"]["max_turns"], reply["change"]
+            break
+        except (KeyError, ValueError, TypeError):
+            if attempt == 2:
+                raise RuntimeError(f"proposer gave no usable reply: {(out.stdout or out.stderr)[-300:]}")
     child = reply["harness"]
     child["model"] = parent["model"]
     child["tools"] = [t for t in child["tools"] if t in allowed]
