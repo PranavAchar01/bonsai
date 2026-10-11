@@ -1,0 +1,19 @@
+{
+ "name": "Kitchen and clock sums",
+ "prompt": "Answer the question in .docs/instructions.md and write only the answer to answer.txt.",
+ "solution": [
+  "answer.txt"
+ ],
+ "hidden": [
+  "expected.json"
+ ],
+ "grade": "python3 {root}/harness/grade_exact.py answer.txt {task}/expected.json",
+ "seed": {
+  "rules": "Answer the question in .docs/instructions.md.",
+  "tools": [
+   "Read",
+   "Write"
+  ],
+  "max_turns": 4
+ }
+}

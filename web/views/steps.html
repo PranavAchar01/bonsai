@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:10px 26px; background:var(--paper); color:var(--ink); font:11.5px/1.5 "IBM Plex Mono", monospace; overflow:hidden; display:flex; flex-direction:column; gap:8px; }
+  .px { font-family:"DotGothic16", monospace; } .faint { color:var(--faint); } .ok { color:var(--moss); } .bad { color:var(--seal); }
+  .k { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .stamp { font:18px "DotGothic16"; padding:1px 8px; border:1px solid currentColor; display:inline-block; }
+  .cur { display:inline-block; width:6px; height:12px; background:var(--ink); vertical-align:-2px; animation:b 1s steps(2) infinite; } @keyframes b { 50% { opacity:0; } }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  #task { font:15px "DotGothic16"; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #log { flex:1; overflow-y:auto; min-height:0; } .r { display:grid; grid-template-columns:48px 1fr; gap:8px; padding:2px 0; border-bottom:1px solid var(--line); }
+  .r .w { color:var(--moss); font-size:10.5px; } .r.s .w, .r.g .w { color:var(--faint); } .r.g span + span { color:var(--faint); } .r span + span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style></head><body>
+<div id="task"></div><div id="log"></div><div id="end"></div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+// The host posts {lines, question, agent, set, colors} about once a second.
+addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.lines)) return;
+  for (const [k, v] of Object.entries(d.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  render(d); });
+
+function render(d) {
+  $('task').textContent = (d.question || d.agent.task).split('\n').find(l => l.trim())?.replace(/^#+\s*/, '') || d.agent.task;
+  const row = l => l.kind === 'tool' ? `<div class="r"><span class="w">${esc(l.tool)}</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'said' ? `<div class="r s"><span class="w">said</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'result_of_tool' ? `<div class="r g"><span class="w">got</span><span>${esc(l.text)}</span></div>` : '';
+  const verdict = d.lines.find(l => l.kind === 'verdict'), log = $('log');
+  log.innerHTML = d.lines.map(row).join('') + (d.agent.status === 'working' && !verdict ? '<div class="r s"><span class="w">now</span><span><span class="cur"></span></span></div>' : '');
+  log.scrollTop = 1e6;
+  $('end').innerHTML = verdict ? `<span class="stamp ${verdict.passed && !verdict.edited_tests ? 'ok' : 'bad'}">${verdict.edited_tests ? 'edited tests' : verdict.passed ? 'tests pass' : 'tests fail'}</span> <span class="faint" style="font-size:10px">${esc((verdict.text || '').slice(-80))}</span>` : '';
+}
+</script></body></html>

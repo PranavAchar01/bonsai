@@ -241,6 +241,47 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
             pruned.append(p["change"])
 
 
+def report(name: str = "") -> Path | None:
+    """After a run: the agent's context file as it now stands, and everything that changed to get there.
+    Written to web/out/<run>/ and web/out/latest/ (context.json, context.md, CHANGES.md)."""
+    if not LOG.exists():
+        return None
+    vs = [json.loads(line) for line in LOG.read_text().splitlines() if line.strip()]
+    if not vs:
+        return None
+    by = {v["id"]: v for v in vs}
+    kept = [vs[0]]
+    while nxt := next((v for v in vs if v.get("parent") == kept[-1]["id"] and v.get("kept")), None):
+        kept.append(nxt)
+    seed, best = kept[0], kept[-1]
+    keys = ("rules", "tools", "max_turns", "model")
+    ctx = lambda v: {k: (v.get("harness") or {}).get(k) for k in keys}  # noqa: E731
+    pct = lambda x: f"{round(x * 100)}%"  # noqa: E731
+    final = ctx(best)
+    context_md = (f"# Context file: {name or 'agent'} ({best['id']})\n\nModel: {final['model']}\n"
+                  f"Tools: {', '.join(final['tools'] or []) or 'none'}\nTurns: {final['max_turns']}\n\n## Rules\n\n{final['rules']}\n")  # fmt: skip
+    lines = [f"# What changed: {name or 'agent'}", "",
+             f"Held-out pass rate: {pct(seed['score'])} at the seed, {pct(best['score'])} now ({best['id']}).",
+             f"{len(kept) - 1} changes kept, {len(vs) - len(kept)} cut. The model itself is the same; only its context file changed.", "",
+             "## Seed against final", "", "```diff",
+             "\n".join(difflib.unified_diff(json.dumps(ctx(seed), indent=1).splitlines(), json.dumps(final, indent=1).splitlines(), seed["id"], best["id"], lineterm="")) or "no change was kept",
+             "```", "", "## Every version, in order", ""]  # fmt: skip
+    for v in vs[1:]:
+        p = by.get(v.get("parent"), seed)
+        lines += [f"### {v['id']}: {'kept' if v.get('kept') else 'cut'} ({pct(p['score'])} to {pct(v['score'])} held-out)", "",
+                  f"- Failure it saw: {v.get('signal') or 'not recorded'}", f"- Change: {v.get('change')}", f"- Shed: {v.get('shed') or 'nothing'}", "",
+                  "```diff", v.get("diff") or "no diff recorded", "```", ""]  # fmt: skip
+    out = None
+    for folder in (str(int(seed.get("ts") or 0)), "latest"):
+        out = ROOT / "web" / "out" / folder
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "context.json").write_text(json.dumps(final, indent=1) + "\n")
+        (out / "context.md").write_text(context_md)
+        (out / "CHANGES.md").write_text("\n".join(lines) + "\n")
+    print(f"context file and changes written to {out}", file=sys.stderr, flush=True)
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -257,6 +298,7 @@ def main() -> None:
     ap.add_argument("--scratch", required=True)
     a = ap.parse_args()
     run(a.practice, a.heldout, a.generations, a.tries, a.workers, a.proposer, a.scratch, a.goal)
+    report()
     if runner.RAINDROP:
         runner.raindrop.flush()
         runner.raindrop.shutdown()

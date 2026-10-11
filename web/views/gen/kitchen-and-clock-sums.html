@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:"><meta charset="utf-8">
+
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:9px 12px; background:var(--paper); color:var(--ink); font:11.5px/1.45 "IBM Plex Mono", monospace; overflow:hidden; display:flex; flex-direction:column; gap:6px; }
+  .faint { color:var(--faint); } .ok { color:var(--moss); } .bad { color:var(--seal); }
+  .k { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .stamp { font:17px "DotGothic16"; padding:0 8px; border:1px solid currentColor; display:inline-block; transform:rotate(-3deg); }
+  .cur { display:inline-block; width:6px; height:12px; background:var(--ink); vertical-align:-2px; animation:b 1s steps(2) infinite; } @keyframes b { 50% { opacity:0; } }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  #head { display:flex; justify-content:space-between; gap:8px; }
+  #q { flex:0 1 auto; max-height:31%; overflow-y:auto; white-space:pre-wrap; }
+  #q b { font-weight:500; border-bottom:1px solid var(--ink); } #q u { text-decoration:none; color:var(--moss); }
+  #given { display:flex; flex-wrap:wrap; gap:3px 6px; max-height:38px; overflow:hidden; }
+  #given span { border:1px solid var(--line); padding:0 6px; font-size:10.5px; } #given i { font-style:normal; color:var(--moss); }
+  #work { flex:1; min-height:0; overflow:hidden; border-top:1px dashed var(--line); padding-top:4px; }
+  #work div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } #work .sum { font-weight:500; }
+  #work .note { font-size:10.5px; color:var(--faint); white-space:normal; max-height:31px; }
+  #foot { display:flex; align-items:flex-end; gap:10px; border-top:1px solid var(--ink); padding-top:5px; }
+  #pic { flex:0 0 42px; height:52px; } #pic svg { width:42px; height:52px; display:block; }
+  #mid { flex:1; min-width:0; }
+  #a { font:24px/1.1 "DotGothic16"; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:27px; }
+  #chk { font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #end { flex:0 0 auto; text-align:right; padding-bottom:4px; }
+</style></head><body>
+<div id="head"><span class="k" id="mode">kitchen and clock sums</span><span class="k" id="stat"></span></div>
+<div id="q"></div>
+<div id="given"></div>
+<div id="work"></div>
+<div id="foot"><div id="pic"></div><div id="mid"><div class="k">answer.txt</div><div id="a"></div><div id="chk"></div></div><div id="end"></div></div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+// The host posts {lines, question, agent, set, colors} about once a second.
+addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.lines)) return;
+  for (const [k, v] of Object.entries(d.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  render(d); });
+
+const NUM = /(\d+(?:[.,:\/]\d+)?)(\s*)([A-Za-z°%]+)?/g;
+const UNIT = /^(cups?|grams?|g|kg|kilograms?|ml|l|lit(er|re)s?|tbsp|tsp|tablespoons?|teaspoons?|oz|ounces?|lbs?|pounds?|eggs?|servings?|people|minutes?|mins?|hours?|hrs?|seconds?|secs?|days?|am|pm|degrees?|°[CF]?|%|slices?|pieces?|cookies?|loaves|batches|trays?|times)$/i;
+const SUM = /-?\d[\d.,:]*\s*[a-z]{0,8}\s*[×x*\/÷+\-−]\s*-?\d[^\n=]{0,28}=\s*-?\d[\d.,:]*(?:\s?[a-z%]{1,8})?/gi;
+
+// Underline every figure in the question and collect the quantities it gives.
+function mark(q) { let out = '', i = 0; const chips = [];
+  for (const m of q.matchAll(NUM)) { const unit = m[3] && UNIT.test(m[3]) ? m[3] : '';
+    out += esc(q.slice(i, m.index)) + '<b>' + esc(m[1]) + '</b>' + (unit ? esc(m[2]) + '<u>' + esc(unit) + '</u>' : '');
+    i = m.index + (unit ? m[0].length : m[1].length);
+    chips.push('<span>' + esc(m[1]) + (unit ? ' <i>' + esc(unit) + '</i>' : '') + '</span>'); }
+  return { html: out + esc(q.slice(i)), chips }; }
+
+function written(tools) {
+  const w = [...tools].reverse().find(l => /answer\.txt/.test(String(l.text)) && (/write|edit|create/i.test(l.tool) || />|tee|content/.test(String(l.text))));
+  if (!w) return ''; const s = String(w.text); let m;
+  if ((m = s.match(/"(?:content|new_string|file_text)"\s*:\s*"((?:[^"\\]|\\.)*)"/))) return m[1].replace(/\\n/g, ' ').replace(/\\(.)/g, '$1').trim();
+  if ((m = s.match(/(?:echo|printf)\s+(?:-\w+\s+)*(["']?)(.*?)\1\s*(?:>|\|\s*tee)\s*\S*answer\.txt/s))) return m[2].replace(/\\n/g, '').trim();
+  return s.replace(/^.*answer\.txt["'\s:,)]*/s, '').trim() || s.trim(); }
+
+function jug(level, col) { const h = Math.round(40 * level);
+  return `<svg viewBox="0 0 42 52"><rect x="9" y="${47 - h}" width="24" height="${h}" fill="${col}" opacity=".45"/>` +
+    `<path d="M8 5 V47 H34 V5 M34 12 H39 V26 H34" fill="none" stroke="var(--ink)" stroke-width="1.5"/>` +
+    [15, 23, 31, 39].map(y => `<path d="M9 ${y} H16" stroke="var(--ink)" stroke-width="1"/>`).join('') + '</svg>'; }
+function dial(mins, col) { const hand = (deg, r, w) => { const a = (deg - 90) * Math.PI / 180;
+    return `<path d="M21 27 L${(21 + r * Math.cos(a)).toFixed(1)} ${(27 + r * Math.sin(a)).toFixed(1)}" stroke="${col}" stroke-width="${w}"/>`; };
+  let t = ''; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; t += `<path d="M${(21 + 16 * Math.sin(a)).toFixed(1)} ${(27 - 16 * Math.cos(a)).toFixed(1)} L${(21 + 19 * Math.sin(a)).toFixed(1)} ${(27 - 19 * Math.cos(a)).toFixed(1)}" stroke="var(--ink)" stroke-width="1"/>`; }
+  return `<svg viewBox="0 0 42 52"><circle cx="21" cy="27" r="19.5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>${t}${hand(mins / 2, 9, 2)}${hand(mins * 6, 14, 1.2)}</svg>`; }
+const clockMins = s => { const m = String(s).match(/(\d{1,2}):(\d{2})/); if (m) return +m[1] * 60 + +m[2]; const n = parseFloat(s); return isFinite(n) ? n : null; };
+
+let shown = '', target = '', timer = null;
+function type() { if (shown === target) { clearInterval(timer); timer = null; $('a').innerHTML = esc(shown); return; }
+  shown = target.startsWith(shown) ? target.slice(0, shown.length + 1) : ''; $('a').innerHTML = esc(shown) + '<span class="cur"></span>'; }
+
+function render(d) {
+  const agent = d.agent || {}, lines = d.lines.filter(l => l && typeof l === 'object');
+  const q = String(d.question || '').replace(/\n*Write only your final answer[^\n]*\n?$/, '').trim();
+  const tools = lines.filter(l => l.kind === 'tool'), verdict = lines.find(l => l.kind === 'verdict');
+  const working = agent.status === 'working' && !verdict, last = lines[lines.length - 1];
+  const isClock = /\d:\d\d|\b(o'clock|a\.?m\.?|p\.?m\.?)\b/i.test(q) || (/\b(minutes?|hours?|seconds?|clock|timer)\b/i.test(q) && !/\b(cups?|grams?|kg|ml|lit(er|re)s?|tbsp|tsp|spoons?|ounces?|oz|flour|sugar|butter|recipe)\b/i.test(q));
+
+  $('mode').textContent = q ? (isClock ? 'clock sum' : 'kitchen sum') : 'kitchen and clock sums';
+  $('stat').innerHTML = (last && isFinite(last.t) ? esc(Math.round(last.t)) + 's · ' : '') + tools.length + (tools.length === 1 ? ' step' : ' steps') + (working ? ' <span class="cur"></span>' : '');
+  const m = mark(q);
+  $('q').innerHTML = q ? m.html : '<span class="faint">waiting for the question</span>';
+  $('given').innerHTML = m.chips.length ? '<span class="k" style="border:0;padding:0">given</span>' + m.chips.slice(0, 8).join('') : '';
+
+  // The working: any sums the agent has written out, newest last, else what it last said.
+  const sums = []; for (const l of lines) if (['said', 'result', 'result_of_tool', 'tool'].includes(l.kind))
+    for (const s of String(l.text ?? '').match(SUM) || []) { const c = s.replace(/\s+/g, ' ').trim(); if (sums[sums.length - 1] !== c) sums.push(c); }
+  const said = [...lines].reverse().find(l => (l.kind === 'said' || l.kind === 'result') && l.text);
+  const tool = tools[tools.length - 1];
+  $('work').innerHTML = '<div class="k">working' + (tool ? ' · ' + esc(tool.tool) : '') + '</div>' +
+    (sums.length ? sums.slice(-2).map(s => '<div class="sum">' + esc(s) + '</div>').join('')
+      : '<div class="note">' + (said ? esc(String(said.text).trim().slice(-120)) : working ? 'no sums on the page yet' : '') + '</div>');
+
+  target = written(tools).slice(0, 60);
+  if (!target && !timer) { shown = ''; $('a').innerHTML = '<span class="faint" style="font:11.5px IBM Plex Mono">not written yet</span>'; }
+  if (target && target !== shown && !timer) timer = setInterval(type, 60);
+  const bare = /^-?\d+(?:[.,:\/]\d+)?$/.test(target);
+  $('chk').innerHTML = target ? `<span class="${bare ? 'ok' : 'bad'}">${bare ? 'a bare number, as asked' : 'not a bare number'}</span>` : '<span class="faint">number only, nothing else</span>';
+
+  const cheat = agent.status === 'cheat' || (verdict && verdict.edited_tests);
+  const passed = verdict ? !!verdict.passed : agent.status === 'passed', done = cheat || verdict || agent.status === 'passed' || agent.status === 'failed';
+  const col = !done ? 'var(--ink)' : passed && !cheat ? 'var(--moss)' : 'var(--seal)';
+  const mins = (target && clockMins(target)) ?? clockMins(q) ?? 0;
+  $('pic').innerHTML = isClock ? dial(mins, col) : jug(target ? 1 : Math.min(.8, .1 + tools.length * .2), done ? col : 'var(--moss)');
+  $('end').innerHTML = done ? `<span class="stamp ${passed && !cheat ? 'ok' : 'bad'}">${cheat ? 'cheat' : passed ? 'correct' : 'wrong'}</span>` : '';
+  $('end').title = verdict ? String(verdict.text || '').slice(-120) : '';
+}
+</script></body></html>

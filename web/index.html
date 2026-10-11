@@ -54,6 +54,15 @@
   #phase.live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
   .seal { position:absolute; left:32px; bottom:24px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; z-index:2; transition:background-color 6s; }
 
+  /* live view: the agent at work on one problem, in a view made for that kind of task */
+  #live { flex:none; height:372px; display:none; flex-direction:column; background:var(--paper); border-top:1px solid var(--ink); }
+  #live.on { display:flex; }
+  #live .lh { display:flex; align-items:center; gap:8px; padding:6px 26px; border-bottom:1px solid var(--line); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  #live .lh b { color:var(--ink); font-weight:400; overflow:hidden; text-overflow:ellipsis; } #live .lh .sp { flex:1; }
+  #live .lh button { font-size:10.5px; padding:0 7px; letter-spacing:0; text-transform:none; }
+  #live iframe { flex:1; width:100%; border:0; min-height:0; }
+  #live.small { height:auto; } #live.small iframe { display:none; }
+
   /* new benchmark, unfolds under the ask */
   #newset { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
   #newset[hidden] { display:none; }
@@ -210,7 +219,7 @@
 </div>
 
 <section id="term">
-  <div class="tbar"><span>agent files · versions/</span><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
+  <div class="tbar"><span>agent files · versions/</span><button onclick="window.open('out/latest/context.md')" title="The agent's context file after the last run">context file</button><button onclick="window.open('out/latest/CHANGES.md')" title="Everything that changed in the last run">changes</button><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
   <div id="t-files"></div>
   <div id="t-out"></div>
 </section>
@@ -230,6 +239,10 @@
   <div id="ledger"></div>
   <div id="version"></div>
   <div id="watch"></div>
+  <div id="live">
+    <div class="lh"><span class="dot" id="lv-dot"></span><b id="lv-what"></b><span id="lv-kind"></span><span class="sp"></span><button id="lv-gen" onclick="genView()" title="Have the proposer model write a view for this benchmark">write a view</button><button onclick="$('live').classList.toggle('small')">–</button></div>
+    <iframe id="lv-frame" sandbox="allow-scripts" title="The agent at work"></iframe>
+  </div>
 </aside>
 
 <script type="module">
@@ -479,6 +492,31 @@ async function pullWatch() {
   $('w-steps').innerHTML = lines.length ? lines.map(l => row(l).replace('<span class="w">', `<span class="w" title="${ago(l)}">`)).join('') : '<div class="empty">Waiting for its first step.</div>';
   if (atEnd) box.scrollTop = box.scrollHeight;
 }
+// Live view: the newest working agent (or the one being watched), drawn by the view for its benchmark.
+// Views are separate pages in a sandboxed frame; one written by the model can draw and nothing else.
+let liveSrc = '', liveBusy = false, liveSet = null;
+function liveTarget() {
+  const A = (app?.agents || []).filter(x => x.role !== 'proposer');
+  if (watching && watching.role !== 'proposer') return A.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split) || watching;
+  return A.filter(x => x.status === 'working').sort((x, y) => x.started - y.started)[0] || A.filter(x => x.ended).sort((x, y) => y.ended - x.ended)[0] || null;
+}
+async function pullLive() {
+  const t = liveTarget(), box = $('live'); box.classList.toggle('on', !!t); if (!t || liveBusy) return;
+  const set = liveSet = app.sets.find(s => t.task.startsWith(s.key + '/')) || app.sets.find(s => s.key === 'python'), writing = (app.viewgen || []).includes(set.key);
+  $('lv-what').textContent = `${short(t.task)} · ${t.version}`; $('lv-dot').style.background = t.status === 'working' ? 'var(--seal)' : '';
+  $('lv-kind').textContent = writing ? 'writing its view…' : set.view.includes('/gen/') ? 'view written for it' : '';
+  $('lv-gen').disabled = writing; $('lv-gen').textContent = set.view.includes('/gen/') ? 'rewrite view' : 'write a view';
+  if (set.view !== liveSrc) { liveSrc = set.view; $('lv-frame').src = set.view; }
+  liveBusy = true;
+  try {
+    const r = await fetch(`api/watch?version=${encodeURIComponent(t.version)}&task=${encodeURIComponent(t.task)}`, {cache:'no-store'}), j = r.ok ? await r.json() : {lines:[]};
+    const css = getComputedStyle(document.documentElement), colors = Object.fromEntries(['paper', 'ink', 'faint', 'seal', 'moss'].map(k => [k, css.getPropertyValue('--' + k).trim()]));
+    $('lv-frame').contentWindow?.postMessage({lines:j.lines, question:j.question || '', agent:{task:t.task, version:t.version, status:t.status, model:t.model, split:t.split}, set:{key:set.key, name:set.name}, colors}, '*');
+  } catch {} finally { liveBusy = false; }
+}
+async function genView() { if (!liveSet) return; const hint = prompt('What should this view show? Leave empty to let it decide.', ''); if (hint === null) return; await post('api/views', {set:liveSet.key, hint}); poll(); }
+setInterval(pullLive, 1000);
+
 async function poll() {
   try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
   catch { $('phase').innerHTML = '<span class="dot"></span><b>view only</b> · start the app with python server.py to run it from here'; $('go').disabled = true; }

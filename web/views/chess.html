@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:10px 26px; background:var(--paper); color:var(--ink); font:11.5px/1.5 "IBM Plex Mono", monospace; overflow:hidden; display:flex; flex-direction:column; gap:8px; }
+  .px { font-family:"DotGothic16", monospace; } .faint { color:var(--faint); } .ok { color:var(--moss); } .bad { color:var(--seal); }
+  .k { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .stamp { font:18px "DotGothic16"; padding:1px 8px; border:1px solid currentColor; display:inline-block; }
+  .cur { display:inline-block; width:6px; height:12px; background:var(--ink); vertical-align:-2px; animation:b 1s steps(2) infinite; } @keyframes b { 50% { opacity:0; } }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  #wrap { flex:1; display:flex; gap:12px; min-height:0; }
+  #board { height:100%; aspect-ratio:1; display:grid; grid-template-columns:repeat(8, 1fr); border:1px solid var(--ink); }
+  #board i { display:grid; place-items:center; font-style:normal; font-size:min(4.4vh, 22px); line-height:1; transition:background-color .5s; }
+  #board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); } #board i.hot { background:color-mix(in srgb, var(--seal) 38%, var(--paper)); }
+  #side { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  #moves { flex:1; overflow-y:auto; font-size:11px; } #moves b { font:400 13px "DotGothic16"; } #moves span { display:inline-block; margin-right:7px; }
+  #said { max-height:42px; overflow:hidden; font-size:10.5px; color:var(--faint); }
+</style></head><body>
+<div class="k" id="who"></div>
+<div id="wrap"><div id="board"></div><div id="side"><div class="px" id="turn" style="font-size:15px"></div><div id="moves"></div><div id="end"></div></div></div>
+<div id="said"></div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+// The host posts {lines, question, agent, set, colors} about once a second.
+addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.lines)) return;
+  for (const [k, v] of Object.entries(d.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  render(d); });
+
+const G = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
+const cells = fen => { const a = []; for (const c of fen.split(' ')[0].replace(/\//g, '')) /\d/.test(c) ? a.push(...Array(+c).fill('')) : a.push(c); return a; };
+function render(d) {
+  const black = /black$/.test(d.agent.task), fens = d.lines.filter(l => l.fen).map(l => l.fen), moves = d.lines.filter(l => l.kind === 'move');
+  const now = cells(fens.at(-1) || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'), was = fens.length > 1 ? cells(fens.at(-2)) : now;
+  const order = [...Array(64).keys()]; if (black) order.reverse();
+  $('board').innerHTML = order.map(i => `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''} ${now[i] !== was[i] ? 'hot' : ''}">${G[now[i]] || ''}</i>`).join('');
+  const last = moves.at(-1), verdict = d.lines.find(l => l.kind === 'verdict'), bad = d.lines.filter(l => l.kind === 'illegal').length;
+  $('who').textContent = `${d.agent.model || 'agent'} plays ${black ? 'black' : 'white'} · Stockfish replies`;
+  $('turn').innerHTML = verdict ? '' : d.agent.status === 'working' ? (!last || last.by !== 'agent' ? 'thinking <span class="cur"></span>' : 'Stockfish to reply') : esc(d.agent.status || '');
+  $('moves').innerHTML = moves.map(m => `<span class="${m.by === 'agent' ? '' : 'faint'}">${m.by === 'agent' ? m.n + '.' : ''}<b>${esc(m.san)}</b></span>`).join('') + (bad ? `<div class="bad">${bad} illegal ${bad === 1 ? 'try' : 'tries'}</div>` : '');
+  $('moves').scrollTop = 1e6;
+  $('end').innerHTML = verdict ? `<span class="stamp ${verdict.passed ? 'ok' : 'bad'}">${verdict.passed ? 'held' : 'lost'}</span><div class="faint" style="font-size:10px;margin-top:3px">${esc((verdict.text || '').slice(-90))}</div>` : '';
+  const said = [...d.lines].reverse().find(l => l.said)?.said; $('said').textContent = said ? '“' + said.slice(-170) + '”' : '';
+}
+</script></body></html>
