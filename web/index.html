@@ -146,6 +146,12 @@ function pad(x, y, r) {
     ctx.strokeStyle = rgba(tone, .42 + rnd()*.4); ctx.lineWidth = .9 + rnd()*1.5; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang)*len, py + Math.sin(ang)*len); ctx.stroke();
   }
+  for (let i = 0; i < r*3.2; i++) {                          // hanging needles on the underside, shorter and darker
+    const t = rnd()*2 - 1, px = x + t*r*1.05, drop = (1 - t*t)*r*.2*rnd(), py = y + 2 + drop;
+    const tone = tones[Math.floor(rnd()*2.4)], len = 3 + rnd()*5, ang = Math.PI/2 + t*.8 + (rnd()-.5)*.7;
+    ctx.strokeStyle = rgba(tone, .4 + rnd()*.4); ctx.lineWidth = .9 + rnd()*1.3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang)*len, py + Math.sin(ang)*len); ctx.stroke();
+  }
   for (let i = 0; i < r*.5; i++) {                           // ink shadow under the pad
     const px = x + (rnd()-.5)*r*1.9, py = y + rnd()*5;
     ctx.fillStyle = rgba([24,34,28], .28 + rnd()*.3); ctx.beginPath(); ctx.ellipse(px, py, 2 + rnd()*5, 1 + rnd()*1.6, 0, 0, 7); ctx.fill();
@@ -154,8 +160,22 @@ function pad(x, y, r) {
 function paper(W, H) {
   ctx.fillStyle = '#efe7d6'; ctx.fillRect(0, 0, W, H);
   for (let i = 0; i < 2600; i++) { ctx.fillStyle = rgba([120,105,80], rnd()*.05); ctx.fillRect(rnd()*W, rnd()*H, 1 + rnd()*14, .6); }
-  wash(W*.72, H*.2, H*.16, [181,51,42], 14);                 // pale sun
-  for (let i = 0; i < 3; i++) wash(W*(.15 + i*.3), H*(.78 - i*.03), H*.22, [96,110,130], 12);   // far hills
+  // Sun: one clean vermilion disc, pigment pooled at the rim, a faint halo bled into the paper.
+  const sx = W*.74, sy = H*.2, sr = Math.min(W, H)*.085;
+  let g = ctx.createRadialGradient(sx, sy, sr*.9, sx, sy, sr*2.1);
+  g.addColorStop(0, rgba(SEAL, .10)); g.addColorStop(1, rgba(SEAL, 0)); ctx.fillStyle = g; ctx.fillRect(sx - sr*2.2, sy - sr*2.2, sr*4.4, sr*4.4);
+  g = ctx.createRadialGradient(sx - sr*.2, sy - sr*.2, sr*.1, sx, sy, sr);
+  g.addColorStop(0, rgba([196,72,58], .50)); g.addColorStop(.8, rgba(SEAL, .62)); g.addColorStop(.96, rgba([150,38,32], .7)); g.addColorStop(1, rgba(SEAL, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
+  // Far hills: three ridgelines, each a graded wash that is darkest at the crest and fades into mist.
+  [[.60, .16, [128,140,156], .30], [.68, .12, [104,118,138], .36], [.76, .09, [84,98,118], .40]].forEach(([base, amp, col, al], k) => {
+    const y0 = H*base, ph = k*2.1 + 1, ridge = x => y0 - H*amp*(.55*Math.sin(x/W*3.1 + ph) + .3*Math.sin(x/W*7.3 + ph*1.7) + .15*Math.sin(x/W*15 + ph)) - H*amp*.4;
+    const gr = ctx.createLinearGradient(0, y0 - H*amp*1.4, 0, y0 + H*.1);
+    gr.addColorStop(0, rgba(col, al)); gr.addColorStop(.45, rgba(col, al*.45)); gr.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) ctx.lineTo(x, ridge(x) + (rnd() - .5)*1.6);
+    ctx.lineTo(W, H); ctx.fill();
+  });
 }
 
 function draw(data) {
