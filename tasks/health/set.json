@@ -1,0 +1,19 @@
+{
+  "name": "Health: MedQA (USMLE)",
+  "prompt": "Answer the question in .docs/instructions.md and write the answer to answer.txt.",
+  "solution": [
+    "answer.txt"
+  ],
+  "hidden": [
+    "expected.json"
+  ],
+  "grade": "uv run -q --no-project python \"{root}/harness/grade_exact.py\" answer.txt \"{task}/expected.json\"",
+  "seed": {
+    "rules": "Answer the question in .docs/instructions.md and write the answer to answer.txt.",
+    "tools": [
+      "Read",
+      "Write"
+    ],
+    "max_turns": 4
+  }
+}
