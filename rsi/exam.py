@@ -111,7 +111,8 @@ def answer(pos: dict, harness: dict, choose, arm: str, purpose: str = "exam") ->
     try:
         r = choose(board, harness, ctx)
     except Exception as e:  # InfraAbort, engine trouble: void. Stopped is a BaseException and propagates.
-        return {"infra": True, "error": f"{type(e).__name__}: {str(e)[:200]}"}
+        return {"infra": True, "error": f"{type(e).__name__}: {str(e)[:200]}", "kind": getattr(e, "kind", "bug"),
+                "reset_at": getattr(e, "reset_at", None)}
     atts = r.get("attempts") or []
     mv = r.get("move")
     if mv is not None and not isinstance(mv, str):

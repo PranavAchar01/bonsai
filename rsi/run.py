@@ -406,6 +406,9 @@ class Run:
             run = run + 1 if r is None or r["status"] != "complete" else 0
             streak = max(streak, run)
         if void > self.cfg["games"]["void_frac_max"] * len(slots) or streak >= self.cfg["games"]["infra_streak_max"]:
+            bug = next((r for r in bad if r.get("infra_kind") == "bug"), None)
+            if bug:  # our code, not the network: retrying would loop forever, a human has to look
+                raise Pause(f"bug in a game ({bug['slot']}): {bug.get('infra')}", EXIT_FATAL)
             raise Pause(f"{void}/{len(slots)} games void (longest infra streak {streak}): no proposer call")
         return [r for r in recs if r["status"] == "complete"]
 
@@ -650,16 +653,32 @@ class Run:
     # ---------------- phases: prescreen, exam
 
     def _cache(self, name: str):
+        """Answers already bought for this exam, and a callback that persists new ones. Infra answers are never
+        persisted (older files may hold some: they are skipped), so a resumed exam asks those positions again."""
         path = self.dir / "exam" / f"{name}.jsonl"
-        cache = {(r["pid"], r["arm"]): r["ans"] for r in reliable.read_jsonl(path)}
+        cache = {(r["pid"], r["arm"]): r["ans"] for r in reliable.read_jsonl(path) if not (r.get("ans") or {}).get("infra")}
         count = [len(cache)]
 
         def on_answer(pid, arm, ans):
+            if ans.get("infra"):
+                self.event("answer_infra", exam=name, pos=pid, arm=arm, infra_kind=ans.get("kind"),
+                           detail=(ans.get("error") or "")[:200])
+                return
             reliable.append_jsonl(path, {"pid": pid, "arm": arm, "ans": ans})
             count[0] += 1
             if count[0] % 10 == 0:
                 self.event("answers", exam=name, n=count[0])
         return cache, on_answer
+
+    def stop_on_limit(self, cache: dict) -> None:
+        """A usage limit or auth failure during an exam is a pause, not a verdict: nothing is decided or saved."""
+        bad = [a for a in cache.values() if a.get("infra") and a.get("kind") in ("usage_limit", "auth")]
+        auth = next((a for a in bad if a["kind"] == "auth"), None)
+        if auth:
+            raise Pause(f"auth failure: {auth.get('error')}", EXIT_FATAL)
+        if bad:
+            resets = [a["reset_at"] for a in bad if a.get("reset_at")]
+            raise Pause(f"usage limit: {bad[0].get('error')}", EXIT_RETRY, max(resets) if resets else None)
 
     def prescreen_positions(self, child: dict, n: int, seed: str) -> list[dict]:
         pool = reliable.read_jsonl(self.dir / "train_bank.jsonl")
@@ -685,6 +704,7 @@ class Run:
             cache, on_answer = self._cache(f"{c['vid']}-prescreen")
             res = X.prescreen(pos, self.champion, c["harness"], self.choose, self.scorer, workers=self.workers,
                               seed=f"{self.id}|{c['vid']}", cache=cache, on_answer=on_answer)
+            self.stop_on_limit(cache)
             reliable.atomic_write_json(self.dir / "exam" / f"{c['vid']}-prescreen.result.json", res, indent=1)
             c["prescreen"] = {k: res[k] for k in ("kill", "p", "gain", "n", "void", "unusable_delta")}
             if res["kill"]:
@@ -723,6 +743,7 @@ class Run:
                                  shed=bool(c.get("removal_only")), workers=self.workers, seed=f"{self.id}|{c['vid']}",
                                  cache=cache, on_answer=on_answer) if pos else \
                     {"decision": "inconclusive", "accept": False, "n": 0, "gain": 0.0, "p": 0.5, "void": 0, "looks": []}
+                self.stop_on_limit(cache)
                 reliable.atomic_write_json(self.dir / "exam" / f"{c['vid']}-exam.result.json", res, indent=1)
                 c["exam"] = {k: res.get(k) for k in ("decision", "n", "gain", "p", "void", "ci90", "looks", "calls",
                                                      "cost", "a", "b")}
@@ -760,6 +781,7 @@ class Run:
             on_answer(p["id"], "a", ans)
         with ThreadPoolExecutor(max(1, self.workers)) as ex:
             list(ex.map(one, todo))
+        self.stop_on_limit(cache)
         losses = [self.scorer(p, cache[(p["id"], "a")]["move"]) for p in anchor if not cache[(p["id"], "a")]["infra"]]
         self.gs(g)["anchor"] = {"vid": vid, "n": len(losses), "void": len(anchor) - len(losses),
                                 "mean_loss": round(sum(losses) / max(1, len(losses)), 2)}
@@ -920,6 +942,29 @@ def hard_stop(run_dir: Path, signum: int) -> None:
         os._exit(143)
 
 
+def smoke(run_id: str, root: Path | str = RUNS, replays: Path | str = G.REPLAYS, elo: float = 100,
+          family: str = "italian", color: str = "white") -> dict:
+    """One real game: the seed harness (real model) against the ladder rung at `elo`. Resumable like any game.
+    Writes runs/rsi/<ID>/games/g0/smoke.json and the viewer replay; returns a short summary."""
+    from rsi import player
+    cfg = reliable.run_config()
+    h = player.seed_harness(cfg)
+    out = Path(root) / run_id / "games" / "g0"
+    slot = {"id": "smoke", "seed": sha1(run_id, "smoke")[:10], "gen": 0, "split": "train", "family": family,
+            "color": color, "target": elo, "elo": elo, "opp": R.rung_for_elo(elo)}
+    t0 = time.time()
+    rec = G.play_game(h, slot, out, run_id, choose=lambda b, hh, ctx: player.choose(b, hh, ctx, cli=cfg["cli"]["path"]),
+                      replays_dir=replays, max_moves=cfg["games"]["move_cap"], time_cap=cfg["games"]["time_cap_s"])
+    agent = rec["per_move"]
+    return {"status": rec["status"], "result": rec["result"], "score": rec["score"], "how": rec["how"],
+            "plies": rec["plies"], "agent_moves": len(agent), "calls": rec["calls"], "cost_usd": rec["cost_usd"],
+            "wall_s": round(time.time() - t0, 1), "play_s": rec["elapsed_s"], "model": rec["model"],
+            "opp": rec["opp"]["name"], "opp_elo": rec["opp_elo"], "infra_kind": rec["infra_kind"],
+            "unusable": sum(a.get("kind") != "ok" for p in agent for a in p["attempts"]),
+            "record": str(out / "smoke.json"),
+            "replay": str(Path(replays) / f"{G.safe(run_id)}-g0" / f"{rec['game']}.json")}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run", required=True, help="RUN_ID: runs/rsi/<RUN_ID>/")
@@ -932,12 +977,25 @@ def main(argv=None) -> int:
     ap.add_argument("--replays", default=str(G.REPLAYS), help="viewer replay folder (tasks/chess/_replays)")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=JSON",
                     help="override a run.json value at the first start, e.g. --set games.move_cap=30")
+    ap.add_argument("--smoke", action="store_true",
+                    help="play ONE real game (seed harness vs the E100 rung), print a JSON summary, exit")
     a = ap.parse_args(argv)
     overrides = {k: json.loads(v) for k, v in (x.split("=", 1) for x in a.set)}
     run_dir = Path(a.root) / a.run
     run_dir.mkdir(parents=True, exist_ok=True)
     signal.signal(signal.SIGTERM, lambda s, f: hard_stop(run_dir, s))
     signal.signal(signal.SIGINT, lambda s, f: hard_stop(run_dir, s))
+    if a.smoke:  # one game, one worker: takes the run lock only, not the machine-wide heavy lock
+        lock = reliable.RunLock(run_dir / "run.lock", "rsi.run --smoke")
+        if not lock.acquire():
+            print(f"run.py: lock {lock.path} is held by {lock.holder()}", file=sys.stderr)
+            return EXIT_RETRY
+        try:
+            res = smoke(a.run, a.root, a.replays)
+        finally:
+            lock.release()
+        print(json.dumps(res, indent=1))
+        return 0 if res["status"] == "complete" else EXIT_RETRY
     try:
         locks = _lock(a.dry, run_dir)
     except Pause as e:

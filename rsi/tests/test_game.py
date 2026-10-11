@@ -211,3 +211,18 @@ def test_slot_without_opp_uses_rung_for_elo(tmp_path):
         agent.close()
     assert rec["opp"]["name"] == "E100" and rec["opp_elo"] == 93 and rec["split"] == "held"
     assert rec["moves"][:rec["opening_plies"]] in game.load_openings()[12]["lines"]
+
+
+def test_infra_waits_do_not_count_toward_the_time_cap(tmp_path):
+    # each reply took 0.01 s of model time but the call spent 0.2 s in (simulated) backoff: no time cap
+    bot = Bot({"kind": "random"}, seed="agent")
+
+    def slow(board, h, ctx):
+        time.sleep(0.2)
+        return {"move": bot.move(board), "reason": "", "attempts": [{"kind": "ok", "wall_s": 0.01}], "calls": 1,
+                "cost": 0.0}
+    try:
+        rec = play(tmp_path, slot(), choose=slow, time_cap=0.5, max_moves=8)
+    finally:
+        bot.close()
+    assert rec["status"] == "complete" and rec["how"] != "time cap" and rec["elapsed_s"] < 0.5 + 8
