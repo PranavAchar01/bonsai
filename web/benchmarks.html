@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai benchmarks</title>
+<!--
+  One small chart per benchmark tree: held-out score of every version by generation.
+  Reads runs/<key>-versions.jsonl (the BONSAI_LOG of each loop) and runs/<key>-seed.json, and
+  refreshes every 10 s so it fills in while the loops run. Serve from the repo root:
+    python3 -m http.server 8800   ->   http://localhost:8800/web/benchmarks.html
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#1a1b26; --deep:#16161e; --ink:#c0caf5; --faint:#565f89; --muted:#8089b3; --line:rgba(122,162,247,.18);
+    --kept:#7aa2f7; --cheat:#f7768e; }
+  * { box-sizing: border-box; }
+  body { margin:0; color:var(--ink); font-family:"Chakra Petch",sans-serif; min-height:100vh;
+    background:radial-gradient(ellipse at 70% 0%, rgba(187,154,247,.10), transparent 55%),
+               radial-gradient(ellipse at 0% 100%, rgba(125,207,255,.07), transparent 50%), var(--paper); }
+  header { padding:28px 32px 8px; }
+  h1 { margin:0; font-weight:600; font-size:30px; letter-spacing:.01em; }
+  .sub { font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted); margin-top:6px; }
+  .key { display:flex; gap:22px; font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--muted); padding:10px 32px 0; flex-wrap:wrap; }
+  .key svg { vertical-align:-3px; margin-right:6px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px; padding:18px 32px 32px; }
+  .card { background:rgba(22,22,30,.72); border:1px solid var(--line); padding:16px 16px 10px; position:relative; }
+  .card h2 { margin:0; font-size:12px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);
+    font-family:"JetBrains Mono",monospace; display:flex; justify-content:space-between; }
+  .hero { display:flex; align-items:baseline; gap:10px; margin:8px 0 2px; }
+  .hero b { font-size:40px; font-weight:600; line-height:1; }
+  .hero .from { font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--muted); }
+  .hero .delta { font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--ink); }
+  .meta { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--muted); min-height:16px; }
+  svg.plot { width:100%; height:190px; display:block; margin-top:6px; overflow:visible; }
+  .axis text { fill:var(--faint); font:10.5px "JetBrains Mono",monospace; }
+  .axis line { stroke:var(--line); }
+  .empty { position:absolute; inset:110px 16px 40px; display:flex; align-items:center; justify-content:center;
+    font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--faint); text-align:center; }
+  .tip { position:fixed; pointer-events:none; background:var(--deep); border:1px solid var(--line); padding:8px 10px;
+    font:11.5px/1.5 "JetBrains Mono",monospace; color:var(--ink); max-width:320px; display:none; z-index:5; }
+  .tip .k { color:var(--muted); }
+  details { margin:0 32px 32px; font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted); }
+  summary { cursor:pointer; }
+  table { border-collapse:collapse; margin-top:10px; width:100%; }
+  th, td { text-align:left; padding:5px 10px; border-bottom:1px solid var(--line); color:var(--ink); }
+  th { color:var(--muted); font-weight:400; }
+  @media (max-width:600px) { header, .key { padding-left:16px; padding-right:16px; } .grid { padding:16px; } details { margin:0 16px 24px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Bonsai: one harness, five trees</h1>
+  <div class="sub">held-out score of every harness version · player model stays Claude Haiku · proposer rewrites the harness</div>
+</header>
+<div class="key">
+  <span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--kept)"/></svg>kept (beat its parent on held-out)</span>
+  <span><svg width="14" height="14"><g stroke="var(--faint)" stroke-width="2"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></g></svg>pruned</span>
+  <span><svg width="14" height="14"><g stroke="var(--cheat)" stroke-width="2"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></g></svg>pruned for cheating</span>
+  <span><svg width="22" height="14"><line x1="1" y1="7" x2="21" y2="7" stroke="var(--kept)" stroke-width="2"/></svg>best so far</span>
+</div>
+<div class="grid" id="grid"></div>
+<details><summary>Table view</summary><table id="table"></table></details>
+<div class="tip" id="tip"></div>
+<script>
+const SETS = [
+  { key: "legal", name: "Legal", src: "LegalBench" },
+  { key: "health", name: "Health", src: "MedQA (USMLE)" },
+  { key: "finance", name: "Finance", src: "FinQA" },
+  { key: "coding", name: "Coding", src: "Aider Polyglot C++" },
+  { key: "chess", name: "Chess", src: "games vs Stockfish" },
+];
+const RUNS = new URLSearchParams(location.search).get("runs") || "../runs";  // ?runs= points at another folder of logs
+const W = 320, H = 190, M = { l: 34, r: 10, t: 8, b: 22 };
+const pct = s => `${Math.round(s * 100)}%`;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+async function getText(url) { try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.text() : null; } catch { return null; } }
+
+async function load(set) {
+  const log = await getText(`${RUNS}/${set.key}-versions.jsonl`);
+  const versions = log ? log.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)) : [];
+  return { ...set, versions };
+}
+
+function card(s) {
+  const v = s.versions, seed = v.find(x => x.generation === 0);
+  const kept = v.filter(x => x.kept && x.generation > 0), pruned = v.filter(x => !x.kept);
+  const best = v.filter(x => x.kept).reduce((a, x) => (x.score > a.score ? x : a), seed || { score: 0 });
+  const gens = Math.max(3, ...v.map(x => x.generation));
+  const x = g => M.l + (g / gens) * (W - M.l - M.r);
+  const y = sc => M.t + (1 - sc) * (H - M.t - M.b);
+  // y-axis and generation ticks
+  let svg = `<g class="axis">${[0, .25, .5, .75, 1].map(t => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${M.l - 6}" y="${y(t) + 3.5}" text-anchor="end">${pct(t)}</text>`).join("")}
+    ${Array.from({ length: gens + 1 }, (_, g) => `<text x="${x(g)}" y="${H - 5}" text-anchor="middle">${g ? "gen " + g : "seed"}</text>`).join("")}</g>`;
+  // best-so-far step line through kept versions
+  const steps = []; let cur = null;
+  for (let g = 0; g <= Math.max(...v.map(q => q.generation), 0); g++) {
+    const k = v.filter(q => q.generation === g && q.kept).sort((a, b) => b.score - a.score)[0];
+    if (k) cur = k.score;
+    if (cur !== null) steps.push([g, cur]);
+  }
+  if (steps.length) {
+    let d = `M${x(steps[0][0])},${y(steps[0][1])}`;
+    for (let i = 1; i < steps.length; i++) d += ` H${x(steps[i][0])} V${y(steps[i][1])}`;
+    svg += `<path d="${d}" fill="none" stroke="var(--kept)" stroke-width="2" stroke-linejoin="round"/>`;
+  }
+  // pruned children sit side by side within their generation so they do not overlap
+  v.forEach((q, i) => {
+    const sib = v.filter(o => o.generation === q.generation), j = sib.indexOf(q);
+    const cx = x(q.generation) + (sib.length > 1 ? (j - (sib.length - 1) / 2) * 12 : 0), cy = y(q.score);
+    const mark = q.kept
+      ? `<circle cx="${cx}" cy="${cy}" r="5" fill="var(--kept)" stroke="var(--paper)" stroke-width="2"/>`
+      : `<g stroke="${q.signal === "cheat caught" ? "var(--cheat)" : "var(--faint)"}" stroke-width="2"><line x1="${cx - 4}" y1="${cy - 4}" x2="${cx + 4}" y2="${cy + 4}"/><line x1="${cx + 4}" y1="${cy - 4}" x2="${cx - 4}" y2="${cy + 4}"/></g>`;
+    svg += `<g data-k="${s.key}" data-i="${i}" class="pt">${mark}<circle cx="${cx}" cy="${cy}" r="11" fill="transparent"/></g>`;
+  });
+  const gain = seed ? Math.round((best.score - seed.score) * 100) : 0;
+  return `<div class="card">
+    <h2><span>${s.name}</span><span>${esc(s.src)}</span></h2>
+    <div class="hero">${seed ? `<b>${pct(best.score)}</b><span class="from">from ${pct(seed.score)}</span><span class="delta">${gain > 0 ? "+" : ""}${gain} pts</span>` : `<b>—</b>`}</div>
+    <div class="meta">${seed ? `${kept.length} kept · ${pruned.length} pruned · ${v.length - 1} changes tried` : ""}</div>
+    <svg class="plot" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg>
+    ${v.length ? "" : `<div class="empty">no versions yet<br>runs/${s.key}-versions.jsonl</div>`}
+  </div>`;
+}
+
+let DATA = [];
+async function render() {
+  DATA = await Promise.all(SETS.map(load));
+  document.getElementById("grid").innerHTML = DATA.map(card).join("");
+  document.getElementById("table").innerHTML = `<tr><th>set</th><th>version</th><th>parent</th><th>gen</th><th>held-out</th><th>kept</th><th>change</th></tr>` +
+    DATA.flatMap(s => s.versions.map(q => `<tr><td>${s.key}</td><td>${esc(q.id)}</td><td>${esc(q.parent ?? "")}</td><td>${q.generation}</td><td>${pct(q.score)}</td><td>${q.kept ? "kept" : q.signal === "cheat caught" ? "pruned (cheat)" : "pruned"}</td><td>${esc(q.change)}</td></tr>`)).join("");
+}
+
+const tip = document.getElementById("tip");
+document.addEventListener("mousemove", e => {
+  const g = e.target.closest && e.target.closest(".pt");
+  if (!g) { tip.style.display = "none"; return; }
+  const s = DATA.find(d => d.key === g.dataset.k), q = s.versions[+g.dataset.i];
+  tip.innerHTML = `<b>${esc(q.id)}</b> <span class="k">${q.parent ? "from " + esc(q.parent) : "seed"}</span><br>
+    held-out <b>${pct(q.score)}</b> · ${q.kept ? "kept" : q.signal === "cheat caught" ? "pruned: cheat caught" : "pruned"}<br>
+    <span class="k">change:</span> ${esc(q.change)}${q.shed ? `<br><span class="k">shed:</span> ${esc(q.shed)}` : ""}`;
+  tip.style.display = "block";
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - 330) + "px";
+  tip.style.top = e.clientY + 14 + "px";
+});
+
+render();
+setInterval(render, 10000);
+</script>
+</body>
+</html>
