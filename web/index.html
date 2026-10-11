@@ -4,48 +4,48 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bonsai</title>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --paper:#efe7d6; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --line:rgba(29,27,25,.16); --moss:#2f5a3a; }
+  :root { --paper:#1a1b26; --deep:#16161e; --ink:#c0caf5; --seal:#f7768e; --faint:#565f89; --line:rgba(122,162,247,.18); --moss:#9ece6a; --blue:#7aa2f7; --cyan:#7dcfff; --violet:#bb9af7; }
   * { box-sizing:border-box; }
   html, body { height:100%; }
-  body { margin:0; background:var(--paper); color:var(--ink); font-family:"Shippori Mincho",serif; display:flex; flex-direction:column; overflow:hidden; }
-  .mono, table, button, select, input, .stat, pre, dl { font-family:"IBM Plex Mono",monospace; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:"Chakra Petch",sans-serif; display:flex; flex-direction:column; overflow:hidden; }
+  .mono, table, button, select, input, .stat, pre, dl { font-family:"JetBrains Mono",monospace; }
   .ask { display:flex; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
-  .ask label { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
-  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"Shippori Mincho",serif; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
+  .ask label { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"Chakra Petch",sans-serif; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
   .ask input::placeholder { color:var(--faint); }
-  .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"Shippori Mincho",serif; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
-  .rd { font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
+  .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"Chakra Petch",sans-serif; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
+  .rd { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
   .ag .what u { text-decoration:none; color:var(--moss); }
   .ask button { font-size:12px; padding:6px 16px; }
   .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
   .ask button.halt { color:var(--seal); border-color:var(--seal); }
   .ask button:disabled { opacity:.35; cursor:default; }
-  #phase { font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint); padding:6px 22px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #phase { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); padding:6px 22px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #phase b { color:var(--ink); font-weight:400; } #phase.err b { color:var(--seal); }
   .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; }
   .live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
   #agents-box { flex:0 0 42%; min-height:0; display:flex; flex-direction:column; border-bottom:1px solid var(--line); }
-  #agents { overflow-y:auto; flex:1; font-family:"IBM Plex Mono",monospace; font-size:11px; }
-  .ag { display:grid; grid-template-columns:62px 1fr auto; gap:8px; padding:5px 18px; border-bottom:1px solid rgba(29,27,25,.06); align-items:baseline; }
+  #agents { overflow-y:auto; flex:1; font-family:"JetBrains Mono",monospace; font-size:11px; }
+  .ag { display:grid; grid-template-columns:62px 1fr auto; gap:8px; padding:5px 18px; border-bottom:1px solid rgba(122,162,247,.06); align-items:baseline; }
   .ag .role { color:var(--faint); } .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; }
-  .ag.working { background:rgba(29,27,25,.06); } .ag.working .st { color:var(--ink); } .ag.queued { color:var(--faint); }
+  .ag.working { background:rgba(122,162,247,.06); } .ag.working .st { color:var(--ink); } .ag.queued { color:var(--faint); }
   .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
-  .empty { padding:10px 18px; color:var(--faint); font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1.7; }
-  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.7; } .logline span { color:var(--faint); }
+  .empty { padding:10px 18px; color:var(--faint); font-family:"JetBrains Mono",monospace; font-size:11px; line-height:1.7; }
+  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; font-family:"JetBrains Mono",monospace; font-size:12px; line-height:1.7; } .logline span { color:var(--faint); }
   header { display:flex; align-items:baseline; gap:26px; padding:12px 22px; border-bottom:1px solid var(--line); }
   header > * { white-space:nowrap; }
   header h1 { font-weight:600; font-size:24px; letter-spacing:.08em; margin:0; }
   header .tag { color:var(--faint); font-size:13px; }
   .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
-  .stat b { font-family:"Shippori Mincho",serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
+  .stat b { font-family:"Chakra Petch",sans-serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
   .stat.red b { color:var(--seal); }
   .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
   .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
   #panel-board { border-right:1px solid var(--line); }
   #panel-graph { border-top:1px solid var(--line); }
-  h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"IBM Plex Mono",monospace; }
+  h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"JetBrains Mono",monospace; }
   h2 .sp { flex:1; } h2 .name { color:var(--ink); letter-spacing:.04em; text-transform:none; }
   button { background:none; border:1px solid var(--line); color:var(--faint); font-size:10.5px; padding:3px 8px; cursor:pointer; letter-spacing:.04em; }
   button.on { color:var(--paper); background:var(--ink); border-color:var(--ink); }
@@ -53,11 +53,11 @@
   .tablescroll { overflow-y:auto; flex:1; }
   table { width:100%; border-collapse:collapse; font-size:11.5px; }
   th { text-align:left; font-weight:400; color:var(--faint); font-size:10px; letter-spacing:.1em; padding:5px 8px; position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line); }
-  td { padding:7px 8px; border-bottom:1px solid rgba(29,27,25,.08); vertical-align:top; }
+  td { padding:7px 8px; border-bottom:1px solid rgba(122,162,247,.08); vertical-align:top; }
   td:first-child, th:first-child { padding-left:18px; } .num { text-align:right; padding-right:18px !important; }
-  tr { cursor:pointer; } tbody tr:hover { background:rgba(29,27,25,.05); }
-  tr.sel { background:rgba(29,27,25,.09); box-shadow:inset 3px 0 0 var(--ink); }
-  tr.cut { color:var(--seal); } tr.cut td.chg { text-decoration:line-through; text-decoration-color:rgba(181,51,42,.45); } tr.cut.sel { box-shadow:inset 3px 0 0 var(--seal); }
+  tr { cursor:pointer; } tbody tr:hover { background:rgba(122,162,247,.05); }
+  tr.sel { background:rgba(122,162,247,.09); box-shadow:inset 3px 0 0 var(--ink); }
+  tr.cut { color:var(--seal); } tr.cut td.chg { text-decoration:line-through; text-decoration-color:rgba(247,118,142,.5); } tr.cut.sel { box-shadow:inset 3px 0 0 var(--seal); }
   td .shed { display:block; color:var(--faint); font-size:10px; margin-top:2px; text-decoration:none; }
   .seg { display:flex; gap:0; padding:0 18px 8px; } .seg button + button { border-left:0; }
   .viewer { position:relative; flex:1; min-height:0; }
@@ -68,11 +68,26 @@
   .layer .add { color:var(--moss); } .layer .del { color:var(--seal); }
   .layer dl { display:grid; grid-template-columns:110px 1fr; gap:8px 14px; font-size:12.5px; max-width:760px; } .layer dt { color:var(--faint); } .layer dd { margin:0; }
   .layer .lede { font-size:22px; margin:6px 0 16px; max-width:760px; line-height:1.4; }
-  .stats { display:flex; gap:24px; padding:8px 18px; border-top:1px solid var(--line); font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint); flex-wrap:wrap; }
+  .stats { display:flex; gap:24px; padding:8px 18px; border-top:1px solid var(--line); font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); flex-wrap:wrap; }
   .stats b { color:var(--ink); font-weight:400; } .stats .cut b { color:var(--seal); }
   #chart { flex:1; min-height:0; width:100%; display:block; }
-  .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint); }
+  .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); }
   @media (max-width:860px){ body{overflow:auto} .wrap{display:block} .viewer{height:70vh} #panel-board{border-right:0} #chart{height:180px} }
+  /* Tokyo Night: neon on indigo. */
+  body { background:radial-gradient(ellipse at 70% 0%, rgba(187,154,247,.10), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(125,207,255,.07), transparent 50%), var(--paper); }
+  header h1 { color:var(--cyan); text-shadow:0 0 8px rgba(125,207,255,.55), 0 0 26px rgba(187,154,247,.35); }
+  header .tag { color:var(--violet); } #s-note { color:var(--moss); }
+  h2 { color:var(--blue); } h2 .name { color:var(--ink); }
+  #panel-board { background:rgba(22,22,30,.72); }
+  .ask button.go { background:var(--violet); border-color:var(--violet); color:var(--deep); font-weight:600; box-shadow:0 0 14px rgba(187,154,247,.45); }
+  .ask button.go:disabled { box-shadow:none; }
+  .ask select.big { border-color:var(--blue); background:var(--deep); color:var(--ink); } select option, select optgroup { background:var(--deep); color:var(--ink); }
+  button.on { background:var(--blue); border-color:var(--blue); color:var(--deep); }
+  .live .dot { background:var(--moss); box-shadow:0 0 8px var(--moss); } #phase b { color:var(--cyan); }
+  tr.sel { box-shadow:inset 3px 0 0 var(--cyan); } td.none { color:var(--faint); padding:14px 18px; cursor:default; }
+  .ag.working .st { color:var(--cyan); } .layer .lede { color:var(--cyan); }
+  #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }
+  ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-thumb { background:rgba(122,162,247,.25); }
 </style>
 </head>
 <body>
@@ -106,160 +121,32 @@
       <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button><button data-layer="activity" onclick="setLayer('activity')">activity</button>
     </div>
     <div class="viewer" id="viewer">
-      <canvas id="c"></canvas><canvas id="fx"></canvas><iframe id="tree3d" src="tree.html?embed=1" title="The bonsai" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+      <iframe id="tree3d" src="tree.html?embed=1" title="The bonsai"></iframe>
       <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div><div class="layer" id="layer-activity"></div>
     </div>
     <div class="stats" id="sel-stats"></div>
   </div>
 </div>
 <script>
-// Sample lineage. Replaced by the Mongo `versions` collection once the loop runs.
-const SAMPLE = { sample:true, versions:[
-  {id:"g0", parent:null, kept:true,  score:.40, tokens:28, change:"seed harness", harness:{rules:"You are a coding agent. Read the instructions, then implement the solution file. Never edit the test file.", tools:["Read","Edit","Write"], max_turns:12}},
-  {id:"g1a",parent:"g0", kept:false, score:.37, tokens:61, change:"add planning step", signal:"no gain", shed:"nothing", diff:"+ Before editing, write a five step plan."},
-  {id:"g1b",parent:"g0", kept:true,  score:.47, tokens:34, change:"run tests before finishing", signal:"claimed pass, never ran", shed:"the line telling it to read instructions twice", diff:"+ Run the tests before you say you are done.\n- Read the instructions again before finishing."},
-  {id:"g2a",parent:"g1b",kept:false, score:.63, tokens:36, change:"edit the test file", signal:"cheat caught", shed:"the rule protecting tests", diff:"- Never edit the test file."},
-  {id:"g2b",parent:"g1b",kept:true,  score:.53, tokens:33, change:"re-read spec on failure", signal:"same edit repeated", shed:"generic 'be careful' line", diff:"+ When a test fails, re-read the spec before editing.\n- Be careful and thorough."},
-  {id:"g3a",parent:"g2b",kept:true,  score:.57, tokens:29, change:"drop unused Write tool", signal:"tool never used", shed:"the Write tool", diff:"- \"Write\""},
-  {id:"g3b",parent:"g2b",kept:false, score:.50, tokens:88, change:"longer rules", signal:"tokens up, score down", shed:"nothing", diff:"+ (twelve new lines of advice)"},
-  {id:"g4a",parent:"g3a",kept:true,  score:.63, tokens:31, change:"edge-case checklist", signal:"gave up early", shed:"the planning preamble", diff:"+ List the edge cases the tests name, then cover each.\n- Think step by step."},
-]};
-
-let hits = [], sheds = [], ground = 0, selected = null, lastJson = '', follow = true, sortBy = 'latest', layer = 'tree';
+// The lineage is whatever the loop has stored. Nothing is shown that a run did not produce.
+let selected = null, lastJson = '', follow = true, sortBy = 'latest', layer = 'tree';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
-let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-const INK = [29,27,25], SEAL = [181,51,42];
-const rgba = (c,a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
-
-// One brush stroke: stamps along a quadratic curve, pressure tapers, dry-brush gaps near the tip.
-function stroke(p0, p1, p2, w0, w1, col = INK, alpha = .82) {
-  const steps = Math.hypot(p2[0]-p0[0], p2[1]-p0[1]) * 1.4;
-  for (let i = 0; i <= steps; i++) {
-    const t = i/steps, u = 1-t;
-    const x = u*u*p0[0] + 2*u*t*p1[0] + t*t*p2[0], y = u*u*p0[1] + 2*u*t*p1[1] + t*t*p2[1];
-    const w = (w0 + (w1-w0)*t) * (.86 + rnd()*.28);
-    if (t > .55 && rnd() < (t-.55)*.5) continue;
-    ctx.fillStyle = rgba(col, alpha * (.55 + rnd()*.45));
-    ctx.beginPath(); ctx.ellipse(x + (rnd()-.5)*w*.3, y + (rnd()-.5)*w*.3, w/2, w/2*(.7+rnd()*.3), rnd()*3, 0, 7); ctx.fill();
-  }
-}
-// Watercolor pad: many thin pigment pools that bleed past each other, darker at the edges.
-function wash(x, y, r, col, layers = 26) {
-  for (let i = 0; i < layers; i++) {
-    const a = rnd()*6.28, d = rnd()*r*.55, rr = r*(.35 + rnd()*.55);
-    const cx = x + Math.cos(a)*d*1.5, cy = y + Math.sin(a)*d*.55;
-    const g = ctx.createRadialGradient(cx, cy, rr*.2, cx, cy, rr);
-    g.addColorStop(0, rgba(col, .035)); g.addColorStop(.82, rgba(col, .075)); g.addColorStop(1, rgba(col, 0));
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, rr*1.25, rr*.62, (rnd()-.5)*.5, 0, 7); ctx.fill();
-  }
-}
-function pad(x, y, r) {
-  wash(x, y - r*.18, r*.95, [86,118,84], 9);
-  const tones = [[34,58,44],[46,78,56],[62,98,66],[88,124,82],[120,150,98]];
-  const count = Math.round(r*9);
-  for (let i = 0; i < count; i++) {
-    // dome: wide ellipse, clipped flat at the bottom, lumpy along the top
-    const a = Math.PI + rnd()*Math.PI, d = Math.sqrt(rnd());
-    const lump = 1 + .16*Math.sin(a*5 + x*.01);
-    const px = x + Math.cos(a)*d*r*1.15*lump, py = y + Math.sin(a)*d*r*.5*lump + (rnd()-.5)*4;
-    const depth = 1 - (y - py)/(r*.5);                       // 1 at the underside, 0 at the top
-    const tone = tones[Math.min(4, Math.max(0, Math.floor((1-depth)*4 + (rnd()-.5)*1.8)))];
-    const len = 3.5 + rnd()*5.5, ang = -Math.PI/2 + (px - x)/(r*1.15)*.9 + (rnd()-.5)*.7;
-    ctx.strokeStyle = rgba(tone, .42 + rnd()*.4); ctx.lineWidth = .9 + rnd()*1.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang)*len, py + Math.sin(ang)*len); ctx.stroke();
-  }
-  for (let i = 0; i < r*3.2; i++) {                          // hanging needles on the underside, shorter and darker
-    const t = rnd()*2 - 1, px = x + t*r*1.05, drop = (1 - t*t)*r*.2*rnd(), py = y + 2 + drop;
-    const tone = tones[Math.floor(rnd()*2.4)], len = 3 + rnd()*5, ang = Math.PI/2 + t*.8 + (rnd()-.5)*.7;
-    ctx.strokeStyle = rgba(tone, .4 + rnd()*.4); ctx.lineWidth = .9 + rnd()*1.3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang)*len, py + Math.sin(ang)*len); ctx.stroke();
-  }
-  for (let i = 0; i < r*.5; i++) {                           // ink shadow under the pad
-    const px = x + (rnd()-.5)*r*1.9, py = y + rnd()*5;
-    ctx.fillStyle = rgba([24,34,28], .28 + rnd()*.3); ctx.beginPath(); ctx.ellipse(px, py, 2 + rnd()*5, 1 + rnd()*1.6, 0, 0, 7); ctx.fill();
-  }
-}
-function paper(W, H) {
-  ctx.fillStyle = '#efe7d6'; ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 2600; i++) { ctx.fillStyle = rgba([120,105,80], rnd()*.05); ctx.fillRect(rnd()*W, rnd()*H, 1 + rnd()*14, .6); }
-  // Sun: one clean vermilion disc, pigment pooled at the rim, a faint halo bled into the paper.
-  const sx = W*.74, sy = H*.2, sr = Math.min(W, H)*.085;
-  let g = ctx.createRadialGradient(sx, sy, sr*.9, sx, sy, sr*2.1);
-  g.addColorStop(0, rgba(SEAL, .10)); g.addColorStop(1, rgba(SEAL, 0)); ctx.fillStyle = g; ctx.fillRect(sx - sr*2.2, sy - sr*2.2, sr*4.4, sr*4.4);
-  g = ctx.createRadialGradient(sx - sr*.2, sy - sr*.2, sr*.1, sx, sy, sr);
-  g.addColorStop(0, rgba([196,72,58], .50)); g.addColorStop(.8, rgba(SEAL, .62)); g.addColorStop(.96, rgba([150,38,32], .7)); g.addColorStop(1, rgba(SEAL, 0));
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 7); ctx.fill();
-  // Far hills: three ridgelines, each a graded wash that is darkest at the crest and fades into mist.
-  [[.60, .16, [128,140,156], .30], [.68, .12, [104,118,138], .36], [.76, .09, [84,98,118], .40]].forEach(([base, amp, col, al], k) => {
-    const y0 = H*base, ph = k*2.1 + 1, ridge = x => y0 - H*amp*(.55*Math.sin(x/W*3.1 + ph) + .3*Math.sin(x/W*7.3 + ph*1.7) + .15*Math.sin(x/W*15 + ph)) - H*amp*.4;
-    const gr = ctx.createLinearGradient(0, y0 - H*amp*1.4, 0, y0 + H*.1);
-    gr.addColorStop(0, rgba(col, al)); gr.addColorStop(.45, rgba(col, al*.45)); gr.addColorStop(1, rgba(col, 0));
-    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(0, H);
-    for (let x = 0; x <= W; x += 6) ctx.lineTo(x, ridge(x) + (rnd() - .5)*1.6);
-    ctx.lineTo(W, H); ctx.fill();
-  });
-}
-
 function draw(data) {
-  seed = 7;
-  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
-  cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  paper(W, H);
   const kept = [], byParent = {};
   data.versions.forEach(v => (byParent[v.parent] ??= []).push(v));
   for (let v = data.versions.find(v => !v.parent); v; v = (byParent[v.id] || []).find(c => c.kept)) kept.push(v);
-  // S shrinks the whole tree on a short canvas; grown is how tall it stands (a seed is a sapling).
-  const S = Math.max(.45, Math.min(1, H/620)), n = kept.length, grown = Math.min(1, .42 + .58*(n-1)/4);
-  const baseX = W*.46, baseY = H*.8, top = baseY - (baseY - H*.2)*grown;
-  // Trunk nodes climb in an S (moyogi form). node(i) is kept version i; node(n) is the leader under the crown.
-  const node = i => { const t = i/n; return [baseX + (Math.sin(t*4.2)*W*.09 - t*W*.03)*grown*S, baseY - t*(baseY-top)]; };
-  // pot and ground
-  stroke([baseX-W*.19, baseY+34*S], [baseX, baseY+44*S], [baseX+W*.19, baseY+34*S], 3, 2, INK, .5);
-  ctx.fillStyle = rgba(INK, .78); ctx.beginPath();
-  ctx.moveTo(baseX-110*S, baseY+6*S); ctx.lineTo(baseX+110*S, baseY+6*S); ctx.lineTo(baseX+88*S, baseY+38*S); ctx.lineTo(baseX-88*S, baseY+38*S); ctx.fill();
-  wash(baseX, baseY+4*S, 70*S, [70,84,60], 10);
-  const labels = []; hits = []; sheds = []; ground = baseY + 40*S;
-  for (let i = 0; i < n; i++) {
-    const p = node(i), q = node(i+1), w = 30*S*(.55 + .45*grown)*(1 - i/(n+1)*.78);
-    stroke(p, [(p[0]+q[0])/2 + (i%2 ? 16 : -16)*S, (p[1]+q[1])/2], q, w, w*.8);
-    const side = i % 2 ? 1 : -1; let cuts = 0;
-    (byParent[kept[i].id] || []).forEach(c => {
-      if (c.kept) {
-        const len = Math.min(W*(.13 + c.score*.1), 230*S), end = [q[0] + side*len, q[1] - 6*S];
-        stroke(q, [q[0] + side*len*.4, q[1] + 10*S], end, w*.42, 3);
-        const pr = (40 + c.score*64)*S;
-        pad(end[0] - side*pr*.25, end[1] - 2, pr); pad(end[0] + side*pr*.55, end[1] - pr*.34, pr*.6);
-        hits.push([end[0], end[1] - pr*.2, pr*1.3, c.id]); if (c.shed && c.shed !== 'nothing') sheds.push([end[0], end[1], pr, c.id]);
-        labels.push([end[0], end[1] + 26*S, `${c.id}  ${Math.round(c.score*100)}%`, INK]);
-      } else {
-        // a cut: a short stub off the trunk between this version and the next, each one a step higher
-        const f = .3 + .3*cuts, dir = cuts % 2 ? side : -side, from = [p[0] + (q[0]-p[0])*f, p[1] + (q[1]-p[1])*f];
-        const end = [from[0] + dir*(46 + 10*cuts)*S, from[1] - 16*S]; cuts++;
-        stroke(from, [from[0] + dir*18*S, from[1] + 4*S], end, w*.4, 4*S);
-        stroke([end[0]-7*S, end[1]-10*S], [end[0], end[1]], [end[0]+7*S, end[1]+10*S], 4*S, 2*S, SEAL, .9);
-        hits.push([end[0], end[1], 22, c.id]);
-        labels.push([end[0] + dir*14, end[1] + 4, `${c.id} pruned`, SEAL, dir]);
-      }
-    });
-  }
-  const crown = node(n), cs = S*(.5 + .5*grown);
-  pad(crown[0], crown[1] + 4, 84*cs); pad(crown[0] - 40*cs, crown[1] - 30*cs, 54*cs); pad(crown[0] + 48*cs, crown[1] - 22*cs, 46*cs);
-  hits.push([baseX, baseY, 60, kept[0].id]);
-  ctx.font = '12px "IBM Plex Mono", monospace';
-  labels.forEach(([x, y, s, c, dir]) => { ctx.fillStyle = rgba(c, .85); ctx.textAlign = dir ? (dir > 0 ? 'left' : 'right') : 'center'; ctx.fillText(s, x, y); });
-  const hs = hits.find(h => h[3] === selected); if (hs) { ctx.strokeStyle = rgba(SEAL, .55); ctx.lineWidth = 1; ctx.setLineDash([3,5]); ctx.beginPath(); ctx.arc(hs[0], hs[1], hs[2]*.8, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
-  // seal
-  ctx.fillStyle = rgba(SEAL, .88); ctx.fillRect(W - 78, H - 92, 44, 44);
-  ctx.fillStyle = '#efe7d6'; ctx.font = '600 26px "Shippori Mincho", serif'; ctx.textAlign = 'center'; ctx.fillText('盆', W - 56, H - 60);
-
   window.__kept = kept; renderUI(data, kept);
 }
 
 const pct = x => Math.round(x*100) + '%';
 function renderUI(data, kept) {
   const vs = data.versions, best = kept[kept.length-1];
-  $('s-note').textContent = data.sample ? 'SAMPLE TREE · NO RUN YET' : '';
+  $('s-note').textContent = vs.length ? `${kept.length - 1} kept · ${vs.length - kept.length} pruned · best ${pct(best.score)} held-out` : 'no run yet';
+  if (!vs.length) {
+    $('rows').innerHTML = '<tr><td colspan="3" class="none">No versions yet. Press Grow and the first one appears when the seed has been scored.</td></tr>';
+    $('sel-name').textContent = ''; $('sel-stats').innerHTML = '';
+    ['diff','signal','harness'].forEach(n => $('layer-' + n).innerHTML = '<pre>Nothing has been stored yet.</pre>'); return;
+  }
   const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
   $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
   const v = vs.find(v => v.id === selected), par = vs.find(p => p.id === v.parent);
@@ -275,40 +162,18 @@ function renderUI(data, kept) {
 }
 const $ = id => document.getElementById(id);
 function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
-function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1).id; draw(window.__d); } }
+function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1)?.id; draw(window.__d); } }
 function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
 function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness','activity'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
 
-// Shedding: every kept change gives something up. Needles drift down from that pad and settle on the ground.
-const fx = $('fx'), fctx = fx.getContext('2d'); let needles = [], litter = [];
-function tick() {
-  const dpr = devicePixelRatio || 1, W = fx.clientWidth, H = fx.clientHeight;
-  if (fx.width !== W*dpr || fx.height !== H*dpr) { fx.width = W*dpr; fx.height = H*dpr; litter = []; }
-  fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.clearRect(0, 0, W, H);
-  sheds.forEach(([x, y, r, id]) => { if (Math.random() < (id === selected ? .09 : .012)) needles.push({x:x + (Math.random() - .5)*r*1.6, y, a:Math.random()*6, s:.35 + Math.random()*.5, p:Math.random()*6}); });
-  fctx.lineCap = 'round'; fctx.lineWidth = 1.3;
-  const line = (n, al) => { fctx.strokeStyle = `rgba(52,84,58,${al})`; fctx.beginPath(); fctx.moveTo(n.x, n.y); fctx.lineTo(n.x + Math.cos(n.a)*7, n.y + Math.sin(n.a)*7); fctx.stroke(); };
-  needles = needles.filter(n => { n.y += n.s; n.p += .03; n.x += Math.sin(n.p)*.45; n.a += .012; line(n, .7);
-    if (n.y < ground) return true; n.a = (Math.random() - .5)*.5; n.y = ground + Math.random()*5; litter.push(n); return false; });
-  if (litter.length > 160) litter.splice(0, litter.length - 160);
-  litter.forEach(n => line(n, .42));
-  requestAnimationFrame(tick);
-}
-requestAnimationFrame(tick);
-
 async function load() {
-  let data = SAMPLE;
+  let data = {versions:[]};
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; if (follow || !data.versions.some(v => v.id === selected)) selected = data.versions.at(-1).id;
-  await document.fonts.ready; draw(data);
+  window.__d = data; if (follow || !data.versions.some(v => v.id === selected)) selected = data.versions.at(-1)?.id;
+  draw(data);
 }
 $('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
-cv.addEventListener('click', e => {
-  const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
-  const h = hits.filter(h => Math.hypot(h[0]-x, h[1]-y) < h[2]).sort((a, b) => a[2] - b[2])[0];
-  if (h) select(h[3], true);
-});
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
 let agentView = 'live', app = null;
@@ -350,7 +215,7 @@ async function grow(e) {
   poll(); load();
 }
 async function halt() { await post('api/stop', {}); poll(); }
-load(); poll(); addEventListener('resize', () => draw(window.__d || SAMPLE)); setInterval(load, 3000); setInterval(poll, 1000);
+load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
 </script>
 </body>
 </html>

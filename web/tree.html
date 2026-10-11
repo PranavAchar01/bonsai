@@ -15,6 +15,7 @@
       var(--bg);
     color:var(--ink); font-family:"DotGothic16", monospace; transition:background-color 6s, color 6s;
   }
+  .dark::after { opacity:.12 !important; mix-blend-mode:overlay !important; }
   body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.26; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
   canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
@@ -57,7 +58,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PALETTES } from './palettes.js';
+import { PALETTES, isDark } from './palettes.js';
 import { createBonsai } from './bonsai3d.js';
 import { startFeed } from './feed.js';
 
@@ -69,7 +70,9 @@ if (q.get('embed')) document.body.classList.add('embed');
 const COMBOS = [['moyogi', 'pine'], ['windswept', 'blossom'], ['moyogi', 'blossom'], ['windswept', 'pine']];
 let comboN = 0; try { comboN = +(localStorage.getItem('bonsai-combo') || 0); localStorage.setItem('bonsai-combo', comboN + 1); } catch {}
 const form = q.get('form') || COMBOS[comboN % 4][0], foliage = q.get('foliage') || COMBOS[comboN % 4][1];
-const LIGHT = [PALETTES.paper, PALETTES.matcha];
+// ?p=<palette> pins one palette (the main page passes its own theme); otherwise the two light ones alternate.
+const PIN = PALETTES[q.get('p')], LIGHT = PIN ? [PIN, PIN] : [PALETTES.paper, PALETTES.matcha];
+const DARK = isDark(LIGHT[0].bg);
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
@@ -85,11 +88,13 @@ const controls = new OrbitControls(cam, renderer.domElement);
 controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = .3; controls.enablePan = false;
 controls.maxPolarAngle = Math.PI * .56; controls.minDistance = 4; controls.maxDistance = 120;
 controls.target.set(0, 1.6, 0);
+if (q.get('embed')) { controls.enableZoom = false; controls.enableRotate = false; }   // in the main page the view turns by itself
 const hemi = new THREE.HemisphereLight(0xfff8ec, 0x6f6455, 1.6); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1dc, 2.1);
 sun.position.set(-6, 11, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 14; sun.shadow.blurSamples = 20; sun.shadow.bias = -.0004;
 scene.add(sun);
 const fill = new THREE.DirectionalLight(0xdfe8ff, .5); fill.position.set(6, 3, -6); scene.add(fill);
+if (DARK) { hemi.intensity = .9; sun.intensity = 1.5; fill.color.set(LIGHT[0].ink); fill.intensity = 1.4; document.body.classList.add('dark'); }
 
 // distant ink hills and a pale sun, as soft washes
 function washTexture() {
@@ -137,7 +142,7 @@ function hud() {
 }
 
 startFeed(e => {
-  if (e.type === 'mode') { $('mode').textContent = {demo:'DEMO', live:'LIVE', record:'RECORD'}[e.mode]; $('mode').className = 'tag ' + e.mode; }
+  if (e.type === 'mode') { $('mode').textContent = {demo:'DEMO', live:'LIVE', record:'RECORD', empty:'EMPTY'}[e.mode]; $('mode').className = 'tag ' + e.mode; }
   else if (e.type === 'phase') $('phase').textContent = e.text;
   else if (e.type === 'reset') {
     tree.dispose(); labels.forEach(l => l.el.remove()); labels.length = 0;
@@ -148,13 +153,13 @@ startFeed(e => {
   else if (e.type === 'progress') tree.progress(e.id, e.done, e.total);
   else if (e.type === 'practice') tree.shed(e.failed);
   else if (e.type === 'verdict') {
-    const v = e.v; tree.verdict(v);
+    const v = e.v; tree.verdict(v, e.instant);
     if (!v.parent) stats.first = stats.best = v.score;
     else if (v.kept) { stats.kept++; stats.best = v.score; stats.ticker.push({text:`${v.id} kept ${Math.round(v.score * 100)}%`}); }
     else { stats.pruned++; stats.ticker.push({text:`${v.id} ${v.signal || 'pruned'}`, cut:true}); }
     hud();
   }
-}, {demo:q.get('demo')});
+}, {demo:q.get('demo'), liveOnly:!!q.get('embed') || !!q.get('live')});
 
 // ---------- run ----------
 function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
@@ -177,7 +182,7 @@ renderer.setAnimationLoop(now => {
   sun.position.set(-.4 * want, .75 * want, .3 * want);
   scene.fog.near = want * .9; scene.fog.far = want * 2.8;
   palT = Math.min(1, palT + dt / 6); scene.fog.color.copy(fogFrom).lerp(fogTo, palT);
-  hills.forEach(hs => hs.material.color.copy(scene.fog.color).lerp(HILL, .55));
+  hills.forEach(hs => hs.material.color.copy(scene.fog.color).lerp(DARK ? new THREE.Color(LIGHT[0].faint) : HILL, DARK ? .35 : .55));
   sunS.material.color.set(LIGHT[palIdx].accent);
 
   controls.update();

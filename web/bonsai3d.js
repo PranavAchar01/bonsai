@@ -58,7 +58,7 @@ float woodRadius() {
   if (aR < 0.) return -aR * clamp((t0.w - s) / .12, 0., 1.) * t7.z * t6.w * win;
   if (s > t0.w + 1e-4) return 0.;
   float x = clamp(s / max(t0.x, 1e-3), 0., 1.);
-  float r = t0.z + (t0.y - t0.z) * pow(1. - x, .85);
+  float r = t0.z + (t0.y - t0.z) * pow(1. - x, t1.z > 0. ? t1.z : .85);
   r *= 1. + t7.x * exp(-s / .07) + t7.y * exp(-s / .4) * (.4 + aLobe);
   return r * aR * t6.w;
 }`;
@@ -74,20 +74,20 @@ varying float vAng; varying float vS; varying float vTwig;
 ${NOISE}
 float barkH() {
   vec2 q = vec2(cos(vAng), sin(vAng));
-  float plates = vn(vec3(q * 2.4, vS * 1.1));
-  float fis = 1. - abs(vn(vec3(q * 6., vS * 1.6) + 3.) * 2. - 1.);
-  float fine = vn(vec3(q * 14., vS * 5.));
-  return clamp(.3 + .5 * plates - .6 * pow(fis, 5.) + .15 * fine, 0., 1.);
+  float plates = vn(vec3(q * 1.8, vS * .8)) * .65 + vn(vec3(q * 4., vS * 2.2)) * .35;
+  float fis = 1. - abs(vn(vec3(q * 4.5, vS * 1.1) + 3.) * 2. - 1.);
+  float fine = vn(vec3(q * 18., vS * 9.));
+  return clamp(.42 + .45 * plates - .5 * pow(fis, 9.) + .1 * fine, 0., 1.);
 }
 vec3 bumpN(vec3 p, vec3 n, float hx, float hy) { vec3 sx = dFdx(p), sy = dFdy(p), r1 = cross(sy, n), r2 = cross(n, sx); float d = dot(sx, r1); return normalize(abs(d) * n - sign(d) * (hx * r1 + hy * r2)); }`;
 const WOOD_COLOR = `
   float hb = barkH() * (1. - vTwig);
-  vec3 bc = mix(uBarkDark, uBark, smoothstep(.12, .7, hb));
+  vec3 bc = mix(uBarkDark, uBark, smoothstep(.1, .62, hb));
   float lich = smoothstep(.64, .72, vn(vec3(cos(vAng) * 3., sin(vAng) * 3., vS * 2.2) + 11.)) * (1. - vTwig);
-  bc = mix(bc, uLichen, lich * .55);
+  bc = mix(bc, uLichen, lich * .3);
   diffuseColor.rgb = mix(bc, uTwigC, vTwig);`;
 const WOOD_BUMP = `
-  normal = bumpN(-vViewPosition, normal, dFdx(hb) * 1.1, dFdy(hb) * 1.1);`;
+  normal = bumpN(-vViewPosition, normal, dFdx(hb) * .55, dFdy(hb) * .55);`;
 
 const NEEDLE_V = `attribute float aLimb; attribute vec3 aBase; attribute float aS; uniform vec3 uCandle; uniform vec3 uDead;`;
 const NEEDLE_BEGIN = `
@@ -244,8 +244,8 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   const U = {
     uLimbs:{value:null}, uTime:{value:0}, uWind:{value:1}, uSize:{value:4.5},
     uCandle:{value:new THREE.Color(0xd3da8e)}, uDead:{value:new THREE.Color(0x8f7044)},
-    uBark:{value:new THREE.Color(foliage === 'pine' ? 0x76655a : 0x564744)}, uBarkDark:{value:new THREE.Color(foliage === 'pine' ? 0x2a211c : 0x1d1716)},
-    uLichen:{value:new THREE.Color(0xa2ab93)}, uTwigC:{value:new THREE.Color(foliage === 'pine' ? 0x5f4c3f : 0x3f3230)},
+    uBark:{value:new THREE.Color(foliage === 'pine' ? 0x8a7768 : 0x6a5853)}, uBarkDark:{value:new THREE.Color(foliage === 'pine' ? 0x3b2f28 : 0x2a201e)},
+    uLichen:{value:new THREE.Color(0xa9ab9c)}, uTwigC:{value:new THREE.Color(foliage === 'pine' ? 0x5f4c3f : 0x3f3230)},
   };
   const makeTex = () => { const t = new THREE.DataTexture(data, TEX_W, rows, THREE.RGBAFormat, THREE.FloatType); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; U.uLimbs.value = t; };
   makeTex();
@@ -275,7 +275,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   }
   function writeLimb(l) {
     const o = l.id * PER * 4, Lvis = l.Lvis ?? l.L;
-    data.set([Math.min(l.Lp ?? l.L, l.Lmain), l.thick, l.rTip, Lvis, l.falling ? 1 : 0, l.sOff, 0, 0], o);
+    data.set([Math.min(l.Lp ?? l.L, l.Lmain), l.thick, l.rTip, Lvis, l.falling ? 1 : 0, l.sOff, l.taper || .85, 0], o);
     data.set(l.M.elements, o + 8);
     data.set([l.wilt, l.maturity, l.alpha, l.decomp, l.collar, l.flare, l.thickScale, l.window], o + 24);
   }
@@ -291,7 +291,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   const tangentOn = (l, s) => { const a = pointOn(l, s - .03), b = pointOn(l, s + .03); return b.sub(a).normalize(); };
   const radiusAt = (l, sAbs) => {
     const Lp = Math.min(l.Lp ?? l.L, l.Lmain), x = clamp01(sAbs / Math.max(Lp, 1e-3));
-    return (l.rTip + (l.thick - l.rTip) * Math.pow(1 - x, .85)) * (1 + l.collar * Math.exp(-sAbs / .07) + l.flare * Math.exp(-sAbs / .4) * .9) * l.decomp;
+    return (l.rTip + (l.thick - l.rTip) * Math.pow(1 - x, l.taper || .85)) * (1 + l.collar * Math.exp(-sAbs / .07) + l.flare * Math.exp(-sAbs / .4) * .9) * l.decomp;
   };
 
   // --- geometry builders ---
@@ -378,7 +378,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
       fb.lv.push({p, q, sc:rr(.07, .1), s:s + .1, c:0xffffff});
     }
   }
-  function foliageAt(fb, P, s, density) { foliage === 'pine' ? tuft(fb, P, s, rr(.1, .16), Math.round(rr(30, 48) * density)) : blossom(fb, P, s, density); }
+  function foliageAt(fb, P, s, density) { foliage === 'pine' ? tuft(fb, P, s, rr(.11, .17), Math.round(rr(40, 60) * density)) : blossom(fb, P, s, density * 1.3); }
   function foliageMesh(fb, l) {
     if (fb.pos.length) {
       const g = new THREE.BufferGeometry(), f = (a, k) => new THREE.Float32BufferAttribute(a, k);
@@ -464,7 +464,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
     ? t => V(Math.sin(t * 4 + .3) * .85 - t * .35, -.12 + t * HMAX, Math.cos(t * 3) * .4 - .4)
     : t => V(t * 2.9 + Math.sin(t * 3) * .25, -.12 + t * HMAX * .78 - t * t * .5, Math.sin(t * 2) * .2);
   const tpts = []; for (let i = 0; i < TN; i++) { const t = i / (TN - 1); tpts.push(tpath(t).add(V(fbm(t * 3, 1, 0) * .12, 0, fbm(t * 3, 5, 0) * .12))); }
-  const trunk = newLimb({kind:'trunk', pts:tpts, ss:arc(tpts), thick:.09, thickTarget:.09, base:.09, rTip:.03, flare:.45, window:0, rate:.6});
+  const trunk = newLimb({kind:'trunk', pts:tpts, ss:arc(tpts), thick:.16, thickTarget:.16, base:.16, rTip:.035, flare:.45, taper:1.5, window:0, rate:.6});
   const TLEN = trunk.ss.at(-1);
   { const b = newBuf(); tube(b, tpts, trunk.ss, {radial:36, bark:.16, lobes:true, sd:3}); woodMesh(b, trunk); }
   const roots = newLimb({kind:'roots', thick:1, rTip:1, rate:.5, Lmain:0});
@@ -496,7 +496,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   };
   // Pick where the next shoot should head: the emptiest spot in the crown, near the parent version's pad.
   function pickTarget(near, avoid, parentPad) {
-    const H = Math.max(tipY(), 1.2), lo = H * .3, hi = H * 1.04, W = .55 + .38 * H + .2 * Math.log(1 + nKept / 10);
+    const H = Math.max(tipY(), 1.2), lo = H * .42, hi = H * 1.04, W = .55 + .38 * H + .2 * Math.log(1 + nKept / 10);
     let best = null, bestScore = -1e9;
     for (let i = 0; i < 70; i++) {
       let p;
@@ -546,7 +546,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
     const ptsB = path.slice(cutI), ssB = ss.slice(cutI).map(s => s - ss[cutI]);
     const B = newLimb({kind:'piece', version:id, pts:ptsB, ss:ssB.map(s => s + ss[cutI]), parent:A, sOff:ss[cutI], rate:.9, thick:.012, thickTarget:.03, base:.03, rTip:.009, Lmain:Lb, maturity:0, matTarget:0});
     { const b = newBuf(); tube(b, A.pts, A.ss, {radial:14, bark:.1, sd:A.id}); woodMesh(b, A); }
-    const size = (.45 + .4 * rnd()) * Math.pow(1 / (1 + nKept / 30), .3) + .12;
+    const size = (.6 + .45 * rnd()) * Math.pow(1 / (1 + nKept / 30), .3) + .15;
     const b = newBuf(), fb = foliageBuf();
     tube(b, ptsB, ssB, {radial:12, bark:.08, sd:B.id});
     const {centre, reach} = pad(b, fb, B, ptsB, ssB, size, Math.pow(1 / (1 + nKept / 40), .4));
@@ -563,16 +563,17 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   function thicken(l) {
     for (let p = l; p; p = p.parent) {
       p.desc++;
-      p.thickTarget = Math.min(p === trunk ? .75 : .5, p.base * Math.pow(1 + p.desc, p === trunk ? .42 : .45));
+      p.thickTarget = Math.min(p === trunk ? .85 : .5, p.base * Math.pow(1 + p.desc, p === trunk ? .32 : .45));
       if (p.parent && p.parent !== trunk && p.kind === 'stub') p.thickTarget = Math.min(p.thickTarget, radiusAt(p.parent, p.attachS) * .8);
     }
   }
 
-  function cut(a, signal) {
+  function snap(...ls) { for (const l of ls) { l.L = l.Ltarget; l.thick = l.thickTarget; } }
+  function cut(a, signal, quiet = false) {
     const {A, B} = a;
     const L = A.L, cs = Math.min(a.cutS, Math.max(L - .02, .05));
     A.Lp = Math.max(L, .1); A.Lvis = Math.min(L, a.cutS); A.Ltarget = A.L;
-    if (L <= a.cutS) { freeLimb(B); }
+    if (L <= a.cutS || quiet) { freeLimb(B); }
     else {
       B.Lp = Math.max(L, .1); B.Lvis = L; B.Ltarget = B.L; B.falling = true;
       const pts = [];
@@ -589,9 +590,9 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
     const seal = new THREE.Mesh(new THREE.TorusGeometry(1, .09, 8, 32), mats.seal);
     const callus = new THREE.Mesh(new THREE.TorusGeometry(1.02, .16, 10, 32), mats.callus);
     disk.castShadow = seal.castShadow = callus.castShadow = true; cap.add(disk, seal, callus); G.add(cap); A.objs.push(cap);
-    caps.push({A, s:capS, cap, callus, born:now, dir:tangentOn(A, capS)});
+    caps.push({A, s:capS, cap, callus, born:quiet ? now - 30 : now, dir:tangentOn(A, capS)});
     (sites[a.parentId] ??= {stumps:[]}).stumps.push({A, cutS:capS, dir:a.dir});
-    onLabel({text:`${a.id}  ${signal || 'pruned'}`, pos:pointOn(A, capS), cut:true});
+    if (!quiet) onLabel({text:`${a.id}  ${signal || 'pruned'}`, pos:pointOn(A, capS), cut:true});
   }
 
   // ---------- events from the loop ----------
@@ -599,16 +600,18 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
     seed(v) { trunk.Ltarget = TLEN * .22; roots.Ltarget = 2; sprigs.Ltarget = trunk.Ltarget; sites[v.id] = {stumps:[]}; onLabel({text:`${v.id}  seed`, pos:V(0, .4, 0)}); },
     propose(id, parent) { if (!attempts[id] && trunk.L > .3) makeAttempt(id, parent); },
     progress(id, done, total) { const a = attempts[id]; if (a) setGrowth(a, (.15 + .75 * done / Math.max(total, 1)) * a.full * .85); },
-    verdict(v) {
-      if (!v.parent) return api.seed(v);
+    verdict(v, instant = false) {
+      if (!v.parent) { api.seed(v); if (instant) snap(trunk, roots, sprigs); return; }
       const a = attempts[v.id] || makeAttempt(v.id, v.parent);
       if (v.kept) {
         a.A.Ltarget = a.B.Ltarget = a.full; a.A.matTarget = a.B.matTarget = 1;
         keptLimbs.push(a.A, a.B); pads.push(a.pad); nKept++; thicken(a.A); thicken(a.B);
         trunk.Ltarget = TLEN * (.22 + .78 * (1 - Math.exp(-nKept / 9))); sprigs.Ltarget = trunk.Ltarget;
         sites[v.id] ??= {stumps:[]};
-        onLabel({text:`${v.id}  ${Math.round(v.score * 100)}%`, pos:a.pad.centre.clone().add(V(0, -a.pad.size * .6, 0))});
-      } else setTimeout(() => cut(a, v.signal), 500);
+        if (instant) { snap(a.A, a.B, trunk, sprigs); a.A.maturity = a.B.maturity = 1; }
+        else onLabel({text:`${v.id}  ${Math.round(v.score * 100)}%`, pos:a.pad.centre.clone().add(V(0, -a.pad.size * .6, 0))});
+      } else if (instant) { a.A.L = a.B.L = a.A.Ltarget = a.cutS + .05; cut(a, v.signal, true); }
+      else setTimeout(() => cut(a, v.signal), 500);
     },
     shed(n = 1) { drift.burst(n); },
     bounds() {
@@ -672,7 +675,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
         if (l.L < l.Ltarget) l.L = Math.min(l.Ltarget, l.L + l.rate * dt * (1 + (l.Ltarget - l.L)));
         l.thick += (l.thickTarget - l.thick) * Math.min(1, dt * .35);
         l.maturity += (l.matTarget - l.maturity) * Math.min(1, dt * .25);
-        if (l.kind === 'roots') l.thickScale = trunk.thick / .09;
+        if (l.kind === 'roots') l.thickScale = trunk.thick / .12;
         else if (l.kind === 'piece' || l.kind === 'stub' || l.kind === 'sprigs') l.thickScale = Math.min(2.2, Math.sqrt(1 + l.desc));
       } else {
         const b = l.body;

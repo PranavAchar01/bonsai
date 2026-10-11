@@ -3,13 +3,17 @@
 //   live    server.py is running a job: read web/lineage.json and /api/state every 1.5 s.
 //   record  no job, but lineage.json holds a past run: replay it quickly, then the tree just lives.
 //   demo    nothing to read: simulate the loop so the page never stands still. Shown as DEMO on screen.
+//           Off when opts.liveOnly: then an empty lineage is just the pot ('empty').
+//
+// Versions already stored when the page opens arrive with instant:true and are drawn grown;
+// only versions stored while you watch play their growth or their cut.
 //
 // Events: {type:'mode', mode} {type:'phase', text} {type:'propose', id, parent}
 //         {type:'progress', id, done, total} {type:'verdict', v} {type:'practice', failed} {type:'reset'}
 
 export function startFeed(emit, opts = {}) {
   const seen = new Set(), proposed = new Set(), practiceSeen = new Set(), progressSeen = {};
-  let mode = null, demo = null, queue = [];
+  let mode = null, demo = null, queue = [], first = true;
   const setMode = m => { if (m !== mode) { mode = m; emit({type:'mode', mode}); } };
   const getJSON = async u => { try { const r = await fetch(u, {cache:'no-store'}); return r.ok ? await r.json() : null; } catch { return null; } };
 
@@ -19,10 +23,11 @@ export function startFeed(emit, opts = {}) {
     if (opts.demo) return startDemo();
     const [lin, st] = await Promise.all([getJSON('lineage.json'), getJSON('api/state')]);
     const versions = lin?.versions || [], running = st?.job?.status === 'running';
-    if (!versions.length && !running) return startDemo();
+    if (!versions.length && !running) { if (opts.liveOnly) { setMode('empty'); emit({type:'phase', text:'nothing grown yet: start a run'}); return; } return startDemo(); }
     if (demo) { demo.stop(); demo = null; queue = [{type:'reset'}]; seen.clear(); proposed.clear(); }
     setMode(running ? 'live' : 'record');
-    for (const v of versions) if (!seen.has(v.id)) { seen.add(v.id); queue.push({type:'verdict', v}); }
+    for (const v of versions) if (!seen.has(v.id)) { seen.add(v.id); queue.push({type:'verdict', v, instant:first}); }
+    first = false;
     if (!running) return emit({type:'phase', text:'resting: no run going'});
     if (st.job.phase) emit({type:'phase', text:st.job.phase});
     const best = [...versions].reverse().find(v => v.kept || !v.parent)?.id || 'g0';
@@ -50,7 +55,7 @@ export function startFeed(emit, opts = {}) {
   (function drain() {
     const e = queue.shift();
     if (e) emit(e);
-    setTimeout(drain, queue.length > 40 ? 60 : queue.length > 8 ? 250 : e?.type === 'verdict' ? 700 : 120);
+    setTimeout(drain, e?.instant ? 0 : queue.length > 8 ? 250 : e?.type === 'verdict' ? 700 : 120);
   })();
   poll(); setInterval(poll, 1500);
 }
