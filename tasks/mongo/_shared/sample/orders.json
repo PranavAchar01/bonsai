@@ -1,0 +1,1040 @@
+[
+ {
+  "_id": "ord-0001",
+  "customer": {
+   "name": "Yui Seki",
+   "email": "yui.seki@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2025-08-30",
+  "items": [
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "juniper",
+    "qty": 3,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0002",
+  "customer": {
+   "name": "Nao Abe",
+   "email": "nao.abe@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2026-01-04",
+  "items": [
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 20000
+   },
+   {
+    "species": "white pine",
+    "qty": 3,
+    "unit_price": 13000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0003",
+  "customer": {
+   "name": "Tomo Baba",
+   "email": "tomo.baba@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "Paid",
+  "placed": "2026-04-14",
+  "items": [
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 2400
+ },
+ {
+  "_id": "ord-0004",
+  "customer": {
+   "name": "Tomo Noda",
+   "email": "tomo.noda@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2026-05-29",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   },
+   {
+    "species": "zelkova",
+    "qty": 1,
+    "unit_price": 5000
+   },
+   {
+    "species": "azalea",
+    "qty": 2,
+    "unit_price": 84000
+   }
+  ],
+  "shipping_fee": 0
+ },
+ {
+  "_id": "ord-0005",
+  "customer": {
+   "name": "Nao Noda",
+   "email": "nao.noda@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2026-03-17",
+  "items": [
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 32000
+   },
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 31500
+   }
+  ],
+  "shipping_fee": 800,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0006",
+  "customer": {
+   "name": "Daichi Ito",
+   "email": "daichi.ito@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2026-05-23",
+  "items": [
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   }
+  ],
+  "shipping_fee": 0
+ },
+ {
+  "_id": "ord-0007",
+  "customer": {
+   "name": "Sora Baba",
+   "email": "sora.baba@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2025-07-30",
+  "items": [
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 31500
+   },
+   {
+    "species": "juniper",
+    "qty": 3,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 1500,
+  "coupon": "MOSS5"
+ },
+ {
+  "_id": "ord-0008",
+  "customer": {
+   "name": "Tomo Ito",
+   "email": "tomo.ito@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2026-04-21",
+  "items": [
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 22000
+   },
+   {
+    "species": "azalea",
+    "qty": 1,
+    "unit_price": 84000
+   },
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   }
+  ],
+  "shipping_fee": 1500,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0009",
+  "customer": {
+   "name": "Ren Sato",
+   "email": "ren.sato@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2026-04-04",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 3,
+    "unit_price": 38500
+   },
+   {
+    "species": "ume",
+    "qty": 2,
+    "unit_price": 38500
+   },
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 49000
+   },
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 22000
+   },
+   {
+    "species": "white pine",
+    "qty": 2,
+    "unit_price": 13000
+   }
+  ],
+  "shipping_fee": 800
+ },
+ {
+  "_id": "ord-0010",
+  "customer": {
+   "name": "Aiko Abe",
+   "email": "aiko.abe@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2026-04-16",
+  "items": [
+   {
+    "species": "zelkova",
+    "qty": 1,
+    "unit_price": 6000
+   },
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   }
+  ],
+  "shipping_fee": 2400
+ },
+ {
+  "_id": "ord-0011",
+  "customer": {
+   "name": "Aiko Abe",
+   "email": "aiko.abe@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2025-12-17",
+  "items": [
+   {
+    "species": "azalea",
+    "qty": 1,
+    "unit_price": 84000
+   },
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0012",
+  "customer": {
+   "name": "Kaito Ito",
+   "email": "kaito.ito@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2026-05-19",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   },
+   {
+    "species": "azalea",
+    "qty": 1,
+    "unit_price": 84000
+   }
+  ],
+  "shipping_fee": 0,
+  "coupon": "FIRSTTREE"
+ },
+ {
+  "_id": "ord-0013",
+  "customer": {
+   "name": "Nao Ito",
+   "email": "nao.ito@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2025-10-01",
+  "items": [
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "japanese maple",
+    "qty": 2,
+    "unit_price": 22000
+   },
+   {
+    "species": "larch",
+    "qty": 2,
+    "unit_price": 31500
+   }
+  ],
+  "shipping_fee": 2400,
+  "coupon": "MOSS5"
+ },
+ {
+  "_id": "ord-0014",
+  "customer": {
+   "name": "Nao Kato",
+   "email": "nao.kato@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2026-03-07",
+  "items": [
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "larch",
+    "qty": 2,
+    "unit_price": 31500
+   }
+  ],
+  "shipping_fee": 0
+ },
+ {
+  "_id": "ord-0015",
+  "customer": {
+   "name": "Emi Oka",
+   "email": "emi.oka@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2025-07-08",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 38500
+   },
+   {
+    "species": "black pine",
+    "qty": 2,
+    "unit_price": 50000
+   },
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 800,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0016",
+  "customer": {
+   "name": "Riku Mori",
+   "email": "riku.mori@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2025-09-05",
+  "items": [
+   {
+    "species": "larch",
+    "qty": 2,
+    "unit_price": 31500
+   },
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0017",
+  "customer": {
+   "name": "Daichi Ito",
+   "email": "daichi.ito@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2025-12-14",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 2,
+    "unit_price": 25000
+   },
+   {
+    "species": "zelkova",
+    "qty": 2,
+    "unit_price": 6000
+   },
+   {
+    "species": "juniper",
+    "qty": 3,
+    "unit_price": 10500
+   },
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   },
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 37500
+   }
+  ],
+  "shipping_fee": 2400
+ },
+ {
+  "_id": "ord-0018",
+  "customer": {
+   "name": "Tomo Kato",
+   "email": "tomo.kato@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2026-01-21",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 23500
+   },
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 37000
+   },
+   {
+    "species": "zelkova",
+    "qty": 3,
+    "unit_price": 6000
+   },
+   {
+    "species": "zelkova",
+    "qty": 2,
+    "unit_price": 6000
+   },
+   {
+    "species": "white pine",
+    "qty": 1,
+    "unit_price": 13000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0019",
+  "customer": {
+   "name": "Sora Noda",
+   "email": "sora.noda@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2025-08-19",
+  "items": [
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 29500
+   }
+  ],
+  "shipping_fee": 2400,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0020",
+  "customer": {
+   "name": "Yui Baba",
+   "email": "yui.baba@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2026-01-23",
+  "items": [
+   {
+    "species": "white pine",
+    "qty": 1,
+    "unit_price": 13000
+   },
+   {
+    "species": "larch",
+    "qty": 3,
+    "unit_price": 31500
+   },
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 25000
+   },
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   }
+  ],
+  "shipping_fee": 800,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0021",
+  "customer": {
+   "name": "Riku Noda",
+   "email": "riku.noda@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "cancelled",
+  "placed": "2026-03-26",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 2,
+    "unit_price": 25000
+   },
+   {
+    "species": "white pine",
+    "qty": 2,
+    "unit_price": 13000
+   }
+  ],
+  "shipping_fee": 1500,
+  "coupon": "FIRSTTREE"
+ },
+ {
+  "_id": "ord-0022",
+  "customer": {
+   "name": "Ren Mori",
+   "email": "ren.mori@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2025-07-11",
+  "items": [
+   {
+    "species": "azalea",
+    "qty": 1,
+    "unit_price": 84000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0023",
+  "customer": {
+   "name": "Yui Abe",
+   "email": "yui.abe@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2025-11-25",
+  "items": [
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   },
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 38500
+   },
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 22000
+   }
+  ],
+  "shipping_fee": 0,
+  "coupon": "SPRING10"
+ },
+ {
+  "_id": "ord-0024",
+  "customer": {
+   "name": "Sora Baba",
+   "email": "sora.baba@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2025-12-26",
+  "items": [
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 23000
+   }
+  ],
+  "shipping_fee": 0
+ },
+ {
+  "_id": "ord-0025",
+  "customer": {
+   "name": "Mei Mori",
+   "email": "mei.mori@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "Paid",
+  "placed": "2026-02-02",
+  "items": [
+   {
+    "species": "juniper",
+    "qty": 3,
+    "unit_price": 10500
+   },
+   {
+    "species": "zelkova",
+    "qty": 1,
+    "unit_price": 6000
+   },
+   {
+    "species": "black pine",
+    "qty": 2,
+    "unit_price": 50000
+   }
+  ],
+  "shipping_fee": 2400
+ },
+ {
+  "_id": "ord-0026",
+  "customer": {
+   "name": "Emi Abe",
+   "email": "EMI.ABE@EXAMPLE.JP"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2026-03-18",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 2,
+    "unit_price": 37500
+   },
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 31500
+   },
+   {
+    "species": "hornbeam",
+    "qty": 1,
+    "unit_price": 24000
+   }
+  ],
+  "shipping_fee": 0
+ },
+ {
+  "_id": "ord-0027",
+  "customer": {
+   "name": "Kaito Seki",
+   "email": "kaito.seki@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2026-01-01",
+  "items": [
+   {
+    "species": "zelkova",
+    "qty": 1,
+    "unit_price": 4000
+   },
+   {
+    "species": "hornbeam",
+    "qty": 2,
+    "unit_price": 25000
+   },
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   }
+  ],
+  "shipping_fee": 800,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0028",
+  "customer": {
+   "name": "Riku Seki",
+   "email": "riku.seki@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2025-11-11",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 38500
+   },
+   {
+    "species": "hornbeam",
+    "qty": 2,
+    "unit_price": 25000
+   }
+  ],
+  "shipping_fee": 800
+ },
+ {
+  "_id": "ord-0029",
+  "customer": {
+   "name": "Aiko Oka",
+   "email": "aiko.oka@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2025-11-09",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 3,
+    "unit_price": 38500
+   },
+   {
+    "species": "zelkova",
+    "qty": 1,
+    "unit_price": 6000
+   },
+   {
+    "species": "black pine",
+    "qty": 1,
+    "unit_price": 50000
+   },
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 31500
+   }
+  ],
+  "shipping_fee": 2400,
+  "coupon": "SPRING10"
+ },
+ {
+  "_id": "ord-0030",
+  "customer": {
+   "name": "Mei Ito",
+   "email": "mei.ito@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2026-02-01",
+  "items": [
+   {
+    "species": "azalea",
+    "qty": 1,
+    "unit_price": 84000
+   },
+   {
+    "species": "azalea",
+    "qty": 2,
+    "unit_price": 83500
+   }
+  ],
+  "shipping_fee": 800
+ },
+ {
+  "_id": "ord-0031",
+  "customer": {
+   "name": "Hana Baba",
+   "email": "HANA.BABA@EXAMPLE.JP"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2025-12-13",
+  "items": [
+   {
+    "species": "trident maple",
+    "qty": 1,
+    "unit_price": 33500
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0032",
+  "customer": {
+   "name": "Kaito Abe",
+   "email": "kaito.abe@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2025-07-21",
+  "items": [
+   {
+    "species": "ume",
+    "qty": 1,
+    "unit_price": 37500
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 2400
+ },
+ {
+  "_id": "ord-0033",
+  "customer": {
+   "name": "Ren Baba",
+   "email": "ren.baba@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2025-10-02",
+  "items": [
+   {
+    "species": "white pine",
+    "qty": 1,
+    "unit_price": 11500
+   },
+   {
+    "species": "larch",
+    "qty": 2,
+    "unit_price": 31500
+   }
+  ],
+  "shipping_fee": 0,
+  "coupon": "SPRING10"
+ },
+ {
+  "_id": "ord-0034",
+  "customer": {
+   "name": "Hana Seki",
+   "email": "hana.seki@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2025-10-27",
+  "items": [
+   {
+    "species": "white pine",
+    "qty": 1,
+    "unit_price": 12500
+   },
+   {
+    "species": "japanese maple",
+    "qty": 2,
+    "unit_price": 22000
+   }
+  ],
+  "shipping_fee": 0,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0035",
+  "customer": {
+   "name": "Sora Kato",
+   "email": "sora.kato@example.jp"
+  },
+  "region": "Hokkaido",
+  "status": "paid",
+  "placed": "2026-01-30",
+  "items": [
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 22000
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 2400,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0036",
+  "customer": {
+   "name": "Emi Baba",
+   "email": "Emi.baba@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2026-02-04",
+  "items": [
+   {
+    "species": "japanese maple",
+    "qty": 1,
+    "unit_price": 22000
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   },
+   {
+    "species": "juniper",
+    "qty": 1,
+    "unit_price": 10500
+   }
+  ],
+  "shipping_fee": 2400,
+  "coupon": "MOSS5"
+ },
+ {
+  "_id": "ord-0037",
+  "customer": {
+   "name": "Nao Mori",
+   "email": "nao.mori@example.jp"
+  },
+  "region": "Kansai",
+  "status": "paid",
+  "placed": "2026-06-17",
+  "items": [
+   {
+    "species": "japanese maple",
+    "qty": 2,
+    "unit_price": 22000
+   }
+  ],
+  "shipping_fee": 0,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0038",
+  "customer": {
+   "name": "Riku Ito",
+   "email": "riku.ito@example.jp"
+  },
+  "region": "Kyushu",
+  "status": "paid",
+  "placed": "2025-11-10",
+  "items": [
+   {
+    "species": "white pine",
+    "qty": 2,
+    "unit_price": 13000
+   },
+   {
+    "species": "zelkova",
+    "qty": 2,
+    "unit_price": 6000
+   }
+  ],
+  "shipping_fee": 1500
+ },
+ {
+  "_id": "ord-0039",
+  "customer": {
+   "name": "Mei Seki",
+   "email": "mei.seki@example.jp"
+  },
+  "region": "Tohoku",
+  "status": "paid",
+  "placed": "2025-08-30",
+  "items": [
+   {
+    "species": "black pine",
+    "qty": 2,
+    "unit_price": 50000
+   },
+   {
+    "species": "larch",
+    "qty": 3,
+    "unit_price": 31500
+   },
+   {
+    "species": "trident maple",
+    "qty": 2,
+    "unit_price": 33500
+   }
+  ],
+  "shipping_fee": 800,
+  "coupon": null
+ },
+ {
+  "_id": "ord-0040",
+  "customer": {
+   "name": "Sora Ueda",
+   "email": "sora.ueda@example.jp"
+  },
+  "region": "Kanto",
+  "status": "paid",
+  "placed": "2025-08-12",
+  "items": [
+   {
+    "species": "larch",
+    "qty": 1,
+    "unit_price": 31000
+   },
+   {
+    "species": "white pine",
+    "qty": 3,
+    "unit_price": 13000
+   },
+   {
+    "species": "white pine",
+    "qty": 1,
+    "unit_price": 13000
+   }
+  ],
+  "shipping_fee": 2400
+ }
+]

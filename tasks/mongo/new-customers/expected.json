@@ -1,0 +1,50 @@
+[
+ {
+  "month": "2025-07",
+  "new_customers": 41
+ },
+ {
+  "month": "2025-08",
+  "new_customers": 24
+ },
+ {
+  "month": "2025-09",
+  "new_customers": 9
+ },
+ {
+  "month": "2025-10",
+  "new_customers": 8
+ },
+ {
+  "month": "2025-11",
+  "new_customers": 5
+ },
+ {
+  "month": "2025-12",
+  "new_customers": 3
+ },
+ {
+  "month": "2026-01",
+  "new_customers": 3
+ },
+ {
+  "month": "2026-02",
+  "new_customers": 1
+ },
+ {
+  "month": "2026-03",
+  "new_customers": 2
+ },
+ {
+  "month": "2026-04",
+  "new_customers": 2
+ },
+ {
+  "month": "2026-05",
+  "new_customers": 1
+ },
+ {
+  "month": "2026-06",
+  "new_customers": 1
+ }
+]

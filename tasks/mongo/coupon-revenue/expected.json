@@ -1,0 +1,17 @@
+[
+ {
+  "coupon": "FIRSTTREE",
+  "orders": 46,
+  "revenue": 5810500
+ },
+ {
+  "coupon": "SPRING10",
+  "orders": 39,
+  "revenue": 4504000
+ },
+ {
+  "coupon": "MOSS5",
+  "orders": 37,
+  "revenue": 4143500
+ }
+]

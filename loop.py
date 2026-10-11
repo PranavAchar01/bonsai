@@ -119,7 +119,14 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str
     child["model"] = parent["model"]
     child["tools"] = [t for t in child["tools"] if t in ALLOWED_TOOLS]
     child["max_turns"] = min(int(child["max_turns"]), MAX_TURNS_CAP)
-    return {"change": reply["change"], "shed": reply.get("shed", "nothing"), "signal": reply["signal"], "harness": child}
+    trace = None
+    if runner.RAINDROP:  # the proposer is an agent too: its proposal is traced, and later marked kept or pruned
+        trace = runner.raindrop.track_ai(
+            user_id=f"proposer-{parent['id']}", event="harness_proposal", model=model, input=prompt,
+            output=text, properties={"parent": parent["id"], "change": reply["change"], "shed": reply.get("shed")},
+        )  # fmt: skip
+    return {"change": reply["change"], "shed": reply.get("shed", "nothing"), "signal": reply["signal"], "harness": child,
+            "trace_id": trace}  # fmt: skip
 
 
 def diff(a: dict, b: dict) -> str:
@@ -176,7 +183,7 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
             emit("task", version=vid, split="propose", task="one change, one thing shed", state="start", row=None)
             p = propose(best, practice_run, pruned, proposer, goal)
             emit("task", version=vid, split="propose", task="one change, one thing shed", state="end",
-                 row={"passed": True, "edited_tests": False, "said": p["change"]})  # fmt: skip
+                 row={"passed": True, "edited_tests": False, "said": p["change"], "trace_id": p["trace_id"]})  # fmt: skip
             child = {**p["harness"], "id": vid}
             emit("phase", text=f"scoring {vid} on held-out problems: {p['change']}", version=vid)
             res = score(child, heldout, scratch / f"{vid}-held", workers, tasks_cb(vid, "held-out"))
@@ -190,6 +197,9 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
                    "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()}  # fmt: skip
             store(doc)
             emit("version", doc=doc)
+            if p["trace_id"]:
+                runner.raindrop.track_signal(event_id=p["trace_id"], name="kept" if kept else "pruned",
+                                             sentiment="POSITIVE" if kept else "NEGATIVE")  # fmt: skip
             (VERSIONS / f"{vid}.json").write_text(json.dumps(child, indent=1))
             print(f"{vid} {'KEPT' if kept else 'PRUNED'} {res['score']:.2f} (best {best_score:.2f}) "
                   f"{'CHEAT ' if res['cheated'] else ''}{p['change']}", flush=True)  # fmt: skip

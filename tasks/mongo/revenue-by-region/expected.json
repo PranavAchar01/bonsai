@@ -1,0 +1,22 @@
+[
+ {
+  "region": "Kanto",
+  "revenue": 12200000
+ },
+ {
+  "region": "Tohoku",
+  "revenue": 11705000
+ },
+ {
+  "region": "Kansai",
+  "revenue": 10751500
+ },
+ {
+  "region": "Hokkaido",
+  "revenue": 9481000
+ },
+ {
+  "region": "Kyushu",
+  "revenue": 8878500
+ }
+]

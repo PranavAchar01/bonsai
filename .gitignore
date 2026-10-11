@@ -3,3 +3,4 @@ fractalsearch/
 runs/
 __pycache__/
 .env*
+web/lineage.json

@@ -1,7 +1,7 @@
 """Local Bonsai app: the page, plus the controls that start and stop a run.
 
   GET  /api/state  what is running now: the job, every agent, the activity log
-  POST /api/grow   {goal, lang, count, generations, parent}  start growing
+  POST /api/grow   {set, goal, generations}  start growing
   POST /api/stop   finish the current step, then stop
 
 Everything else is served from web/. Binds to 127.0.0.1 only.
@@ -22,7 +22,6 @@ ROOT = Path(__file__).parent
 WEB = ROOT / "web"
 JOB_FILE = ROOT / "runs" / "job.json"
 HEAVY_LOCK = Path.home() / "helloworld" / ".heavy-lock"
-LANGS = {"cpp": "C++", "python": "Python"}
 PORT = int(os.getenv("PORT", "8765"))
 
 lock = threading.Lock()
@@ -31,12 +30,42 @@ state: dict = {"job": None, "agents": [], "log": []}
 
 
 def problems(lang: str) -> list[str]:
-    names = sorted(
-        p.name
-        for p in (runner.BENCH / lang / "exercises/practice").iterdir()
-        if p.is_dir()
-    )
+    base = runner.TASKS / "mongo" if lang == "mongo" else runner.BENCH / lang / "exercises/practice"
+    if not base.exists():
+        return []
+    names = sorted(p.name for p in base.iterdir() if p.is_dir() and not p.name.startswith("_"))
     return names if lang == "python" else [f"{lang}/{n}" for n in names]
+
+
+def mongo_up() -> bool:
+    import socket
+
+    try:
+        socket.create_connection(("127.0.0.1", 27018), timeout=0.3).close()
+        return True
+    except OSError:
+        return False
+
+
+def sets() -> list[dict]:
+    """What the dropdown offers. A set is only selectable if this machine can grade it."""
+    ours, poly, later = "Ours, not a benchmark", "Aider Polyglot (Exercism practice problems)", "Not wired in yet"
+    have = lambda tool: shutil.which(tool) is not None  # noqa: E731
+    rows = [
+        ("mongo", "Nursery questions: MongoDB aggregation", ours, mongo_up(), "start the local MongoDB first"),
+        ("cpp", "Aider Polyglot: C++", poly, have("c++"), "needs a C++ compiler"),
+        ("python", "Aider Polyglot: Python", poly, True, ""),
+        ("javascript", "Aider Polyglot: JavaScript", poly, False, "grader not written"),
+        ("java", "Aider Polyglot: Java", poly, False, "grader not written"),
+        ("go", "Aider Polyglot: Go", poly, False, "needs the Go toolchain"),
+        ("rust", "Aider Polyglot: Rust", poly, False, "needs the Rust toolchain"),
+        ("swe", "SWE-bench Verified", later, False, "needs Docker images"),
+        ("tb", "Terminal-Bench 2.0", later, False, "needs its sandbox"),
+        ("he", "HumanEval", later, False, "not downloaded"),
+        ("mbpp", "MBPP", later, False, "not downloaded"),
+    ]
+    return [{"key": k, "name": n, "group": g, "ready": r, "why": w, "count": len(problems(k)) if g != later else 0}
+            for k, n, g, r, w in rows]  # fmt: skip
 
 
 def say(text: str) -> None:
@@ -78,7 +107,7 @@ def emit(kind: str, **d) -> None:
                 row = d["row"]
                 agent.update(
                     status="cheat" if row.get("edited_tests") else "passed" if row["passed"] else "failed",
-                    ended=time.time(), turns=row.get("turns"), said=(row.get("said") or row.get("agent_said") or "")[-220:],
+                    ended=time.time(), turns=row.get("turns"), trace=row.get("trace_id"), said=(row.get("said") or row.get("agent_said") or "")[-220:],
                 )  # fmt: skip
 
 
@@ -138,9 +167,10 @@ def grow(body: dict) -> tuple[int, dict]:
     with lock:
         if state["job"] and state["job"]["status"] == "running":
             return 409, {"error": "a run is already going"}
-    lang = body.get("lang")
-    if lang not in LANGS:
-        return 400, {"error": "unknown problem set"}
+    lang = body.get("set")
+    chosen = next((x for x in sets() if x["key"] == lang), None)
+    if not chosen or not chosen["ready"]:
+        return 400, {"error": "that set cannot be graded on this machine yet"}
     names = problems(lang)
     count = max(4, min(int(body.get("count") or len(names)), len(names)))
     names = names[:count]
@@ -177,10 +207,10 @@ def grow(body: dict) -> tuple[int, dict]:
            "scratch": str(Path(os.getenv("BONSAI_SCRATCH", ROOT / "runs" / "scratch")))}  # fmt: skip
     with lock:
         state["agents"].clear()
-        state["job"] = {"status": "running", "goal": goal, "lang": LANGS[lang], "practice": len(practice),
+        state["job"] = {"status": "running", "goal": goal, "set": chosen["name"], "practice": len(practice),
                         "heldout": len(heldout), "generations": generations, "proposer": cfg["proposer"],
                         "from": parent["id"] if parent else "seed", "phase": "starting", "started": time.time()}  # fmt: skip
-    say(f"asked: {goal or 'a higher held-out score'} ({LANGS[lang]}, {len(practice)} practice, {len(heldout)} held-out, "
+    say(f"asked to improve on {chosen['name']}{': ' + goal if goal else ''} ({len(practice)} practice, {len(heldout)} held-out, "
         f"{generations} generations, from {parent['id'] if parent else 'the seed'})")  # fmt: skip
     threading.Thread(target=job, args=(cfg,), daemon=True).start()
     return 200, {"ok": True}
@@ -210,7 +240,7 @@ class Handler(SimpleHTTPRequestHandler):
                 {k: v for k, v in a.items() if k != "key"} for a in state["agents"]
             ]
             body = {"job": state["job"], "agents": agents, "log": state["log"][-80:], "now": time.time(),
-                    "sets": {k: {"name": v, "count": len(problems(k))} for k, v in LANGS.items()},
+                    "sets": sets(),
                     "raindrop": runner.RAINDROP}  # fmt: skip
         self.send_json(200, body)
 

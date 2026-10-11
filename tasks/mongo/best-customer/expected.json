@@ -1,0 +1,27 @@
+[
+ {
+  "region": "Hokkaido",
+  "email": "sora.seki@example.jp",
+  "revenue": 555500
+ },
+ {
+  "region": "Kansai",
+  "email": "emi.ito@example.jp",
+  "revenue": 641500
+ },
+ {
+  "region": "Kanto",
+  "email": "mei.abe@example.jp",
+  "revenue": 559000
+ },
+ {
+  "region": "Kyushu",
+  "email": "kaito.sato@example.jp",
+  "revenue": 604000
+ },
+ {
+  "region": "Tohoku",
+  "email": "ren.abe@example.jp",
+  "revenue": 533000
+ }
+]

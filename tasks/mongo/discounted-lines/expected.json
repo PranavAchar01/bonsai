@@ -1,0 +1,42 @@
+[
+ {
+  "species": "juniper",
+  "discounted_lines": 32
+ },
+ {
+  "species": "hornbeam",
+  "discounted_lines": 29
+ },
+ {
+  "species": "azalea",
+  "discounted_lines": 26
+ },
+ {
+  "species": "black pine",
+  "discounted_lines": 25
+ },
+ {
+  "species": "trident maple",
+  "discounted_lines": 25
+ },
+ {
+  "species": "larch",
+  "discounted_lines": 21
+ },
+ {
+  "species": "zelkova",
+  "discounted_lines": 21
+ },
+ {
+  "species": "japanese maple",
+  "discounted_lines": 19
+ },
+ {
+  "species": "white pine",
+  "discounted_lines": 18
+ },
+ {
+  "species": "ume",
+  "discounted_lines": 17
+ }
+]

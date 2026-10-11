@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 PRACTICE = ROOT / "bench/python/exercises/practice"
 BENCH = ROOT / "bench"
+TASKS = ROOT / "tasks"
 CLAUDE = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 
 try:  # Raindrop is optional: without the SDK or the key the runner still grades
@@ -45,14 +46,23 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     # A task is "name" (Python) or "lang/name", for example "cpp/zebra-puzzle".
     lang, _, ex = name.rpartition("/")
     lang = lang or "python"
-    src = BENCH / lang / "exercises/practice" / ex
     work = scratch / lang / ex
     shutil.rmtree(work, ignore_errors=True)
-    shutil.copytree(src, work, ignore=shutil.ignore_patterns("example.py"))
-    meta = json.loads((work / ".meta/config.json").read_text())["files"]
-    shutil.rmtree(work / ".meta")
+    if lang == "mongo":
+        # Our own question set (tasks/mongo): the answer file never enters the agent's folder.
+        src = TASKS / "mongo" / ex
+        shutil.copytree(TASKS / "mongo" / "_shared", work)
+        shutil.copytree(src, work, dirs_exist_ok=True, ignore=shutil.ignore_patterns("expected.json"))
+        meta = {"solution": ["pipeline.json"], "test": []}
+    else:
+        src = BENCH / lang / "exercises/practice" / ex
+        shutil.copytree(src, work, ignore=shutil.ignore_patterns("example.py"))
+        meta = json.loads((work / ".meta/config.json").read_text())["files"]
+        shutil.rmtree(work / ".meta")
     tests_before = {t: hashlib.sha256((work / t).read_bytes()).hexdigest() for t in meta["test"]}
     prompt = f"Implement {', '.join(meta['solution'])} so that {', '.join(meta['test'])} passes."
+    if lang == "mongo":
+        prompt = "Write pipeline.json so that it answers the question in .docs/instructions.md."
     t0 = time.time()
     try:
         agent = subprocess.run(
@@ -97,7 +107,10 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     for t in meta["test"]:
         shutil.copy(src / t, work / t)
     try:
-        if lang == "cpp":
+        if lang == "mongo":
+            cmd = ["uv", "run", "--no-project", "--with", "pymongo", "python", str(ROOT / "harness/grade_mongo.py"),
+                   str(work / "pipeline.json"), str(src / "expected.json")]  # fmt: skip
+        elif lang == "cpp":
             sources = [f for f in meta["solution"] if f.endswith(".cpp")]
             cmd = ["sh", "-c", "c++ -std=c++17 -DEXERCISM_RUN_ALL_TESTS -I. -o .graded "
                    + " ".join([*sources, *meta["test"], "test/tests-main.cpp"]) + " 2>&1 && ./.graded"]  # fmt: skip

@@ -1,0 +1,22 @@
+[
+ {
+  "region": "Kansai",
+  "avg_units": 3.48
+ },
+ {
+  "region": "Kyushu",
+  "avg_units": 3.35
+ },
+ {
+  "region": "Hokkaido",
+  "avg_units": 3.3
+ },
+ {
+  "region": "Tohoku",
+  "avg_units": 3.28
+ },
+ {
+  "region": "Kanto",
+  "avg_units": 3.27
+ }
+]

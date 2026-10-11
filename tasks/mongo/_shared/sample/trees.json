@@ -1,0 +1,100 @@
+[
+ {
+  "_id": "black pine",
+  "style": "chokkan",
+  "age_years": 35,
+  "price": 50000,
+  "in_stock": true
+ },
+ {
+  "_id": "white pine",
+  "style": "moyogi",
+  "age_years": 21,
+  "price": 13000,
+  "in_stock": true
+ },
+ {
+  "_id": "juniper",
+  "style": "shakan",
+  "age_years": 34,
+  "price": 10500,
+  "in_stock": true
+ },
+ {
+  "_id": "trident maple",
+  "style": "kengai",
+  "age_years": 26,
+  "price": 33500,
+  "in_stock": false
+ },
+ {
+  "_id": "japanese maple",
+  "style": "bunjin",
+  "age_years": 37,
+  "price": 22000,
+  "in_stock": true
+ },
+ {
+  "_id": "zelkova",
+  "style": "chokkan",
+  "age_years": 5,
+  "price": 6000,
+  "in_stock": true
+ },
+ {
+  "_id": "hornbeam",
+  "style": "moyogi",
+  "age_years": 19,
+  "price": 25000,
+  "in_stock": true
+ },
+ {
+  "_id": "azalea",
+  "style": "shakan",
+  "age_years": 33,
+  "price": 84000,
+  "in_stock": true
+ },
+ {
+  "_id": "ume",
+  "style": "kengai",
+  "age_years": 12,
+  "price": 38500,
+  "in_stock": false
+ },
+ {
+  "_id": "larch",
+  "style": "bunjin",
+  "age_years": 26,
+  "price": 31500,
+  "in_stock": true
+ },
+ {
+  "_id": "cedar",
+  "style": "chokkan",
+  "age_years": 26,
+  "price": 71000,
+  "in_stock": true
+ },
+ {
+  "_id": "hinoki",
+  "style": "moyogi",
+  "age_years": 14,
+  "price": 63500,
+  "in_stock": true
+ },
+ {
+  "_id": "quince",
+  "style": "shakan",
+  "age_years": 34,
+  "price": 49500,
+  "in_stock": true
+ },
+ {
+  "_id": "wisteria",
+  "style": "kengai",
+  "age_years": 22,
+  "price": 46500,
+  "in_stock": true
+ }
+]

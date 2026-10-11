@@ -1,0 +1,22 @@
+[
+ {
+  "region": "Hokkaido",
+  "refund_rate": 0.115
+ },
+ {
+  "region": "Kansai",
+  "refund_rate": 0.118
+ },
+ {
+  "region": "Kanto",
+  "refund_rate": 0.066
+ },
+ {
+  "region": "Kyushu",
+  "refund_rate": 0.15
+ },
+ {
+  "region": "Tohoku",
+  "refund_rate": 0.087
+ }
+]

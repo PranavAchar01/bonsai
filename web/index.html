@@ -13,9 +13,11 @@
   .mono, table, button, select, input, .stat, pre, dl { font-family:"IBM Plex Mono",monospace; }
   .ask { display:flex; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
   .ask label { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
-  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--ink); font-family:"Shippori Mincho",serif; font-size:17px; color:var(--ink); padding:3px 2px; outline:none; }
+  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"Shippori Mincho",serif; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
   .ask input::placeholder { color:var(--faint); }
-  .ask select { padding:4px 4px; font-size:11px; }
+  .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"Shippori Mincho",serif; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
+  .rd { font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
+  .ag .what u { text-decoration:none; color:var(--moss); }
   .ask button { font-size:12px; padding:6px 16px; }
   .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
   .ask button.halt { color:var(--seal); border-color:var(--seal); }
@@ -39,9 +41,9 @@
   .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
   .stat b { font-family:"Shippori Mincho",serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
   .stat.red b { color:var(--seal); }
-  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 210px; }
+  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
   .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
-  #panel-board { grid-row:1 / span 2; border-right:1px solid var(--line); }
+  #panel-board { border-right:1px solid var(--line); }
   #panel-graph { border-top:1px solid var(--line); }
   h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"IBM Plex Mono",monospace; }
   h2 .sp { flex:1; } h2 .name { color:var(--ink); letter-spacing:.04em; text-transform:none; }
@@ -76,23 +78,16 @@
 <body>
 <header>
   <h1>盆栽 Bonsai</h1><span class="tag">a harness that prunes itself</span>
-  <span class="stat">versions<b id="s-count">–</b></span>
-  <span class="stat">kept<b id="s-kept">–</b></span>
-  <span class="stat red">pruned<b id="s-cut">–</b></span>
-  <span class="stat red">cheats caught<b id="s-cheat">–</b></span>
-  <span class="stat">best held-out<b id="s-best">–</b></span>
   <span class="stat" style="margin-left:auto" id="s-note"></span>
 </header>
 <form class="ask" id="ask" onsubmit="grow(event)">
-  <label for="goal">Ask it to get better at</label>
-  <input id="goal" maxlength="300" autocomplete="off" placeholder="finishing the hard cases instead of stopping early">
-  <label for="set">on</label><select id="set"></select>
-  <select id="count"><option value="8">8 problems</option><option value="14">14 problems</option><option value="0" selected>all problems</option></select>
+  <label for="set">Improve it on</label><select id="set" class="big"></select>
   <label for="gens">for</label><select id="gens"><option value="1">1 generation</option><option value="2" selected>2 generations</option><option value="3">3 generations</option><option value="5">5 generations</option></select>
-  <label for="from">from</label><select id="from"><option value="">best so far</option><option value="sel">selected version</option></select>
+  <label for="goal">steer</label><input id="goal" maxlength="300" autocomplete="off" placeholder="optional: what to get better at, in your words">
+  <span class="rd" id="rd"></span>
   <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
 </form>
-<div id="phase"><span class="dot"></span><b>idle</b> · type what you want it to get better at, then Grow</div>
+<div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
 <div class="wrap">
   <div class="panel" id="panel-board">
     <div id="agents-box">
@@ -117,12 +112,6 @@
       <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div><div class="layer" id="layer-activity"></div>
     </div>
     <div class="stats" id="sel-stats"></div>
-  </div>
-  <div class="panel" id="panel-graph">
-    <h2>Best held-out over time <span class="sp"></span>
-      <select id="chart-window" onchange="renderChart()"><option value="10">last 10</option><option value="50">last 50</option><option value="all" selected>all</option></select></h2>
-    <canvas id="chart"></canvas>
-    <div class="chart-footer"><span id="chart-note"></span><span>ink: kept · red: pruned</span></div>
   </div>
 </div>
 <script>
@@ -268,9 +257,6 @@ function draw(data) {
 const pct = x => Math.round(x*100) + '%';
 function renderUI(data, kept) {
   const vs = data.versions, best = kept[kept.length-1];
-  $('s-count').textContent = vs.length; $('s-kept').textContent = vs.filter(v => v.kept).length - 1;
-  $('s-cut').textContent = vs.filter(v => !v.kept).length; $('s-cheat').textContent = vs.filter(v => v.signal === 'cheat caught').length;
-  $('s-best').textContent = `${pct(best.score)} from ${pct(kept[0].score)}`;
   $('s-note').textContent = data.sample ? 'SAMPLE TREE · NO RUN YET' : '';
   const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
   $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
@@ -284,33 +270,12 @@ function renderUI(data, kept) {
     <dt>Raindrop trace</dt><dd>${esc(v.trace_id || 'none recorded')}</dd></dl>`;
   $('layer-harness').innerHTML = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
   $('sel-stats').innerHTML = `<span class="${v.kept ? '' : 'cut'}">verdict <b>${verdict}</b></span><span>held-out <b>${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}</b></span><span>parent <b>${esc(par ? par.id : 'none')}</b></span><span>rules <b>${v.tokens ? '~' + v.tokens + ' tokens' : 'n/a'}</b></span><span>shed <b>${esc(v.shed || 'n/a')}</b></span>`;
-  renderChart();
 }
 const $ = id => document.getElementById(id);
 function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
 function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1).id; draw(window.__d); } }
 function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
 function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness','activity'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
-
-// Best held-out over time: ink step line through kept versions, red marks where a branch was cut.
-let chartPts = [];
-function renderChart() {
-  const c = $('chart'), g = c.getContext('2d'), dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
-  if (!W || !window.__d) return; c.width = W*dpr; c.height = H*dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const win = $('chart-window').value, all = window.__d.versions, vs = win === 'all' ? all : all.slice(-win);
-  const lo = Math.max(0, Math.min(...vs.map(v => v.score)) - .08), hi = Math.min(1, Math.max(...vs.map(v => v.score)) + .08);
-  const X = i => 46 + i*(W - 76)/Math.max(vs.length - 1, 1), Y = s => H - 16 - (s - lo)/(hi - lo)*(H - 34);
-  g.font = '10px "IBM Plex Mono", monospace'; g.fillStyle = '#8b8272'; g.strokeStyle = 'rgba(29,27,25,.1)'; g.lineWidth = 1;
-  [lo, (lo + hi)/2, hi].forEach(s => { g.fillText(pct(s), 8, Y(s) + 3); g.beginPath(); g.moveTo(42, Y(s)); g.lineTo(W - 18, Y(s)); g.stroke(); });
-  let best = -1; g.strokeStyle = '#1d1b19'; g.lineWidth = 2.2; g.lineJoin = 'round'; g.beginPath(); chartPts = [];
-  vs.forEach((v, i) => { if (v.kept) { if (best < 0) g.moveTo(X(i), Y(v.score)); else { g.lineTo(X(i), Y(best)); g.lineTo(X(i), Y(v.score)); } best = v.score; } });
-  g.lineTo(X(vs.length - 1), Y(best)); g.stroke();
-  vs.forEach((v, i) => { const x = X(i), y = Y(v.score); chartPts.push([x, y, v.id]);
-    if (v.kept) { g.fillStyle = '#1d1b19'; g.beginPath(); g.arc(x, y, v.id === selected ? 5.5 : 3.5, 0, 7); g.fill(); }
-    else { g.strokeStyle = '#b5332a'; g.lineWidth = v.id === selected ? 3 : 1.8; g.beginPath(); g.moveTo(x - 5, y - 6); g.lineTo(x + 5, y + 6); g.stroke(); } });
-  $('chart-note').textContent = `${vs.length} versions shown`;
-}
-$('chart').addEventListener('click', e => { const b = e.target.getBoundingClientRect(), x = e.clientX - b.left; const p = [...chartPts].sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0]; if (p) select(p[2], true); });
 
 // Shedding: every kept change gives something up. Needles drift down from that pad and settle on the ground.
 const fx = $('fx'), fctx = fx.getContext('2d'); let needles = [], litter = [];
@@ -350,20 +315,22 @@ function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v ===
 function renderRun() {
   const a = app; if (!a) return;
   const job = a.job, running = job && job.status === 'running';
-  if (!$('set').options.length) $('set').innerHTML = Object.entries(a.sets).map(([k, v]) => `<option value="${esc(k)}">${esc(v.name)} (${v.count})</option>`).join('');
+  if (!$('set').options.length) { const groups = [...new Set(a.sets.map(x => x.group))];
+    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join(''); }
+  $('rd').className = 'rd' + (a.raindrop ? ' on' : ''); $('rd').textContent = a.raindrop ? '◆ Raindrop tracing on' : '◇ Raindrop off';
   $('go').disabled = running; $('halt').disabled = !running; $('goal').disabled = running;
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
-  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · type what you want it to get better at, then Grow'
-    : running ? `<b>${esc(job.phase)}</b> · asked: ${esc(job.goal || 'a higher held-out score')} · ${secs(a.now - job.started)}`
+  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
+    : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
     : job.status === 'error' ? `<b>run failed</b> · ${esc(job.error)}`
-    : `<b>${esc(job.status)}</b> · asked: ${esc(job.goal || 'a higher held-out score')} · took ${secs(job.ended - job.started)}`);
+    : `<b>${esc(job.status)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · took ${secs(job.ended - job.started)}`);
   const all = a.agents, live = all.filter(x => x.status === 'working' || x.status === 'queued');
   const done = all.filter(x => x.ended).sort((x, y) => y.ended - x.ended);
   const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 6)] : [...all].reverse();
   $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${live.filter(x => x.status === 'queued').length} queued · ${done.length} done` : '';
   $('agents').innerHTML = show.length ? show.map(x => {
     const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status + (x.turns ? ` · ${x.turns} turns` : '');
-    return `<div class="ag ${esc(x.status)}" title="${esc(x.said || '')}"><span class="role">${esc(x.role)}</span><span class="what">${esc(x.task)} <i>${esc(x.version)} · ${esc(x.split)} · ${esc(x.model)}</i></span><span class="st">${esc(st)}</span></div>`;
+    return `<div class="ag ${esc(x.status)}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="role">${esc(x.role)}</span><span class="what">${esc(x.task)} <i>${esc(x.version)} · ${esc(x.split)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
   }).join('') : `<div class="empty">No agents yet. A run starts solver agents (one per problem, on the model being improved) and a proposer agent that reads their failures and rewrites the harness.</div>`;
   $('layer-activity').innerHTML = a.log.length ? [...a.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts*1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
 }
@@ -377,7 +344,7 @@ async function post(path, body) {
 }
 async function grow(e) {
   e.preventDefault(); $('go').disabled = true;
-  const ok = await post('api/grow', {goal:$('goal').value, lang:$('set').value, count:+$('count').value, generations:+$('gens').value, parent:$('from').value === 'sel' ? selected : null});
+  const ok = await post('api/grow', {goal:$('goal').value, set:$('set').value, generations:+$('gens').value});
   if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
   poll(); load();
 }
