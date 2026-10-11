@@ -4,7 +4,39 @@ A coding agent that rewrites its own harness, and has to cut something every tim
 
 Each change the agent tries on itself is a branch. A branch stays only if the agent then scores higher on problems it has never seen. The rest are pruned, and the cuts stay in the record. The page draws that history as a bonsai.
 
-Built on 11 October 2026 at the MongoDB Harness Engineering hackathon in San Francisco.
+Built on 11 October 2026 at the MongoDB Harness Engineering hackathon in San Francisco, for Statement 1, Recursive Harnessing: a harness that rewrites its own rules, tool access and turn budget, and is only allowed to keep a rewrite that measurably helps.
+
+## Results
+
+Every score is on 20 held-out problems the proposer never saw. The player is Claude Haiku in every run and never changes. The proposer is Claude Opus.
+
+| Set | Seed harness | Best kept harness | Changes kept | Changes pruned |
+|---|---|---|---|---|
+| Health: MedQA exam questions | 80% | 95% | 2 | 2 |
+| Legal: LegalBench | 65% | 75% | 2 | 2 |
+| Finance: FinQA | 75% | 75% | 0 | 6 |
+| Understudy: robot failure lines (4 held out) | 100% | 100% | 0 | 6 |
+
+What the kept changes were:
+
+- Health, 80% to 85%: write only the option letter to the answer file, with no prose around it. Then 85% to 95%: match the chosen answer text back to the letter printed beside it before writing.
+- Legal, 65% to 70%: apply the question's own terms literally and bring in nothing from outside. Then 70% to 75%: decide only from the definitions and facts in the provided file.
+
+Finance is the honest null result. Six different rewrites of the rule all scored exactly 75%, so none was kept. The same happened on Understudy, where the seed already passes everything: three of the six changes tied at 100% and three scored lower. A tie is pruned, which is why the tree does not grow from noise.
+
+Coding was dropped as a tree. The seed passes 34 of 34 on Aider Polyglot Python and 23 of 26 on C++, and even a bare seed (three file tools, six turns) passes 24 of 26, so there was nothing to climb.
+
+The health set is a public benchmark of multiple-choice licensing exam questions with one graded letter per question. Bonsai gives no medical advice to anyone.
+
+### Raindrop as a second count
+
+`raindrop_audit.py` reads the held-out attempts back out of Raindrop and recounts every version's score from Raindrop's own record. For all 17 versions in the legal, health and finance runs, Raindrop had 20 of 20 attempts and the recount matched the score the loop logged (`runs/raindrop-audit.json`). The only signal on those events is our own `task_outcome`.
+
+### What was built at the event
+
+Written on the day: the loop, the evaluator and cheat guard, the graders, the server, the page and its live views, the chess set, the nursery question set, the builders for the three benchmark sets, and the Understudy adapter in `tasks/understudy/`.
+
+Not written on the day, and not ours to claim: Understudy itself, which is an earlier project and appears here only as a source of log lines to label. LegalBench, MedQA, FinQA and Aider Polyglot are public datasets. The folder layout follows fractalsearch (see Credits).
 
 ## The loop
 
@@ -25,10 +57,14 @@ git clone https://github.com/Aider-AI/polyglot-benchmark bench
 ```
 
 ```bash
-uv run --no-project --with raindrop-ai --with python-dotenv python server.py
+uv run --no-project --with raindrop-ai --with python-dotenv --with pymongo python server.py
 ```
 
-Open http://localhost:8765. Pick what the agent should improve on and press Grow. While it works, the page lists every agent in the run: one solver per problem on the model being improved, and the proposer that rewrites the harness. Stop ends the run after the current step.
+Open http://localhost:8765. Pick what the agent should improve on and press Grow. While it works, the page lists every agent in the run: one solver per problem on the model being improved, and the proposer that rewrites the harness. Click an agent to watch it work in a live view made for that kind of task (a chess board, a question and answer, or a list of steps). Stop ends the run after the current step.
+
+The header switches between three views of the same data: the tree, the score charts for every set, and a replay of the chess games.
+
+After each run the loop writes the final context file and a full list of what changed to `web/out/latest/` (`context.md`, `CHANGES.md`).
 
 Raindrop tracing turns on when `RAINDROP_WRITE_KEY` is in `.env`. Without it the loop still runs and grades.
 
@@ -51,6 +87,14 @@ mongod --port 27018 --dbpath runs/mongo-data
 ```bash
 uv run --no-project --with pymongo python tasks/mongo/build.py --load
 ```
+
+### Legal, health and finance
+
+Three public benchmarks, 40 problems each, split 20 for practice and 20 held out. `tasks/build_qa.py` builds all three with a fixed seed: LegalBench (hearsay, insurance policy interpretation, citation prediction), MedQA and FinQA. Each answer is one label, letter or number, graded by `harness/grade_exact.py` (exact match after normalising, or within 1% for numbers).
+
+### Chess against Stockfish
+
+Sixteen games, eight openings from each side. Haiku makes one call per move and Stockfish replies. A game passes on a win, a draw, or reaching move 18 without forfeiting and without being behind on material. This set brings its own tools: `legal_moves`, `hanging` and `checks` each add computed facts to what the player sees, so the proposer can trade them against rules and turns. `CHESS_RUN.md` has the run instructions.
 
 ### Understudy: robot failures (RSI on a VLA pipeline)
 
@@ -79,26 +123,21 @@ The practice problems from the Aider Polyglot benchmark, graded by each problem'
 - Practice and held-out problems are separate, and a change is judged on held-out alone.
 - A new set of held-out problems starts a new tree, because scores on different problems cannot be compared.
 
-## Baselines
-
-Measured on the seed harness (three tools, twelve turns, Claude Haiku):
-
-| Set | Passed |
-|---|---|
-| Aider Polyglot, Python | 34 of 34 |
-| Aider Polyglot, C++ | 24 of 26 (both misses need Boost, which this machine does not have) |
-
-The seed already clears both Polyglot sets, so there is little left to gain there. We wrote the nursery questions to have a set with room to improve.
-
 ## Files
 
 | Path | What it is |
 |---|---|
 | `harness/evaluate.py` | Runs one harness on a batch of problems and grades them. The agent may not edit it. |
 | `harness/grade_mongo.py` | Grades one nursery answer against MongoDB. |
+| `harness/grade_exact.py` | Grades a one-line answer for the legal, health and finance sets. |
+| `raindrop_audit.py` | Recounts every version's score from Raindrop's record. |
 | `loop.py` | The loop: run, propose, score, keep or prune, record. |
 | `server.py` | The local app: serves the page and starts or stops runs. |
 | `web/index.html` | The page: the bonsai, the agents list, the lineage. |
+| `web/benchmarks.html` | Score charts for every set. |
+| `web/views/` | The live views. `gen/` holds views a model wrote for new task sets. |
+| `runs/*-versions.jsonl` | The record of each run, one line per version. |
+| `deploy/` | A hosted copy of the page that mirrors a local run through Atlas. |
 | `tasks/mongo/` | The nursery question set and its builder. |
 | `versions/` | One JSON file per harness version. |
 | `AGENT.md` | The same loop written as instructions for an agent to follow by hand. |
@@ -106,4 +145,4 @@ The seed already clears both Polyglot sets, so there is little left to gain ther
 
 ## Credits
 
-The layout (a fixed evaluator, a folder of candidates, an append-only record) follows [MaxRobinsonTheGreat/fractalsearch](https://github.com/MaxRobinsonTheGreat/fractalsearch), which adapts [karpathy/autoresearch](https://github.com/karpathy/autoresearch). The coding problems are from the [Aider Polyglot benchmark](https://github.com/Aider-AI/polyglot-benchmark), drawn from Exercism. Traces go to [Raindrop](https://raindrop.ai).
+The layout (a fixed evaluator, a folder of candidates, an append-only record) follows [MaxRobinsonTheGreat/fractalsearch](https://github.com/MaxRobinsonTheGreat/fractalsearch), which adapts [karpathy/autoresearch](https://github.com/karpathy/autoresearch). The question sets are built from [LegalBench](https://huggingface.co/datasets/nguha/legalbench), [MedQA](https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options) and FinQA. The coding problems are from the [Aider Polyglot benchmark](https://github.com/Aider-AI/polyglot-benchmark), drawn from Exercism. Traces go to [Raindrop](https://raindrop.ai).
