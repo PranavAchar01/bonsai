@@ -1,0 +1,11 @@
+{
+ "rules": "Read .docs/instructions.md, then implement the solution file. Never edit the test file. Do not stop until every requirement and edge case is handled, with no stubs or TODOs; before finishing, re-read your solution against the instructions and fix any gap.",
+ "tools": [
+  "Read",
+  "Edit",
+  "Write"
+ ],
+ "max_turns": 12,
+ "model": "haiku",
+ "id": "g1b"
+}

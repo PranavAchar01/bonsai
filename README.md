@@ -28,7 +28,7 @@ git clone https://github.com/Aider-AI/polyglot-benchmark bench
 uv run --no-project --with raindrop-ai --with python-dotenv python server.py
 ```
 
-Open http://localhost:8765. Pick what the agent should improve on, type a line to steer it if you want, and press Grow. While it works, the page lists every agent in the run: one solver per problem on the model being improved, and the proposer that rewrites the harness. Stop ends the run after the current step.
+Open http://localhost:8765. Pick what the agent should improve on and press Grow. While it works, the page lists every agent in the run: one solver per problem on the model being improved, and the proposer that rewrites the harness. Stop ends the run after the current step.
 
 Raindrop tracing turns on when `RAINDROP_WRITE_KEY` is in `.env`. Without it the loop still runs and grades.
 
@@ -51,6 +51,10 @@ mongod --port 27018 --dbpath runs/mongo-data
 ```bash
 uv run --no-project --with pymongo python tasks/mongo/build.py --load
 ```
+
+### Your own agent or task
+
+Drop a folder with a `set.json` into `tasks/` and it appears in the dropdown. The file names the prompt, the grading command and, if you want, your own agent command in place of Claude. `tasks/README.md` has the format.
 
 ### Aider Polyglot, C++ and Python
 

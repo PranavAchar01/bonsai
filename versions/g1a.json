@@ -1,0 +1,12 @@
+{
+ "rules": "Read .docs/instructions.md, then implement the solution file. Never edit the test file. Run the tests with Bash after each edit and keep fixing until they all pass; do not stop at the first attempt.",
+ "tools": [
+  "Read",
+  "Edit",
+  "Write",
+  "Bash"
+ ],
+ "max_turns": 16,
+ "model": "haiku",
+ "id": "g1a"
+}

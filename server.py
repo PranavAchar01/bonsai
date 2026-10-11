@@ -30,29 +30,39 @@ state: dict = {"job": None, "agents": [], "log": []}
 
 
 def problems(lang: str) -> list[str]:
-    base = runner.TASKS / "mongo" if lang == "mongo" else runner.BENCH / lang / "exercises/practice"
+    base = runner.TASKS / lang if runner.task_set(lang) else runner.BENCH / lang / "exercises/practice"
     if not base.exists():
         return []
     names = sorted(p.name for p in base.iterdir() if p.is_dir() and not p.name.startswith("_"))
     return names if lang == "python" else [f"{lang}/{n}" for n in names]
 
 
-def mongo_up() -> bool:
+def port_open(port: int) -> bool:
     import socket
 
     try:
-        socket.create_connection(("127.0.0.1", 27018), timeout=0.3).close()
+        socket.create_connection(("127.0.0.1", port), timeout=0.3).close()
         return True
     except OSError:
         return False
 
 
+def connected() -> list[tuple]:
+    """Task sets dropped into tasks/: one folder each, described by set.json (see tasks/README.md)."""
+    rows = []
+    for f in sorted(runner.TASKS.glob("*/set.json")):
+        spec = json.loads(f.read_text())
+        port = spec.get("needs_port")
+        rows.append((f.parent.name, spec["name"], "Connected agents and tasks", not port or port_open(port), spec.get("needs", "")))
+    return rows
+
+
 def sets() -> list[dict]:
     """What the dropdown offers. A set is only selectable if this machine can grade it."""
-    ours, poly, later = "Ours, not a benchmark", "Aider Polyglot (Exercism practice problems)", "Not wired in yet"
+    poly, later = "Aider Polyglot (Exercism practice problems)", "Not wired in yet"
     have = lambda tool: shutil.which(tool) is not None  # noqa: E731
     rows = [
-        ("mongo", "Nursery questions: MongoDB aggregation", ours, mongo_up(), "start the local MongoDB first"),
+        *connected(),
         ("cpp", "Aider Polyglot: C++", poly, have("c++"), "needs a C++ compiler"),
         ("python", "Aider Polyglot: Python", poly, True, ""),
         ("javascript", "Aider Polyglot: JavaScript", poly, False, "grader not written"),

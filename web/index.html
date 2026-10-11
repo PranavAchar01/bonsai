@@ -82,9 +82,7 @@
 </header>
 <form class="ask" id="ask" onsubmit="grow(event)">
   <label for="set">Improve it on</label><select id="set" class="big"></select>
-  <label for="gens">for</label><select id="gens"><option value="1">1 generation</option><option value="2" selected>2 generations</option><option value="3">3 generations</option><option value="5">5 generations</option></select>
-  <label for="goal">steer</label><input id="goal" maxlength="300" autocomplete="off" placeholder="optional: what to get better at, in your words">
-  <span class="rd" id="rd"></span>
+  <span style="flex:1"></span>
   <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
 </form>
 <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
@@ -211,38 +209,42 @@ function draw(data) {
   const kept = [], byParent = {};
   data.versions.forEach(v => (byParent[v.parent] ??= []).push(v));
   for (let v = data.versions.find(v => !v.parent); v; v = (byParent[v.id] || []).find(c => c.kept)) kept.push(v);
-  const baseX = W*.46, baseY = H*.8, top = H*.2, n = kept.length;
-  // Trunk nodes climb in an S (moyogi form).
-  const node = i => { const t = i/Math.max(n-1, 1); return [baseX + Math.sin(t*4.2)*W*.09 - t*W*.03, baseY - t*(baseY-top)]; };
+  // S shrinks the whole tree on a short canvas; grown is how tall it stands (a seed is a sapling).
+  const S = Math.max(.45, Math.min(1, H/620)), n = kept.length, grown = Math.min(1, .42 + .58*(n-1)/4);
+  const baseX = W*.46, baseY = H*.8, top = baseY - (baseY - H*.2)*grown;
+  // Trunk nodes climb in an S (moyogi form). node(i) is kept version i; node(n) is the leader under the crown.
+  const node = i => { const t = i/n; return [baseX + (Math.sin(t*4.2)*W*.09 - t*W*.03)*grown*S, baseY - t*(baseY-top)]; };
   // pot and ground
-  stroke([baseX-W*.19, baseY+34], [baseX, baseY+44], [baseX+W*.19, baseY+34], 3, 2, INK, .5);
+  stroke([baseX-W*.19, baseY+34*S], [baseX, baseY+44*S], [baseX+W*.19, baseY+34*S], 3, 2, INK, .5);
   ctx.fillStyle = rgba(INK, .78); ctx.beginPath();
-  ctx.moveTo(baseX-110, baseY+6); ctx.lineTo(baseX+110, baseY+6); ctx.lineTo(baseX+88, baseY+38); ctx.lineTo(baseX-88, baseY+38); ctx.fill();
-  wash(baseX, baseY+4, 70, [70,84,60], 10);
-  const labels = []; hits = []; sheds = []; ground = baseY + 40;
+  ctx.moveTo(baseX-110*S, baseY+6*S); ctx.lineTo(baseX+110*S, baseY+6*S); ctx.lineTo(baseX+88*S, baseY+38*S); ctx.lineTo(baseX-88*S, baseY+38*S); ctx.fill();
+  wash(baseX, baseY+4*S, 70*S, [70,84,60], 10);
+  const labels = []; hits = []; sheds = []; ground = baseY + 40*S;
   for (let i = 0; i < n; i++) {
-    const p = node(i), q = i+1 < n ? node(i+1) : null, w = 30*(1 - i/n*.78);
-    if (q) stroke(p, [(p[0]+q[0])/2 + (i%2 ? 16 : -16), (p[1]+q[1])/2], q, w, w*.8);
-    const side = i % 2 ? 1 : -1;
-    (byParent[kept[i].id] || []).forEach((c, k) => {
-      const dir = c.kept ? side : -side, len = c.kept ? W*(.13 + c.score*.1) : W*.07;
-      const tip = [p[0] + dir*len, p[1] - 26 - k*8 - (c.kept ? 22 : 0)];
-      const from = c.kept && q ? q : p;
-      const end = c.kept ? [from[0] + dir*len, from[1] - 6] : tip;
-      stroke(from, [from[0] + dir*len*.4, from[1] + 10], end, w*.42, c.kept ? 3 : 5);
+    const p = node(i), q = node(i+1), w = 30*S*(.55 + .45*grown)*(1 - i/(n+1)*.78);
+    stroke(p, [(p[0]+q[0])/2 + (i%2 ? 16 : -16)*S, (p[1]+q[1])/2], q, w, w*.8);
+    const side = i % 2 ? 1 : -1; let cuts = 0;
+    (byParent[kept[i].id] || []).forEach(c => {
       if (c.kept) {
-        const pr = 40 + c.score*64;
-        pad(end[0] - dir*pr*.25, end[1] - 2, pr); pad(end[0] + dir*pr*.55, end[1] - pr*.34, pr*.6);
+        const len = Math.min(W*(.13 + c.score*.1), 230*S), end = [q[0] + side*len, q[1] - 6*S];
+        stroke(q, [q[0] + side*len*.4, q[1] + 10*S], end, w*.42, 3);
+        const pr = (40 + c.score*64)*S;
+        pad(end[0] - side*pr*.25, end[1] - 2, pr); pad(end[0] + side*pr*.55, end[1] - pr*.34, pr*.6);
         hits.push([end[0], end[1] - pr*.2, pr*1.3, c.id]); if (c.shed && c.shed !== 'nothing') sheds.push([end[0], end[1], pr, c.id]);
-        labels.push([end[0], end[1] + 26, `${c.id}  ${Math.round(c.score*100)}%`, INK]);
+        labels.push([end[0], end[1] + 26*S, `${c.id}  ${Math.round(c.score*100)}%`, INK]);
       } else {
-        stroke([end[0]-9, end[1]-12], [end[0], end[1]], [end[0]+9, end[1]+12], 4, 2, SEAL, .9);
-        hits.push([end[0], end[1], 26, c.id]);
-        labels.push([end[0] + dir*14, end[1] - 14, c.signal, SEAL, dir]);
+        // a cut: a short stub off the trunk between this version and the next, each one a step higher
+        const f = .3 + .3*cuts, dir = cuts % 2 ? side : -side, from = [p[0] + (q[0]-p[0])*f, p[1] + (q[1]-p[1])*f];
+        const end = [from[0] + dir*(46 + 10*cuts)*S, from[1] - 16*S]; cuts++;
+        stroke(from, [from[0] + dir*18*S, from[1] + 4*S], end, w*.4, 4*S);
+        stroke([end[0]-7*S, end[1]-10*S], [end[0], end[1]], [end[0]+7*S, end[1]+10*S], 4*S, 2*S, SEAL, .9);
+        hits.push([end[0], end[1], 22, c.id]);
+        labels.push([end[0] + dir*14, end[1] + 4, `${c.id} pruned`, SEAL, dir]);
       }
     });
   }
-  const crown = node(n-1); pad(crown[0], crown[1] + 4, 84); pad(crown[0] - 40, crown[1] - 30, 54); pad(crown[0] + 48, crown[1] - 22, 46);
+  const crown = node(n), cs = S*(.5 + .5*grown);
+  pad(crown[0], crown[1] + 4, 84*cs); pad(crown[0] - 40*cs, crown[1] - 30*cs, 54*cs); pad(crown[0] + 48*cs, crown[1] - 22*cs, 46*cs);
   hits.push([baseX, baseY, 60, kept[0].id]);
   ctx.font = '12px "IBM Plex Mono", monospace';
   labels.forEach(([x, y, s, c, dir]) => { ctx.fillStyle = rgba(c, .85); ctx.textAlign = dir ? (dir > 0 ? 'left' : 'right') : 'center'; ctx.fillText(s, x, y); });
@@ -317,8 +319,7 @@ function renderRun() {
   const job = a.job, running = job && job.status === 'running';
   if (!$('set').options.length) { const groups = [...new Set(a.sets.map(x => x.group))];
     $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join(''); }
-  $('rd').className = 'rd' + (a.raindrop ? ' on' : ''); $('rd').textContent = a.raindrop ? '◆ Raindrop tracing on' : '◇ Raindrop off';
-  $('go').disabled = running; $('halt').disabled = !running; $('goal').disabled = running;
+  $('go').disabled = running; $('halt').disabled = !running;
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
   ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
     : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
@@ -344,7 +345,7 @@ async function post(path, body) {
 }
 async function grow(e) {
   e.preventDefault(); $('go').disabled = true;
-  const ok = await post('api/grow', {goal:$('goal').value, set:$('set').value, generations:+$('gens').value});
+  const ok = await post('api/grow', {set:$('set').value});
   if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
   poll(); load();
 }

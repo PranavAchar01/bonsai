@@ -12,7 +12,7 @@ The hackathon rules ban a dashboard as the main feature. Keep the tree as the la
 
 | Part | Where in the file | What it does |
 |---|---|---|
-| Ask bar (`#ask`) | top | Dropdown of what to improve on, number of generations, an optional line to steer the proposer, Grow and Stop. |
+| Ask bar (`#ask`) | top | Dropdown of what to improve on, then Grow and Stop. Task sets in `tasks/` appear in the dropdown (see `tasks/README.md`). |
 | Status line (`#phase`) | under the ask bar | What the run is doing right now. Red dot while running. |
 | Agents (`#agents`) | left, top | Every agent in the run: solvers (one per problem) and the proposer. Working, queued, passed, failed, edited tests. A green ◆ means the attempt has a Raindrop trace. |
 | Lineage (`#rows`) | left, bottom | One row per version, newest first. Pruned versions are red and struck through. Click to select. |
@@ -35,7 +35,7 @@ The hackathon rules ban a dashboard as the main feature. Keep the tree as the la
 
 - `GET lineage.json`: `{"versions": [...]}`, written by the loop after every version. Each version has `id, parent, generation, change, shed, signal, kept, score, tokens, harness, diff, trace_id`. Until a run has produced one, the page shows the `SAMPLE` tree and says so.
 - `GET api/state`: `{job, agents, log, sets, raindrop}`, polled every second. `sets` fills the dropdown. A set that cannot be graded on this machine comes back with `ready: false` and a reason.
-- `POST api/grow` with `{set, goal, generations}` starts a run. `POST api/stop` ends it after the current step.
+- `POST api/grow` with `{set}` starts a run (`goal` and `generations` are optional). `POST api/stop` ends it after the current step.
 
 ## Style
 

@@ -1,0 +1,9 @@
+{
+  "name": "Nursery questions: MongoDB aggregation",
+  "prompt": "Write pipeline.json so that it answers the question in .docs/instructions.md.",
+  "solution": ["pipeline.json"],
+  "hidden": ["expected.json"],
+  "grade": "uv run --no-project --with pymongo python {root}/harness/grade_mongo.py pipeline.json {task}/expected.json",
+  "needs_port": 27018,
+  "needs": "start the local MongoDB first"
+}

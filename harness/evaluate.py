@@ -42,18 +42,26 @@ BASE_HARNESS = {
 }
 
 
+def task_set(key: str) -> dict | None:
+    """A connected task set: tasks/<key>/set.json. See tasks/README.md."""
+    f = TASKS / key / "set.json"
+    return json.loads(f.read_text()) if f.exists() else None
+
+
 def run_one(name: str, harness: dict, scratch: Path) -> dict:
     # A task is "name" (Python) or "lang/name", for example "cpp/zebra-puzzle".
     lang, _, ex = name.rpartition("/")
     lang = lang or "python"
     work = scratch / lang / ex
     shutil.rmtree(work, ignore_errors=True)
-    if lang == "mongo":
-        # Our own question set (tasks/mongo): the answer file never enters the agent's folder.
-        src = TASKS / "mongo" / ex
-        shutil.copytree(TASKS / "mongo" / "_shared", work)
-        shutil.copytree(src, work, dirs_exist_ok=True, ignore=shutil.ignore_patterns("expected.json"))
-        meta = {"solution": ["pipeline.json"], "test": []}
+    spec = task_set(lang)
+    if spec:
+        # A connected set (tasks/<set>/set.json): files named in "hidden" never enter the agent's folder.
+        src = TASKS / lang / ex
+        if (TASKS / lang / "_shared").exists():
+            shutil.copytree(TASKS / lang / "_shared", work)
+        shutil.copytree(src, work, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*spec.get("hidden", [])))
+        meta = {"solution": spec.get("solution", []), "test": []}
     else:
         src = BENCH / lang / "exercises/practice" / ex
         shutil.copytree(src, work, ignore=shutil.ignore_patterns("example.py"))
@@ -61,12 +69,19 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
         shutil.rmtree(work / ".meta")
     tests_before = {t: hashlib.sha256((work / t).read_bytes()).hexdigest() for t in meta["test"]}
     prompt = f"Implement {', '.join(meta['solution'])} so that {', '.join(meta['test'])} passes."
-    if lang == "mongo":
-        prompt = "Write pipeline.json so that it answers the question in .docs/instructions.md."
+    if spec:
+        prompt = spec["prompt"]
     t0 = time.time()
     try:
+        own = None
+        if spec and spec.get("agent"):
+            # The set brings its own agent: a shell command that reads the harness and the prompt from the environment.
+            (work / ".harness.json").write_text(json.dumps(harness))
+            own = {**os.environ, "BONSAI_HARNESS": str(work / ".harness.json"), "BONSAI_PROMPT": prompt, "BONSAI_TASK": str(src)}
         agent = subprocess.run(
-            [
+            ["sh", "-c", spec["agent"].replace("{root}", str(ROOT))]
+            if own
+            else [
                 CLAUDE,
                 "-p",
                 prompt,
@@ -87,6 +102,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
                 '{"mcpServers":{}}',
             ],
             cwd=work,
+            env=own,
             capture_output=True,
             text=True,
             timeout=600,
@@ -107,9 +123,8 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     for t in meta["test"]:
         shutil.copy(src / t, work / t)
     try:
-        if lang == "mongo":
-            cmd = ["uv", "run", "--no-project", "--with", "pymongo", "python", str(ROOT / "harness/grade_mongo.py"),
-                   str(work / "pipeline.json"), str(src / "expected.json")]  # fmt: skip
+        if spec:
+            cmd = ["sh", "-c", spec["grade"].replace("{task}", str(src)).replace("{root}", str(ROOT))]
         elif lang == "cpp":
             sources = [f for f in meta["solution"] if f.endswith(".cpp")]
             cmd = ["sh", "-c", "c++ -std=c++17 -DEXERCISM_RUN_ALL_TESTS -I. -o .graded "
