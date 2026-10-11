@@ -29,10 +29,10 @@ for name, line in OPENINGS.items():
         d = HERE / f"game-{name}-{color}"
         (d / ".docs").mkdir(parents=True)
         (d / "game.json").write_text(json.dumps(
-            {"color": color, "opening": line.split(), "skill": 0, "moves": 18, "margin": 3}, indent=1))  # fmt: skip
+            {"color": color, "opening": line.split(), "skill": 0, "moves": 18, "margin": 0}, indent=1))  # fmt: skip
         (d / ".docs/instructions.md").write_text(
             f"# {name}, playing {color}\n\nPlay {color} against Stockfish (skill level 0) from the {name} opening.\n"
             "The game runs to move 18. You pass if you win, draw, or reach move 18 without an illegal-move forfeit "
-            "and no more than 3 points of material behind.\n"
+            "and not behind on material.\n"
         )
 print(len(OPENINGS) * 2, "games")

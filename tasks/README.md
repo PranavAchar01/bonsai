@@ -57,7 +57,7 @@ uv run --no-project --with raindrop-ai --with python-dotenv python -m harness.ev
 
 ## The chess set
 
-`tasks/chess/` has 20 games against Stockfish at skill level 0: ten openings, each played once as White and once as Black. `_agent.py` plays a game with one model call per move, and the harness's `rules` are the system prompt for every move. A game passes if the agent wins, draws, or reaches move 18 without an illegal-move forfeit and no more than 3 points of material behind. `_grade.py` replays the record to check that.
+`tasks/chess/` has 20 games against Stockfish at skill level 0: ten openings, each played once as White and once as Black. `_agent.py` plays a game with one model call per move, and the harness's `rules` are the system prompt for every move. A game passes if the agent wins, draws, or reaches move 18 without an illegal-move forfeit and not behind on material. `_grade.py` replays the record to check that.
 
 It needs Stockfish on the path:
 
