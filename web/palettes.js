@@ -1,6 +1,7 @@
 // Color palettes for the pixel-garden look. Shared by tree.html and palettes.html.
 // bg: page, ink: text and lines, faint: secondary text, accent: pruned / cut marks, glow: CRT text glow.
 export const PALETTES = {
+  tokyo:    {name:'tokyo night',  bg:'#1a1b26', ink:'#7dcfff', faint:'#565f89', accent:'#f7768e', glow:true},
   garden:   {name:'night garden', bg:'#0f1712', ink:'#a9e2a0', faint:'#5f7f5a', accent:'#ff7a6a'},
   moss:     {name:'deep moss',    bg:'#0b1410', ink:'#c6f0b4', faint:'#6c8f63', accent:'#ffb38a'},
   jade:     {name:'jade terminal',bg:'#071311', ink:'#7fe0c2', faint:'#3f7f6c', accent:'#ff6b6b', glow:true},

@@ -6,7 +6,7 @@
 <title>Bonsai Tree</title>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f1712; --ink:#a9e2a0; --faint:#5f7f5a; --accent:#ff7a6a; --grain:.14; --blend:overlay; --glow:none; }
+  :root { --bg:#1a1b26; --ink:#7dcfff; --faint:#565f89; --accent:#f7768e; --grain:.14; --blend:overlay; --glow:none; }
   html, body { margin:0; height:100%; overflow:hidden; }
   body {
     background:
@@ -41,7 +41,7 @@
   .panel { top:52px; background:color-mix(in srgb, var(--bg) 82%, transparent); padding:10px; }
   .panel.closed { display:none; }
   .embed .title, .embed .toggle, .embed .panel, .embed .seal { display:none; }
-  .embed .bar { left:16px; bottom:12px; }
+  .embed .bar { left:16px; bottom:12px; } .embed #replay { display:none; }
   @media (max-width:700px) { .title h1 { font-size:30px; } .title .num { font-size:40px; } .panel { width:200px; } }
 </style>
 <script type="importmap">{ "imports": {
@@ -62,22 +62,15 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PALETTES, isDark } from './palettes.js';
 
-// Sample lineage, shown until a run has written lineage.json. Same shape as its rows.
-let VERSIONS = [
-  {id:"g0", parent:null, kept:true,  score:.40, signal:"seed"},
-  {id:"g1a",parent:"g0", kept:false, score:.37, signal:"no gain"},
-  {id:"g1b",parent:"g0", kept:true,  score:.47, signal:"claimed pass, never ran"},
-  {id:"g2a",parent:"g1b",kept:false, score:.63, signal:"cheat caught"},
-  {id:"g2b",parent:"g1b",kept:true,  score:.53, signal:"same edit repeated"},
-  {id:"g3a",parent:"g2b",kept:true,  score:.57, signal:"prune"},
-  {id:"g3b",parent:"g2b",kept:false, score:.50, signal:"tokens up, score down"},
-  {id:"g4a",parent:"g3a",kept:true,  score:.63, signal:"gave up early"},
-];
+// The lineage comes from lineage.json, which the loop rewrites every time it stores a version.
+// Until a run has stored one there is only the pot: nothing is drawn that has not been earned.
+const SEEDLING = [{id:"seed", parent:null, kept:true, score:0, signal:"seed"}];
+let VERSIONS = SEEDLING, EMPTY = true, grown = .5, built = false;
 
 // ---------- options ----------
 
 const q = new URLSearchParams(location.search);
-const S = { form:q.get('form') || 'moyogi', foliage:q.get('foliage') || 'pine', palette:PALETTES[q.get('p')] ? q.get('p') : (q.get('embed') ? 'paper' : 'garden'), wind:q.get('wind') || 'breeze', speed:+(q.get('speed') || 1) };
+const S = { form:q.get('form') || 'moyogi', foliage:q.get('foliage') || 'pine', palette:PALETTES[q.get('p')] ? q.get('p') : 'tokyo', wind:q.get('wind') || 'breeze', speed:+(q.get('speed') || 1) };
 
 // ---------- utilities ----------
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -193,10 +186,11 @@ const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0x000000, 0);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
 document.body.prepend(renderer.domElement);
-scene.fog = new THREE.Fog(0xefe7d6, 11, 34);
+scene.fog = new THREE.Fog(0x1a1b26, 11, 34);
 const cam = new THREE.PerspectiveCamera(30, 1, .1, 200);
 const controls = new OrbitControls(cam, renderer.domElement);
 controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = .35;
+controls.enableZoom = false; controls.enableRotate = false;   // the view turns by itself; scrolling and dragging do nothing
 controls.minDistance = 5; controls.maxDistance = 22; controls.maxPolarAngle = Math.PI * .58; controls.enablePan = false;
 const hemi = new THREE.HemisphereLight(0xfff8ec, 0x6f6455, 2.2); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3e0, 1.3);
@@ -443,8 +437,7 @@ function build() {
   buildPot(F.pot);
   driftSys = makeDrift(look);
   labels.forEach(l => { const d = document.createElement('div'); d.className = 'lbl ' + (l.cls || ''); d.textContent = l.text; document.getElementById('labels').appendChild(d); l.el = d; });
-  controls.target.set(...F.target); cam.position.set(F.target[0] + 2, F.target[1] + 1.8, F.dist);
-  t = 0;
+  if (!built) { controls.target.set(...F.target); cam.position.set(F.target[0] + 2, F.target[1] + 1.8, F.dist); built = true; }
 }
 
 // ---------- pot ----------
@@ -584,11 +577,13 @@ async function live() {
     const r = await fetch('lineage.json', {cache:'no-store'});
     if (r.ok) {
       const vs = (await r.json()).versions || [], key = vs.map(v => v.id + v.kept).join();
+      if (!vs.length && !EMPTY) { seen = ''; VERSIONS = SEEDLING; EMPTY = true; build(); applyPalette(); }
       if (vs.length && key !== seen) {
-        const first = !seen; seen = key; VERSIONS = vs; build(); applyPalette();
-        t = first ? 0 : Math.max(0, (kept.length - 1) * SEG - .4);
+        // What is already stored is shown grown. Only a version stored while you watch plays its growth or its cut.
+        const first = !seen; seen = key; VERSIONS = vs; EMPTY = false; build(); applyPalette();
+        t = first ? END + 8 : Math.max(0, (kept.length - 1) * SEG - .4);
       }
-    }
+    } else if (!EMPTY) { seen = ''; VERSIONS = SEEDLING; EMPTY = true; build(); applyPalette(); }
   } catch {}
   setTimeout(live, 3000);
 }
@@ -597,14 +592,17 @@ live();
 const tmp = V();
 renderer.setAnimationLoop(now => {
   const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now;
-  t += dt * S.speed; U.uTime.value = t;
+  t += dt * S.speed; U.uTime.value = EMPTY ? 0 : t;
+  // The tree stands as tall as the run has earned: one kept change is a sapling, five is full height.
+  const want = EMPTY ? .5 : .5 + .5 * Math.min(1, (kept.length - 1) / 4);
+  grown += (want - grown) * Math.min(1, dt * 1.2); G.scale.setScalar(grown);
   U.uWind.value += (WIND[S.wind] - U.uWind.value) * Math.min(1, dt * 1.5);
   const gen = Math.max(0, Math.min(kept.length - 1, Math.floor(t / SEG)));
-  clock.textContent = `generation ${gen + 1} of ${kept.length}`;
+  clock.textContent = EMPTY ? 'nothing grown yet' : `${kept.length - 1} kept · ${VERSIONS.length - kept.length} pruned · best ${Math.round(kept.at(-1).score * 100)}% held-out`;
   num.textContent = Math.round(kept[gen].score * 100) + '%'; from.textContent = `from ${Math.round(kept[0].score * 100)}%  held-out`;
   const gust = .55 + .45 * Math.sin(t * .31) * Math.sin(t * .17 + 1.3);
   for (const {p, sprites, proxy, base} of padObjs) {
-    let g = sm((t - p.birth - .4) / 1.6);
+    let g = EMPTY ? 0 : sm((t - p.birth - .4) / 1.6);
     if (p.fall) g *= 1 - sm((t - p.fall.death) / .5);
     const h = Math.max(base.y + .1, 0), k = U.uWind.value * gust * (.0035 * h * h + .012 * (base.x ** 2 + base.z ** 2));
     const off = V(Math.sin(t * 1.25 + base.y * .5 + base.z * .3) * k + U.uWind.value * .004 * h * h, 0, Math.cos(t * .93 + base.x * .4) * k * .6);
@@ -619,7 +617,7 @@ renderer.setAnimationLoop(now => {
   for (const l of labels) {
     tmp.copy(l.at).project(cam);
     l.el.style.left = (tmp.x * .5 + .5) * innerWidth + 'px'; l.el.style.top = (-tmp.y * .5 + .5) * innerHeight + 'px';
-    l.el.classList.toggle('on', t > l.t && tmp.z < 1);
+    l.el.classList.toggle('on', !EMPTY && t > l.t && tmp.z < 1);
   }
 });
 </script>
