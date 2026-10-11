@@ -51,7 +51,7 @@
   .tile .t-st { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); } .tile .t-st.done { color:var(--moss, #4f6e3f); } .tile .t-st.live { color:var(--seal); }
   .tile .t-name { font-size:16px; } .tile .t-sc { font:30px "DotGothic16", monospace; margin-top:auto; } .tile .t-sc small { font-size:14px; color:var(--faint); } .tile .t-ft { font-size:11px; color:var(--faint); }
   /* scores and replay fill the stage: no grow controls, no tools row over the pane; replay also drops the other agent's live box */
-  body.pane #ask .lead, body.pane #set, body.pane #go, body.pane #halt, body.pane #opt-btn, body.pane #tools, body.pane #opts, body.replay #live, body.replay #ag-sec { display:none !important; }
+  body.pane #ask .lead, body.pane #set, body.pane #go, body.pane #halt, body.pane #opt-btn, body.pane #tools, body.pane #opts, body.replay #ask .lead, body.replay #set, body.replay #go, body.replay #halt, body.replay #opt-btn, body.replay #tools, body.replay #opts, body.replay #ag-sec, body.replay #steps, body.replay #lv-gen, body.replay #guide { display:none !important; }
   #back { display:none; } body.agent-view #back { display:inline; }
   body.agent-view #ag-sec, body.agent-view #steps, body.agent-view #lv-gen, body.agent-view #ask .lead, body.agent-view #set, body.agent-view #go, body.agent-view #halt, body.agent-view #opt-btn, body.agent-view #tools, body.agent-view #opts { display:none !important; } #phase button { margin-left:10px; }
   #views { display:flex; gap:14px; margin-left:auto; } #views button { border:0; padding:4px 0; color:var(--faint); font-size:13px; } #views button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
@@ -332,9 +332,9 @@ function keptChain(vs) {
 const LBL = $('s-lbl').innerHTML;
 // On the chess replay the right column is the Elo ladder's, not the tree's: rating in place of a percent.
 function renderElo() {
-  const L = ladder, e = v => Math.round(v.elo);
+  const L = ladder, e = v => Math.round(v.elo), at = ladderAt?.playing ? ladderAt : null;
   $('s-lbl').textContent = 'estimated elo · stockfish-anchored ladder';
-  $('s-num').textContent = L ? e(L.best) : '--';
+  $('s-num').textContent = at ? (at.n ? Math.round(at.elo) : '--') : L ? e(L.best) : '--';
   $('s-note').innerHTML = L ? `started at ${e(L.seed)}<br>${L.kept} kept · ${L.cut} cut${L.best.elo_lo != null ? `<br>range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)}` : ''}${L.n ? ` · ${L.n} games` : ''}${L.run && !L.done ? '<br>run still playing' : ''}<br><a href="judge.html" target="_blank">open the ladder page</a>` : 'no ladder run loaded yet';
   $('ledger').innerHTML = L ? [...L.all].reverse().map(v => `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change || (v.parent ? '' : 'seed rating'))}</span><span class="sub">${v.elo_lo != null ? `range ${Math.round(v.elo_lo)} to ${Math.round(v.elo_hi)}` : ''}${v.games ? ` · ${v.games} games` : ''}</span></span><span class="n">${e(v)}</span></div>`).join('')
     : '<div class="empty">The ladder rates the agent in Elo against calibrated Stockfish opponents. Its log (runs/chess-ladder-versions.jsonl) is not on this machine yet.</div>';
@@ -473,8 +473,15 @@ async function createSet(e) {
 }
 const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s / 60) + 'm' + String(Math.round(s % 60)).padStart(2, '0');
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
+function renderLadderLine() {
+  const L = ladder, at = ladderAt, ph = $('phase'), playing = at?.playing; $('go').disabled = true; ph.className = '';
+  const html = L ? `<span class="dot" style="background:var(--moss)"></span><b>${L.done ? '✓ Completed' : '● Run in progress'}</b> · Chess ladder · est. Elo ${at?.playing && at.n ? Math.round(at.elo) : Math.round(L.best.elo)} · ${at?.playing ? `game ${Math.min((at.n || 0) + 1, L.n || 0)} of ${L.n || 0}` : `${L.n || 0} games`} · ${L.kept} kept · ${L.cut} cut<button type="button" onclick="ladderReplay()" title="Play every game in order and watch the rating move">${playing ? '■ skip to the end' : '▶ replay'}</button><button type="button" onclick="setView('home')">← all agents</button>`
+    : `<b>Chess ladder</b> · no run on this machine yet<button type="button" onclick="setView('home')">← all agents</button>`;
+  if (ph.dataset.h !== html) { ph.innerHTML = html; ph.dataset.h = html; }
+}
 function renderRun() {
   const a = app; if (!a) return;
+  if (document.body.classList.contains('replay')) return renderLadderLine();
   const job = a.job, running = job && job.status === 'running';
   const sig = JSON.stringify(a.sets.map(x => [x.key, x.ready, x.count]));
   if (sig !== setsSig) { setsSig = sig; const keep = wantSet || $('set').value; wantSet = null; const groups = [...new Set(a.sets.map(x => x.group))];
@@ -574,7 +581,16 @@ function liveTarget() {
   if (watching && watching.role !== 'proposer') return A.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split) || watching;
   return A.filter(x => x.status === 'working').sort((x, y) => x.started - y.started)[0] || A.filter(x => x.ended).sort((x, y) => y.ended - x.ended)[0] || null;
 }
+let ladderData = null, ladderAt = null;
+function ladderReplay() { $('lv-frame').contentWindow?.postMessage({cmd:'replay'}, '*'); $('live').classList.remove('small'); }
+addEventListener('message', e => { if (e.source === $('lv-frame').contentWindow && e.data?.ladderAt) { ladderAt = e.data.ladderAt; if (document.body.classList.contains('replay') && window.__d) { renderLedger(); renderRun(); } } });
+function liveLadder() {
+  $('live').classList.add('on'); $('lv-what').textContent = `chess ladder${ladderData ? ' · ' + ladderData.run : ''}`; $('lv-kind').textContent = 'real games'; $('lv-dot').style.background = '';
+  const css = getComputedStyle(document.documentElement), colors = Object.fromEntries(['paper', 'ink', 'faint', 'seal', 'moss'].map(k => [k, css.getPropertyValue('--' + k).trim()]));
+  if (ladderData) $('lv-frame').contentWindow?.postMessage({ladder: ladderData, colors}, '*');
+}
 async function pullLive() {
+  if (document.body.classList.contains('replay')) return liveLadder();
   const t = liveTarget(), box = $('live'); box.classList.toggle('on', !!t); if (!t || liveBusy) return;
   const set = liveSet = app.sets.find(s => t.task.startsWith(s.key + '/')) || app.sets.find(s => s.key === 'python'), writing = (app.viewgen || []).includes(set.key);
   $('lv-what').textContent = `${short(t.task)} · ${t.version}`; $('lv-dot').style.background = t.status === 'working' ? 'var(--seal)' : '';
@@ -642,8 +658,11 @@ function renderGuide() {
   $('g-set').textContent = set ? set.name.split(':')[0].toLowerCase() : 'this';
 }
 function setView(v) {
-  const src = v === 'scores' ? 'benchmarks.html?embed=1' : v === 'replay' ? replaySrc() : '';
-  document.body.classList.toggle('pane', !!src); document.body.classList.toggle('home', v === 'home'); document.body.classList.toggle('replay', v === 'replay'); if (window.__d) renderLedger();
+  const src = v === 'scores' ? 'benchmarks.html?embed=1' : '', wasLadder = document.body.classList.contains('replay');
+  // the chess ladder is an agent like the rest: its tree on the stage, its games in the lower-right box, Elo on the right
+  if (v === 'replay') { if (viewing) openAgent(null, true); const t = `${TREE_SRC}&nolabels=1&src=runs/chess-ladder-versions.jsonl`; $('tree3d').src = t; $('tree3d').dataset.src = t; liveSrc = 'ladder'; $('lv-frame').src = 'views/ladder.html?b=1'; ladderAt = null; delete $('phase').dataset.h; }
+  else if (wasLadder) { liveSrc = ''; ladderAt = null; delete $('phase').dataset.h; if (!viewing) { $('tree3d').src = TREE_SRC; $('tree3d').dataset.src = TREE_SRC; } }
+  document.body.classList.toggle('pane', !!src); document.body.classList.toggle('home', v === 'home'); document.body.classList.toggle('replay', v === 'replay'); if (window.__d) renderLedger(); renderRun();
   if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
   for (const k of ['home', 'tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
   if (v === 'home') { if (viewing) openAgent(null, true); renderHome(); if (!$('h-bg').src) $('h-bg').src = 'tree.html?embed=1&bare=1&src=runs/health-versions.jsonl'; }
@@ -675,6 +694,7 @@ async function pullStats() {
   try {
     const d = JSON.parse(jd.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/)[1]), E = x => ({elo: x.elo, elo_lo: x.lo, elo_hi: x.hi});
     if (d.cur_est?.elo != null) {
+      ladderData = d;
       const all = d.versions.filter(v => v.est?.elo != null).map(v => ({id: v.id, parent: v.parent, kept: v.status !== 'cut' && v.status !== 'rejected', change: v.change, games: v.games, ...E(v.est)}));
       ladder = {all, seed: {id: 'seed', ...E(d.start_est)}, best: {id: d.champion, ...E(d.cur_est)}, kept: all.filter(v => v.kept && v.parent).length, cut: all.filter(v => !v.kept).length, run: d.run, done: d.done, n: d.cur_est.n};
     }
@@ -751,7 +771,7 @@ function doneTarget() {
 }
 function openSet(key) { $('set').value = key; fillCount(); fillTools(); openAgent(null); }
 // Replay shows the saved chess games in the live view's own board and move table.
-function replaySrc() { return 'chess-games.html?b=2'; }
+function replaySrc() { return 'views/ladder.html?b=1'; }
 function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
 // Esc closes whatever is open, innermost first.
 addEventListener('keydown', e => {

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Bonsai chess ladder</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:8px 14px; background:var(--paper); color:var(--ink); font:11px/1.45 "IBM Plex Mono", monospace; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
+  .k { font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #wrap { flex:1; min-height:0; display:flex; gap:12px; }
+  #board { height:100%; aspect-ratio:1; display:grid; grid-template-columns:repeat(8, 1fr); border:1px solid var(--ink); }
+  #board i { display:grid; place-items:center; font-style:normal; font-size:min(4.4vh, 22px); line-height:1; }
+  #board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); } #board i.hot { background:color-mix(in srgb, var(--seal) 38%, var(--paper)); }
+  #side { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+  #elo { font:34px/1 "DotGothic16", monospace; } #elo small { font:10px "IBM Plex Mono", monospace; color:var(--faint); margin-left:6px; }
+  #go { font:13px "DotGothic16", monospace; background:var(--ink); color:var(--paper); border:0; padding:2px 12px; cursor:pointer; align-self:flex-start; }
+  #chart { flex:1; min-height:40px; width:100%; }
+  .empty { margin:auto; color:var(--faint); text-align:center; }
+</style></head><body>
+<!-- The Elo ladder run (rsi/): every finished game in order and the agent's Elo estimate after each one.
+     The host page posts {ladder: <the data rsi/judge.py writes into judge.html>} and {cmd:'replay'}; opened on
+     its own, this page reads judge.html itself. It rests on the end of the run; Replay plays it all through. -->
+<div class="k" id="who">waiting for the ladder run</div>
+<div id="wrap"><div id="board"></div>
+  <div id="side"><div id="elo">--</div><button id="go" type="button" onclick="replay()">▶ replay</button><svg id="chart" preserveAspectRatio="none"></svg><div class="k" id="res"></div></div></div>
+<script>
+const $ = id => document.getElementById(id), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const G = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
+const cells = fen => { const a = []; for (const c of fen.split(' ')[0].replace(/\//g, '')) /\d/.test(c) ? a.push(...Array(+c).fill('')) : a.push(c); return a; };
+let games = [], est = [], gi = 0, ply = 0, timer = null, stamp = null;
+// est[k] is the estimate once game k has been counted
+function take(d) {
+  if (!d || d.generated === stamp) return; stamp = d.generated;
+  games = d.games.filter(g => g.status === 'complete' && g.fens?.length).sort((a, b) => a.finished - b.finished);
+  const tl = [...d.timeline].sort((a, b) => a.t - b.t);
+  est = games.map((g, k) => tl.find(e => e.i === g.i) || tl[Math.min(k, tl.length - 1)]);
+  if (!games.length) return;
+  if (!timer) { gi = games.length - 1; ply = games[gi].fens.length - 1; draw(); }
+}
+addEventListener('message', e => { for (const [k, v] of Object.entries(e.data?.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  if (e.data?.ladder) take(e.data.ladder); if (e.data?.cmd === 'replay' && games.length) replay(); });
+function draw() {
+  const g = games[gi], black = g.color === 'black', last = ply >= g.fens.length - 1, shown = last ? gi : gi - 1;
+  const now = cells(g.fens[ply]), was = ply ? cells(g.fens[ply - 1]) : now, order = [...Array(64).keys()]; if (black) order.reverse();
+  $('board').innerHTML = order.map(i => `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''} ${now[i] !== was[i] ? 'hot' : ''}">${G[now[i]] || ''}</i>`).join('');
+  $('who').textContent = `game ${gi + 1} of ${games.length} · ${g.vid} plays ${g.color} · against ${g.opp_name} (elo ${g.opp_elo})`;
+  $('res').textContent = last ? `${g.score === 1 ? 'won' : g.score === 0 ? 'lost' : 'drew'} · ${String(g.how || '').replace(/_/g, ' ')}` : `ply ${ply} of ${g.fens.length - 1}`;
+  const cur = shown >= 0 ? est[shown] : null;
+  $('elo').innerHTML = cur ? `${Math.round(cur.elo)}<small>elo after ${shown + 1} ${shown ? 'games' : 'game'}</small>` : `--<small>no games counted yet</small>`;
+  chart(shown);
+  parent.postMessage({ladderAt: cur ? {elo: cur.elo, lo: cur.lo, hi: cur.hi, n: shown + 1, playing: !!timer} : {n: 0, playing: !!timer}}, '*');
+}
+function chart(shown) {
+  const W = 300, H = 100, n = est.length, all = est.flatMap(e => [e.elo]).concat(games.map(g => g.opp_elo)), lo = Math.min(...all) - 20, hi = Math.max(...all) + 20;
+  const x = k => n > 1 ? 8 + k * (W - 16) / (n - 1) : W / 2, y = v => H - 8 - (v - lo) / (hi - lo || 1) * (H - 16), pts = est.slice(0, shown + 1);
+  $('chart').setAttribute('viewBox', `0 0 ${W} ${H}`);
+  $('chart').innerHTML = games.map((g, k) => `<circle cx="${x(k)}" cy="${y(g.opp_elo)}" r="2" fill="var(--faint)" opacity="${k <= shown ? .9 : .25}"/>`).join('')
+    + `<polyline points="${pts.map((e, k) => `${x(k)},${y(e.elo)}`).join(' ')}" fill="none" stroke="var(--ink)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`
+    + pts.map((e, k) => `<circle cx="${x(k)}" cy="${y(e.elo)}" r="${k === shown ? 4 : 2.5}" fill="${games[k].vid !== games[0].vid ? 'var(--moss)' : 'var(--ink)'}"/>`).join('');
+}
+function replay() {
+  if (timer) { clearInterval(timer); timer = null; gi = games.length - 1; ply = games[gi].fens.length - 1; $('go').textContent = '▶ replay'; return draw(); }
+  gi = 0; ply = 0; let rest = 0; $('go').textContent = '■ skip to the end';
+  timer = setInterval(() => {
+    const g = games[gi], end = g.fens.length - 1;
+    if (ply < end) { ply = Math.min(end, ply + Math.max(1, Math.ceil(end / 55))); return draw(); }   // about four seconds a game
+    if (++rest < 14) return; rest = 0;
+    if (gi < games.length - 1) { gi++; ply = 0; draw(); } else { clearInterval(timer); timer = null; $('go').textContent = '▶ replay'; draw(); }
+  }, 70);
+}
+if (parent === window) fetch('../judge.html', {cache:'no-store'}).then(r => r.text()).then(t => take(JSON.parse(t.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/)[1]))).catch(() => { $('who').textContent = 'no ladder run on this machine yet'; });
+</script></body></html>
