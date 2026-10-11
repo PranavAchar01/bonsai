@@ -213,7 +213,7 @@ def grow(body: dict) -> tuple[int, dict]:
     JOB_FILE.write_text(json.dumps(split))
 
     stop.clear()
-    cfg = {**split, "goal": goal, "generations": generations, "workers": 4, "proposer": "sonnet", "parent": parent,
+    cfg = {**split, "goal": goal, "generations": generations, "workers": 4, "proposer": "claude-opus-5-5", "parent": parent,
            "scratch": str(Path(os.getenv("BONSAI_SCRATCH", ROOT / "runs" / "scratch")))}  # fmt: skip
     with lock:
         state["agents"].clear()

@@ -145,7 +145,7 @@ def diff(a: dict, b: dict) -> str:
     )  # fmt: skip
 
 
-def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet", scratch=None,
+def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-opus-5-5", scratch=None,
         goal="", parent=None, emit=None, stopped=lambda: False) -> None:  # fmt: skip
     """Grow the tree. `parent` is a stored version to branch from; without one the seed is scored first.
 
@@ -229,7 +229,7 @@ def main() -> None:
     ap.add_argument("--generations", type=int, default=3)
     ap.add_argument("--tries", type=int, default=2, help="children per generation")
     ap.add_argument("--workers", type=int, default=3)
-    ap.add_argument("--proposer", default="sonnet")
+    ap.add_argument("--proposer", default="claude-opus-5-5")
     ap.add_argument("--goal", default="", help="what the person wants the agent to get better at")
     ap.add_argument("--scratch", required=True)
     a = ap.parse_args()
