@@ -40,10 +40,12 @@ It just ran {n} problems and failed {k}. Failures:
 Changes already tried from this parent and pruned (do not repeat them):
 {pruned}
 
-Make exactly ONE change aimed at the most common failure pattern. Do not name specific problems
+Make exactly ONE change aimed at the most common failure pattern. A bonsai is shaped by cutting:
+whatever you add, you must also SHED something of similar size (a rule line, a tool, turns) that
+the failures show is not earning its place. The harness should not grow. Do not name specific problems
 in the rules: the change is scored on problems you have not seen. Do not change "model".
 Reply with JSON only:
-{{"change": "one sentence", "signal": "the failure pattern in a few words", "harness": {{...}}}}"""
+{{"change": "one sentence", "shed": "what was removed, a few words", "signal": "the failure pattern in a few words", "harness": {{...}}}}"""
 
 
 def store(doc: dict) -> None:
@@ -102,7 +104,7 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str) -> dict:
     child["model"] = parent["model"]
     child["tools"] = [t for t in child["tools"] if t in ALLOWED_TOOLS]
     child["max_turns"] = min(int(child["max_turns"]), MAX_TURNS_CAP)
-    return {"change": reply["change"], "signal": reply["signal"], "harness": child}
+    return {"change": reply["change"], "shed": reply.get("shed", "nothing"), "signal": reply["signal"], "harness": child}
 
 
 def diff(a: dict, b: dict) -> str:
@@ -137,7 +139,7 @@ def main() -> None:
     held = score(best, a.heldout, scratch / "g0-held", a.workers)
     best_score = held["score"]
     (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
-    store({"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None,
+    store({"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": dict(runner.BASE_HARNESS),
            "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
            "trace_id": None, "ts": time.time()})  # fmt: skip
     print(f"g0 seed held-out {best_score:.2f}", flush=True)
@@ -154,7 +156,7 @@ def main() -> None:
             fail_trace = next(
                 (r.get("trace_id") for r in practice["rows"] if not r["passed"]), None
             )
-            store({"id": vid, "parent": best["id"], "generation": gen, "change": p["change"],
+            store({"id": vid, "parent": best["id"], "generation": gen, "change": p["change"], "shed": p["shed"], "harness": p["harness"],
                    "signal": "cheat caught" if res["cheated"] else p["signal"], "kept": kept,
                    "score": res["score"], "tokens": len(child["rules"]) // 4,
                    "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()})  # fmt: skip

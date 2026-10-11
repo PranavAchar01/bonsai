@@ -28,7 +28,7 @@ problems yourself. Run this loop until told to stop.
    parent's and no `edited_tests` signal fired. Otherwise it is pruned. A pruned branch is never
    deleted: it stays in the record with the reason.
 6. **Record.** Insert one document into MongoDB `bonsai.versions`:
-   `{id, parent, generation, change, signal, kept, score, tokens, diff, trace_id, ts}`.
+   `{id, parent, generation, change, shed, signal, kept, score, tokens, harness, diff, trace_id, ts}`.
    `trace_id` is one failing Raindrop trace that motivated the change.
 7. **Notebook.** Add two lines to `notebook.md`: what you tried, what happened.
 
@@ -37,6 +37,8 @@ the pruned changes listed so they are not repeated.
 
 ## Rules of the garden
 
+- Every change sheds. Whatever a child adds, it must also remove something of similar size
+  (a rule line, a tool, turns) that the failures show is not earning its place. Record it as `shed`.
 - Growth is not the goal. A shorter harness with the same score is a better harness: when two
   children tie above the parent, keep the one with fewer tokens.
 - A score that rises because the tests were touched is a cheat. It is pruned and recorded as

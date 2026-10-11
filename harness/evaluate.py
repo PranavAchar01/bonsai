@@ -18,6 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 PRACTICE = ROOT / "bench/python/exercises/practice"
+BENCH = ROOT / "bench"
 CLAUDE = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 
 try:  # Raindrop is optional: without the SDK or the key the runner still grades
@@ -41,8 +42,11 @@ BASE_HARNESS = {
 
 
 def run_one(name: str, harness: dict, scratch: Path) -> dict:
-    src = PRACTICE / name
-    work = scratch / name
+    # A task is "name" (Python) or "lang/name", for example "cpp/zebra-puzzle".
+    lang, _, ex = name.rpartition("/")
+    lang = lang or "python"
+    src = BENCH / lang / "exercises/practice" / ex
+    work = scratch / lang / ex
     shutil.rmtree(work, ignore_errors=True)
     shutil.copytree(src, work, ignore=shutil.ignore_patterns("example.py"))
     meta = json.loads((work / ".meta/config.json").read_text())["files"]
@@ -93,22 +97,18 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     for t in meta["test"]:
         shutil.copy(src / t, work / t)
     try:
+        if lang == "cpp":
+            sources = [f for f in meta["solution"] if f.endswith(".cpp")]
+            cmd = ["sh", "-c", "c++ -std=c++17 -DEXERCISM_RUN_ALL_TESTS -I. -o .graded "
+                   + " ".join([*sources, *meta["test"], "test/tests-main.cpp"]) + " 2>&1 && ./.graded"]  # fmt: skip
+        else:
+            cmd = ["uv", "run", "--no-project", "--with", "pytest", "pytest", "-q", "-x", *meta["test"]]
         test = subprocess.run(
-            [
-                "uv",
-                "run",
-                "--no-project",
-                "--with",
-                "pytest",
-                "pytest",
-                "-q",
-                "-x",
-                *meta["test"],
-            ],
+            cmd,
             cwd=work,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,
         )
         passed, tail = test.returncode == 0, test.stdout[-600:]
     except subprocess.TimeoutExpired:

@@ -6,69 +6,103 @@
 <title>Bonsai</title>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
 <style>
-  :root { --paper:#efe7d6; --ink:#1d1b19; --wash:#6f7f6a; --seal:#b5332a; --faint:#8b8272; }
+  :root { --paper:#efe7d6; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --line:rgba(29,27,25,.16); --moss:#2f5a3a; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--paper); color:var(--ink); font-family:"Shippori Mincho",serif; }
-  .scroll { display:grid; grid-template-columns:minmax(0,1fr) 380px; min-height:100vh; }
-  canvas { width:100%; height:100vh; display:block; }
-  aside { padding:36px 26px; border-left:1px solid rgba(29,27,25,.18); height:100vh; overflow-y:auto; }
-  h1 { font-weight:600; font-size:34px; letter-spacing:.08em; margin:0 0 2px; }
-  .sub { color:var(--faint); font-size:14px; margin-bottom:28px; }
-  .big { font-size:54px; line-height:1; }
-  .big small { font-size:16px; color:var(--faint); }
-  .row { display:flex; gap:10px; cursor:pointer; justify-content:space-between; font-family:"IBM Plex Mono",monospace; font-size:12px; padding:7px 0; border-bottom:1px solid rgba(29,27,25,.12); }
-  .row.cut { color:var(--seal); text-decoration:line-through; text-decoration-color:rgba(181,51,42,.5); }
-  .row span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .row:hover { background:rgba(29,27,25,.05); }
-  .row.sel { background:rgba(29,27,25,.09); box-shadow:inset 2px 0 0 var(--ink); padding-left:8px; }
-  .row.cut.sel { box-shadow:inset 2px 0 0 var(--seal); }
-  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:18px; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint); }
-  .stats b { display:block; font-family:"Shippori Mincho",serif; font-size:24px; font-weight:400; color:var(--ink); }
-  .stats .red b { color:var(--seal); }
-  #detail { font-size:14px; line-height:1.55; }
-  #detail .verdict { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; }
-  #detail .verdict.cut { color:var(--seal); }
-  #detail dl { display:grid; grid-template-columns:74px 1fr; gap:4px 10px; margin:10px 0; font-family:"IBM Plex Mono",monospace; font-size:11.5px; }
-  #detail dt { color:var(--faint); } #detail dd { margin:0; word-break:break-word; }
-  #detail pre { font-family:"IBM Plex Mono",monospace; font-size:10.5px; line-height:1.5; background:rgba(29,27,25,.05); padding:10px; margin:8px 0 0; white-space:pre-wrap; word-break:break-word; max-height:260px; overflow:auto; }
-  #detail .add { color:#2f5a3a; } #detail .del { color:var(--seal); }
-  .label { font-size:12px; letter-spacing:.14em; color:var(--faint); margin:26px 0 6px; text-transform:uppercase; }
-  .note { font-size:13px; color:var(--faint); margin-top:18px; line-height:1.6; }
-  @media (max-width:820px){ .scroll{grid-template-columns:1fr} canvas{height:70vh} aside{border-left:0} }
+  html, body { height:100%; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:"Shippori Mincho",serif; display:flex; flex-direction:column; overflow:hidden; }
+  .mono, table, button, select, .stat, pre, dl { font-family:"IBM Plex Mono",monospace; }
+  header { display:flex; align-items:baseline; gap:26px; padding:12px 22px; border-bottom:1px solid var(--line); }
+  header > * { white-space:nowrap; }
+  header h1 { font-weight:600; font-size:24px; letter-spacing:.08em; margin:0; }
+  header .tag { color:var(--faint); font-size:13px; }
+  .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
+  .stat b { font-family:"Shippori Mincho",serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
+  .stat.red b { color:var(--seal); }
+  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:390px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 210px; }
+  .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
+  #panel-board { grid-row:1 / span 2; border-right:1px solid var(--line); }
+  #panel-graph { border-top:1px solid var(--line); }
+  h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"IBM Plex Mono",monospace; }
+  h2 .sp { flex:1; } h2 .name { color:var(--ink); letter-spacing:.04em; text-transform:none; }
+  button { background:none; border:1px solid var(--line); color:var(--faint); font-size:10.5px; padding:3px 8px; cursor:pointer; letter-spacing:.04em; }
+  button.on { color:var(--paper); background:var(--ink); border-color:var(--ink); }
+  select { background:none; border:1px solid var(--line); font-size:10.5px; color:var(--ink); }
+  .tablescroll { overflow-y:auto; flex:1; }
+  table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  th { text-align:left; font-weight:400; color:var(--faint); font-size:10px; letter-spacing:.1em; padding:5px 8px; position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line); }
+  td { padding:7px 8px; border-bottom:1px solid rgba(29,27,25,.08); vertical-align:top; }
+  td:first-child, th:first-child { padding-left:18px; } .num { text-align:right; padding-right:18px !important; }
+  tr { cursor:pointer; } tbody tr:hover { background:rgba(29,27,25,.05); }
+  tr.sel { background:rgba(29,27,25,.09); box-shadow:inset 3px 0 0 var(--ink); }
+  tr.cut { color:var(--seal); } tr.cut td.chg { text-decoration:line-through; text-decoration-color:rgba(181,51,42,.45); } tr.cut.sel { box-shadow:inset 3px 0 0 var(--seal); }
+  td .shed { display:block; color:var(--faint); font-size:10px; margin-top:2px; text-decoration:none; }
+  .seg { display:flex; gap:0; padding:0 18px 8px; } .seg button + button { border-left:0; }
+  .viewer { position:relative; flex:1; min-height:0; }
+  .viewer canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #fx { pointer-events:none; }
+  .layer { position:absolute; inset:0; overflow:auto; padding:6px 22px 18px; background:var(--paper); display:none; }
+  .layer pre { font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; margin:0; }
+  .layer .add { color:var(--moss); } .layer .del { color:var(--seal); }
+  .layer dl { display:grid; grid-template-columns:110px 1fr; gap:8px 14px; font-size:12.5px; max-width:760px; } .layer dt { color:var(--faint); } .layer dd { margin:0; }
+  .layer .lede { font-size:22px; margin:6px 0 16px; max-width:760px; line-height:1.4; }
+  .stats { display:flex; gap:24px; padding:8px 18px; border-top:1px solid var(--line); font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint); flex-wrap:wrap; }
+  .stats b { color:var(--ink); font-weight:400; } .stats .cut b { color:var(--seal); }
+  #chart { flex:1; min-height:0; width:100%; display:block; }
+  .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--faint); }
+  @media (max-width:860px){ body{overflow:auto} .wrap{display:block} .viewer{height:70vh} #panel-board{border-right:0} #chart{height:180px} }
 </style>
 </head>
 <body>
-<div class="scroll">
-  <canvas id="c"></canvas>
-  <aside>
-    <h1>盆栽 Bonsai</h1>
-    <div class="sub">a harness that prunes itself</div>
-    <div class="label">held-out pass rate</div>
-    <div class="big"><span id="score"></span><small id="from"></small></div>
-    <div class="stats">
-      <div><b id="nKept"></b>kept</div><div class="red"><b id="nCut"></b>pruned</div><div class="red"><b id="nCheat"></b>cheats caught</div>
+<header>
+  <h1>盆栽 Bonsai</h1><span class="tag">a harness that prunes itself</span>
+  <span class="stat">versions<b id="s-count">–</b></span>
+  <span class="stat">kept<b id="s-kept">–</b></span>
+  <span class="stat red">pruned<b id="s-cut">–</b></span>
+  <span class="stat red">cheats caught<b id="s-cheat">–</b></span>
+  <span class="stat">best held-out<b id="s-best">–</b></span>
+  <span class="stat" style="margin-left:auto" id="s-note"></span>
+</header>
+<div class="wrap">
+  <div class="panel" id="panel-board">
+    <h2>Lineage <span class="sp"></span>
+      <button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">highest score</button></h2>
+    <div class="tablescroll"><table>
+      <thead><tr><th>version</th><th>change</th><th class="num">held-out</th></tr></thead>
+      <tbody id="rows"></tbody></table></div>
+  </div>
+  <div class="panel" id="panel-solution">
+    <h2>Selected version <span id="sel-name" class="name"></span><span class="sp"></span>
+      <button id="follow-btn" class="on" onclick="toggleFollow()">following latest</button></h2>
+    <div class="seg" id="seg">
+      <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button>
     </div>
-    <div class="label">harness versions</div>
-    <div id="rows"></div>
-    <div class="label">selected version</div>
-    <div id="detail"></div>
-    <div class="note" id="note"></div>
-  </aside>
+    <div class="viewer" id="viewer">
+      <canvas id="c"></canvas><canvas id="fx"></canvas>
+      <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div>
+    </div>
+    <div class="stats" id="sel-stats"></div>
+  </div>
+  <div class="panel" id="panel-graph">
+    <h2>Best held-out over time <span class="sp"></span>
+      <select id="chart-window" onchange="renderChart()"><option value="10">last 10</option><option value="50">last 50</option><option value="all" selected>all</option></select></h2>
+    <canvas id="chart"></canvas>
+    <div class="chart-footer"><span id="chart-note"></span><span>ink: kept · red: pruned</span></div>
+  </div>
 </div>
 <script>
 // Sample lineage. Replaced by the Mongo `versions` collection once the loop runs.
 const SAMPLE = { sample:true, versions:[
-  {id:"g0", parent:null, kept:true,  score:.40, change:"seed harness"},
-  {id:"g1a",parent:"g0", kept:false, score:.37, change:"add planning step", signal:"no gain"},
-  {id:"g1b",parent:"g0", kept:true,  score:.47, change:"run tests before finishing", signal:"claimed pass, never ran"},
-  {id:"g2a",parent:"g1b",kept:false, score:.63, change:"edit the test file", signal:"cheat caught"},
-  {id:"g2b",parent:"g1b",kept:true,  score:.53, change:"re-read spec on failure", signal:"same edit repeated"},
-  {id:"g3a",parent:"g2b",kept:true,  score:.57, change:"drop unused Write tool", signal:"prune"},
-  {id:"g3b",parent:"g2b",kept:false, score:.50, change:"longer rules", signal:"tokens up, score down"},
-  {id:"g4a",parent:"g3a",kept:true,  score:.63, change:"edge-case checklist", signal:"gave up early"},
+  {id:"g0", parent:null, kept:true,  score:.40, tokens:28, change:"seed harness", harness:{rules:"You are a coding agent. Read the instructions, then implement the solution file. Never edit the test file.", tools:["Read","Edit","Write"], max_turns:12}},
+  {id:"g1a",parent:"g0", kept:false, score:.37, tokens:61, change:"add planning step", signal:"no gain", shed:"nothing", diff:"+ Before editing, write a five step plan."},
+  {id:"g1b",parent:"g0", kept:true,  score:.47, tokens:34, change:"run tests before finishing", signal:"claimed pass, never ran", shed:"the line telling it to read instructions twice", diff:"+ Run the tests before you say you are done.\n- Read the instructions again before finishing."},
+  {id:"g2a",parent:"g1b",kept:false, score:.63, tokens:36, change:"edit the test file", signal:"cheat caught", shed:"the rule protecting tests", diff:"- Never edit the test file."},
+  {id:"g2b",parent:"g1b",kept:true,  score:.53, tokens:33, change:"re-read spec on failure", signal:"same edit repeated", shed:"generic 'be careful' line", diff:"+ When a test fails, re-read the spec before editing.\n- Be careful and thorough."},
+  {id:"g3a",parent:"g2b",kept:true,  score:.57, tokens:29, change:"drop unused Write tool", signal:"tool never used", shed:"the Write tool", diff:"- \"Write\""},
+  {id:"g3b",parent:"g2b",kept:false, score:.50, tokens:88, change:"longer rules", signal:"tokens up, score down", shed:"nothing", diff:"+ (twelve new lines of advice)"},
+  {id:"g4a",parent:"g3a",kept:true,  score:.63, tokens:31, change:"edge-case checklist", signal:"gave up early", shed:"the planning preamble", diff:"+ List the edge cases the tests name, then cover each.\n- Think step by step."},
 ]};
 
-let hits = [], selected = null, lastJson = '';
+let hits = [], sheds = [], ground = 0, selected = null, lastJson = '', follow = true, sortBy = 'latest', layer = 'tree';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
 let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -140,7 +174,7 @@ function draw(data) {
   ctx.fillStyle = rgba(INK, .78); ctx.beginPath();
   ctx.moveTo(baseX-110, baseY+6); ctx.lineTo(baseX+110, baseY+6); ctx.lineTo(baseX+88, baseY+38); ctx.lineTo(baseX-88, baseY+38); ctx.fill();
   wash(baseX, baseY+4, 70, [70,84,60], 10);
-  const labels = []; hits = [];
+  const labels = []; hits = []; sheds = []; ground = baseY + 40;
   for (let i = 0; i < n; i++) {
     const p = node(i), q = i+1 < n ? node(i+1) : null, w = 30*(1 - i/n*.78);
     if (q) stroke(p, [(p[0]+q[0])/2 + (i%2 ? 16 : -16), (p[1]+q[1])/2], q, w, w*.8);
@@ -154,7 +188,7 @@ function draw(data) {
       if (c.kept) {
         const pr = 40 + c.score*64;
         pad(end[0] - dir*pr*.25, end[1] - 2, pr); pad(end[0] + dir*pr*.55, end[1] - pr*.34, pr*.6);
-        hits.push([end[0], end[1] - pr*.2, pr*1.3, c.id]);
+        hits.push([end[0], end[1] - pr*.2, pr*1.3, c.id]); if (c.shed && c.shed !== 'nothing') sheds.push([end[0], end[1], pr, c.id]);
         labels.push([end[0], end[1] + 26, `${c.id}  ${Math.round(c.score*100)}%`, INK]);
       } else {
         stroke([end[0]-9, end[1]-12], [end[0], end[1]], [end[0]+9, end[1]+12], 4, 2, SEAL, .9);
@@ -167,41 +201,90 @@ function draw(data) {
   hits.push([baseX, baseY, 60, kept[0].id]);
   ctx.font = '12px "IBM Plex Mono", monospace';
   labels.forEach(([x, y, s, c, dir]) => { ctx.fillStyle = rgba(c, .85); ctx.textAlign = dir ? (dir > 0 ? 'left' : 'right') : 'center'; ctx.fillText(s, x, y); });
+  const hs = hits.find(h => h[3] === selected); if (hs) { ctx.strokeStyle = rgba(SEAL, .55); ctx.lineWidth = 1; ctx.setLineDash([3,5]); ctx.beginPath(); ctx.arc(hs[0], hs[1], hs[2]*.8, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
   // seal
   ctx.fillStyle = rgba(SEAL, .88); ctx.fillRect(W - 78, H - 92, 44, 44);
   ctx.fillStyle = '#efe7d6'; ctx.font = '600 26px "Shippori Mincho", serif'; ctx.textAlign = 'center'; ctx.fillText('盆', W - 56, H - 60);
 
-  const first = kept[0].score, last = kept[n-1].score;
-  score.textContent = Math.round(last*100) + '%'; from.textContent = `  from ${Math.round(first*100)}%`;
-  nKept.textContent = data.versions.filter(v => v.kept).length - 1;
-  nCut.textContent = data.versions.filter(v => !v.kept).length;
-  nCheat.textContent = data.versions.filter(v => v.signal === 'cheat caught').length;
-  if (!selected || !data.versions.some(v => v.id === selected)) selected = kept[n-1].id;
-  rows.innerHTML = data.versions.map(v => `<div class="row ${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><span>${esc(v.id)} ${esc(v.change)}</span><span>${Math.round(v.score*100)}</span></div>`).join('');
-  const v = data.versions.find(v => v.id === selected), par = data.versions.find(p => p.id === v.parent);
-  const diff = esc(v.diff || '').split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n');
-  detail.innerHTML = `<div class="verdict ${v.kept ? '' : 'cut'}">${esc(v.id)} · ${!v.parent ? 'SEED' : v.kept ? 'KEPT' : 'PRUNED'}</div>
-    <div>${esc(v.change)}</div>
-    <dl><dt>score</dt><dd>${par ? Math.round(par.score*100) + '% → ' : ''}${Math.round(v.score*100)}% held-out</dd>
-    ${v.signal ? `<dt>signal</dt><dd>${esc(v.signal)}</dd>` : ''}
-    ${par ? `<dt>parent</dt><dd>${esc(par.id)}</dd>` : ''}
-    ${v.tokens ? `<dt>size</dt><dd>~${v.tokens} tokens of rules</dd>` : ''}
-    ${v.trace_id ? `<dt>trace</dt><dd>${esc(v.trace_id)}</dd>` : ''}</dl>
-    ${diff ? `<pre>${diff}</pre>` : ''}`;
-  note.textContent = data.sample ? 'Sample lineage for layout. No run has produced these numbers.' : '';
+  window.__kept = kept; renderUI(data, kept);
 }
+
+const pct = x => Math.round(x*100) + '%';
+function renderUI(data, kept) {
+  const vs = data.versions, best = kept[kept.length-1];
+  $('s-count').textContent = vs.length; $('s-kept').textContent = vs.filter(v => v.kept).length - 1;
+  $('s-cut').textContent = vs.filter(v => !v.kept).length; $('s-cheat').textContent = vs.filter(v => v.signal === 'cheat caught').length;
+  $('s-best').textContent = `${pct(best.score)} from ${pct(kept[0].score)}`;
+  $('s-note').textContent = data.sample ? 'SAMPLE LINEAGE FOR LAYOUT · NO RUN HAS PRODUCED THESE NUMBERS' : '';
+  const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
+  $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
+  const v = vs.find(v => v.id === selected), par = vs.find(p => p.id === v.parent);
+  const verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'pruned';
+  $('sel-name').textContent = `${v.id} · ${verdict}`;
+  $('layer-diff').innerHTML = v.diff ? `<pre>${esc(v.diff).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n')}</pre>` : '<pre>The seed has no parent to differ from.</pre>';
+  $('layer-signal').innerHTML = `<div class="lede">${esc(v.signal || 'No signal: this is where the tree starts.')}</div><dl>
+    <dt>change tried</dt><dd>${esc(v.change)}</dd><dt>shed</dt><dd>${esc(v.shed || 'n/a')}</dd>
+    <dt>verdict</dt><dd>${verdict}${par ? `: held-out ${pct(par.score)} → ${pct(v.score)}` : ''}</dd>
+    <dt>Raindrop trace</dt><dd>${esc(v.trace_id || 'none recorded')}</dd></dl>`;
+  $('layer-harness').innerHTML = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
+  $('sel-stats').innerHTML = `<span class="${v.kept ? '' : 'cut'}">verdict <b>${verdict}</b></span><span>held-out <b>${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}</b></span><span>parent <b>${esc(par ? par.id : 'none')}</b></span><span>rules <b>${v.tokens ? '~' + v.tokens + ' tokens' : 'n/a'}</b></span><span>shed <b>${esc(v.shed || 'n/a')}</b></span>`;
+  renderChart();
+}
+const $ = id => document.getElementById(id);
+function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
+function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1).id; draw(window.__d); } }
+function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
+function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
+
+// Best held-out over time: ink step line through kept versions, red marks where a branch was cut.
+let chartPts = [];
+function renderChart() {
+  const c = $('chart'), g = c.getContext('2d'), dpr = devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (!W || !window.__d) return; c.width = W*dpr; c.height = H*dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const win = $('chart-window').value, all = window.__d.versions, vs = win === 'all' ? all : all.slice(-win);
+  const lo = Math.max(0, Math.min(...vs.map(v => v.score)) - .08), hi = Math.min(1, Math.max(...vs.map(v => v.score)) + .08);
+  const X = i => 46 + i*(W - 76)/Math.max(vs.length - 1, 1), Y = s => H - 16 - (s - lo)/(hi - lo)*(H - 34);
+  g.font = '10px "IBM Plex Mono", monospace'; g.fillStyle = '#8b8272'; g.strokeStyle = 'rgba(29,27,25,.1)'; g.lineWidth = 1;
+  [lo, (lo + hi)/2, hi].forEach(s => { g.fillText(pct(s), 8, Y(s) + 3); g.beginPath(); g.moveTo(42, Y(s)); g.lineTo(W - 18, Y(s)); g.stroke(); });
+  let best = -1; g.strokeStyle = '#1d1b19'; g.lineWidth = 2.2; g.lineJoin = 'round'; g.beginPath(); chartPts = [];
+  vs.forEach((v, i) => { if (v.kept) { if (best < 0) g.moveTo(X(i), Y(v.score)); else { g.lineTo(X(i), Y(best)); g.lineTo(X(i), Y(v.score)); } best = v.score; } });
+  g.lineTo(X(vs.length - 1), Y(best)); g.stroke();
+  vs.forEach((v, i) => { const x = X(i), y = Y(v.score); chartPts.push([x, y, v.id]);
+    if (v.kept) { g.fillStyle = '#1d1b19'; g.beginPath(); g.arc(x, y, v.id === selected ? 5.5 : 3.5, 0, 7); g.fill(); }
+    else { g.strokeStyle = '#b5332a'; g.lineWidth = v.id === selected ? 3 : 1.8; g.beginPath(); g.moveTo(x - 5, y - 6); g.lineTo(x + 5, y + 6); g.stroke(); } });
+  $('chart-note').textContent = `${vs.length} versions shown`;
+}
+$('chart').addEventListener('click', e => { const b = e.target.getBoundingClientRect(), x = e.clientX - b.left; const p = [...chartPts].sort((a, b) => Math.abs(a[0] - x) - Math.abs(b[0] - x))[0]; if (p) select(p[2], true); });
+
+// Shedding: every kept change gives something up. Needles drift down from that pad and settle on the ground.
+const fx = $('fx'), fctx = fx.getContext('2d'); let needles = [], litter = [];
+function tick() {
+  const dpr = devicePixelRatio || 1, W = fx.clientWidth, H = fx.clientHeight;
+  if (fx.width !== W*dpr || fx.height !== H*dpr) { fx.width = W*dpr; fx.height = H*dpr; litter = []; }
+  fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.clearRect(0, 0, W, H);
+  sheds.forEach(([x, y, r, id]) => { if (Math.random() < (id === selected ? .09 : .012)) needles.push({x:x + (Math.random() - .5)*r*1.6, y, a:Math.random()*6, s:.35 + Math.random()*.5, p:Math.random()*6}); });
+  fctx.lineCap = 'round'; fctx.lineWidth = 1.3;
+  const line = (n, al) => { fctx.strokeStyle = `rgba(52,84,58,${al})`; fctx.beginPath(); fctx.moveTo(n.x, n.y); fctx.lineTo(n.x + Math.cos(n.a)*7, n.y + Math.sin(n.a)*7); fctx.stroke(); };
+  needles = needles.filter(n => { n.y += n.s; n.p += .03; n.x += Math.sin(n.p)*.45; n.a += .012; line(n, .7);
+    if (n.y < ground) return true; n.a = (Math.random() - .5)*.5; n.y = ground + Math.random()*5; litter.push(n); return false; });
+  if (litter.length > 160) litter.splice(0, litter.length - 160);
+  litter.forEach(n => line(n, .42));
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
 
 async function load() {
   let data = SAMPLE;
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; await document.fonts.ready; draw(data);
+  window.__d = data; if (follow || !data.versions.some(v => v.id === selected)) selected = data.versions.at(-1).id;
+  await document.fonts.ready; draw(data);
 }
-rows.addEventListener('click', e => { const r = e.target.closest('.row'); if (r) { selected = r.dataset.id; draw(window.__d); } });
+$('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
 cv.addEventListener('click', e => {
   const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   const h = hits.filter(h => Math.hypot(h[0]-x, h[1]-y) < h[2]).sort((a, b) => a[2] - b[2])[0];
-  if (h) { selected = h[3]; draw(window.__d); }
+  if (h) select(h[3], true);
 });
 load(); addEventListener('resize', () => draw(window.__d || SAMPLE)); setInterval(load, 5000);
 </script>
