@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel Garden Palettes</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --page:#f6f3ee; --line:rgba(29,27,25,.14); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:#1d1b19; font:15px/1.5 "Inter Tight", system-ui, sans-serif; padding:32px 24px 80px; }
+  h2 { font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:#8b8272; margin:0 0 14px; font-weight:600; }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+  .card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .tag { font:600 12px "Inter Tight", sans-serif; padding:10px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tag a { color:#1d1b19; font-weight:400; }
+  .s { padding:22px; font-family:"DotGothic16", monospace; position:relative; min-height:300px; }
+  .s h1 { font-size:44px; margin:0; font-weight:400; letter-spacing:.06em; line-height:1.1; }
+  .s .n { font-size:88px; line-height:1; margin-top:10px; }
+  .row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid; }
+  .cut { text-decoration:line-through; }
+  .sw { display:flex; gap:0; height:14px; }
+  .sw span { flex:1; }
+  svg.px { position:absolute; right:18px; top:70px; width:96px; height:96px; image-rendering:pixelated; }
+</style>
+</head>
+<body>
+<h2>Pixel garden: color variations. "open on tree" loads the 3D bonsai in that palette.</h2>
+<div class="grid" id="grid"></div>
+<script type="module">
+import { PALETTES } from './palettes.js';
+// 16x16 pixel bonsai: f foliage, t trunk, p pot, c cut mark
+const ART = [
+  '................',
+  '.....ffffff.....',
+  '...ffffffffff...',
+  '..ffffffffffff..',
+  '....fff.t.fff...',
+  '.ffff...t.......',
+  'ffffff.t...ffff.',
+  '.ffff.tt..ffffff',
+  '......t.c..ffff.',
+  '....ctt..t......',
+  '......tttt......',
+  '.......tt.......',
+  '..pppppppppppp..',
+  '...pppppppppp...',
+  '....p......p....',
+  '................',
+];
+function pixelTree(P) {
+  const col = {f:P.ink, t:P.faint, p:P.faint, c:P.accent};
+  let r = '';
+  ART.forEach((row, y) => [...row].forEach((ch, x) => { if (col[ch]) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col[ch]}"/>`; }));
+  return `<svg class="px" viewBox="0 0 16 16" shape-rendering="crispEdges">${r}</svg>`;
+}
+document.getElementById('grid').innerHTML = Object.entries(PALETTES).map(([k, P]) => {
+  const glow = P.glow ? `text-shadow:0 0 6px ${P.ink}88, 0 0 18px ${P.ink}33;` : '';
+  const line = `border-color:${P.ink}26`;
+  return `<div class="card">
+    <div class="tag"><span>${P.name}</span><a href="tree.html?p=${k}&open=1">open on tree</a></div>
+    <div class="sw"><span style="background:${P.bg}"></span><span style="background:${P.ink}"></span><span style="background:${P.faint}"></span><span style="background:${P.accent}"></span></div>
+    <div class="s" style="background:${P.bg};color:${P.ink};${glow}">
+      ${pixelTree(P)}
+      <h1>盆栽 BONSAI</h1>
+      <div style="color:${P.faint}">a harness that prunes itself</div>
+      <div class="n">63%</div>
+      <div style="color:${P.faint};margin-bottom:12px">from 40% held-out</div>
+      <div class="row" style="${line}"><span>g1b run tests first</span><span>47</span></div>
+      <div class="row cut" style="${line};color:${P.accent}"><span>g2a edit the test file</span><span>63</span></div>
+      <div class="row" style="${line}"><span>g4a edge-case checklist</span><span>63</span></div>
+    </div></div>`;
+}).join('');
+</script>
+</body>
+</html>
