@@ -1,0 +1,102 @@
+[
+ {
+  "id": 0,
+  "text": "seed 10025: gripper closed on air; cube stayed at z 0.019 m after 750 frames"
+ },
+ {
+  "id": 1,
+  "text": "seed 10026: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 2,
+  "text": "seed 10027: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 3,
+  "text": "seed 10028: cube lifted but rests 7.6 cm from bowl centre"
+ },
+ {
+  "id": 4,
+  "text": "seed 10029: cube never left the table, 750 frames"
+ },
+ {
+  "id": 5,
+  "text": "seed 10030: cube lifted but rests 7.3 cm from bowl centre"
+ },
+ {
+  "id": 6,
+  "text": "seed 10031: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 7,
+  "text": "seed 10032: cube never left the table, 750 frames"
+ },
+ {
+  "id": 8,
+  "text": "seed 10033: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 9,
+  "text": "seed 10034: cube carried, dropped 7.5 cm short, time limit hit at frame 750"
+ },
+ {
+  "id": 10,
+  "text": "seed 10035: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 11,
+  "text": "seed 10036: cube never left the table, 750 frames"
+ },
+ {
+  "id": 12,
+  "text": "seed 10037: cube lifted but rests 7.7 cm from bowl centre"
+ },
+ {
+  "id": 13,
+  "text": "seed 10038: episode done at frame 293, cube settled inside the bowl"
+ },
+ {
+  "id": 14,
+  "text": "seed 10039: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 15,
+  "text": "seed 10040: cube carried, dropped 7.3 cm short, time limit hit at frame 750"
+ },
+ {
+  "id": 16,
+  "text": "seed 10041: placed in 8.6 s, cube 3.0 cm off centre, gripper open"
+ },
+ {
+  "id": 17,
+  "text": "seed 10042: released early, cube landed outside the bowl rim (7.5 cm)"
+ },
+ {
+  "id": 18,
+  "text": "seed 10043: cube carried, dropped 8.0 cm short, time limit hit at frame 750"
+ },
+ {
+  "id": 19,
+  "text": "seed 10044: episode done at frame 313, cube settled inside the bowl"
+ },
+ {
+  "id": 20,
+  "text": "seed 10045: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 21,
+  "text": "seed 10046: cube carried, dropped 8.9 cm short, time limit hit at frame 750"
+ },
+ {
+  "id": 22,
+  "text": "seed 10047: cube carried, dropped 7.3 cm short, time limit hit at frame 750"
+ },
+ {
+  "id": 23,
+  "text": "seed 10048: cube never left the table, 750 frames"
+ },
+ {
+  "id": 24,
+  "text": "seed 10049: released early, cube landed outside the bowl rim (7.6 cm)"
+ }
+]

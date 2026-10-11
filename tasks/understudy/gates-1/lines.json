@@ -1,0 +1,102 @@
+[
+ {
+  "id": 0,
+  "text": "v00 Claude counts 2 red blocks, 1 bowls, 1 hands in the first frame"
+ },
+ {
+  "id": 1,
+  "text": "v00 a second red object 99% the size of the block; which one is the target?"
+ },
+ {
+  "id": 2,
+  "text": "v00 a second red block appears on 64 frames (first at 2.3 s): the video duplicated the object"
+ },
+ {
+  "id": 3,
+  "text": "v00 the block drifts 9.9 block widths from the fingers while 'carried' (it moves on its own)"
+ },
+ {
+  "id": 4,
+  "text": "v00 the block moved only 0.0 cm"
+ },
+ {
+  "id": 5,
+  "text": "v00 2 red blocks in the last frame"
+ },
+ {
+  "id": 6,
+  "text": "v00 IK hits a joint limit on 222 control ticks (max error 57 mm): the SO-101 cannot reach that pose"
+ },
+ {
+  "id": 7,
+  "text": "v00 peak joint velocity 4.9 rad/s exceeds 3"
+ },
+ {
+  "id": 8,
+  "text": "v00 peak joint acceleration 75.8 rad/s^2 exceeds 60"
+ },
+ {
+  "id": 9,
+  "text": "v00 peak joint jerk 4031.1 rad/s^3 exceeds 2500"
+ },
+ {
+  "id": 10,
+  "text": "v00 the cube never left the table"
+ },
+ {
+  "id": 11,
+  "text": "v00 the gripper opens with the cube 20.1 cm from the bowl centre"
+ },
+ {
+  "id": 12,
+  "text": "v00 in the physics replay the cube does not end in the bowl"
+ },
+ {
+  "id": 13,
+  "text": "v01 passed all 21 gates; cube ends in the bowl in MuJoCo"
+ },
+ {
+  "id": 14,
+  "text": "v02 a second red block appears on 10 frames (first at 3.3 s): the video duplicated the object"
+ },
+ {
+  "id": 15,
+  "text": "v03 passed all 21 gates; cube ends in the bowl in MuJoCo"
+ },
+ {
+  "id": 16,
+  "text": "v04 a second red block appears on 15 frames (first at 3.5 s): the video duplicated the object"
+ },
+ {
+  "id": 17,
+  "text": "v04 2 red blocks in the last frame"
+ },
+ {
+  "id": 18,
+  "text": "v04 IK hits a joint limit on 83 control ticks (max error 55 mm): the SO-101 cannot reach that pose"
+ },
+ {
+  "id": 19,
+  "text": "v04 peak joint velocity 3.3 rad/s exceeds 3"
+ },
+ {
+  "id": 20,
+  "text": "v04 peak joint acceleration 70.8 rad/s^2 exceeds 60"
+ },
+ {
+  "id": 21,
+  "text": "v04 peak joint jerk 3983.1 rad/s^3 exceeds 2500"
+ },
+ {
+  "id": 22,
+  "text": "v04 the gripper opens with the cube 7.5 cm from the bowl centre"
+ },
+ {
+  "id": 23,
+  "text": "v04 in the physics replay the cube does not end in the bowl"
+ },
+ {
+  "id": 24,
+  "text": "v05 a second red block appears on 18 frames (first at 3.4 s): the video duplicated the object"
+ }
+]
