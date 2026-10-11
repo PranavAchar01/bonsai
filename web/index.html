@@ -651,8 +651,8 @@ async function pullStats() {
     const kept = keptChain(vs);
     runStats[set.key] = {file, seed: vs[0].score, best: kept.at(-1).score, kept: vs.filter(v => v.kept && v.parent).length, cut: vs.filter(v => !v.kept).length};
   }));
-  // the chess Elo ladder (rsi/) writes its own log: runs/chess-ladder.jsonl is a copy of runs/rsi/<RUN_ID>/versions.jsonl
-  const lad = await fetch('runs/chess-ladder.jsonl', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+  // the chess Elo ladder (rsi/) writes its own log: runs/chess-ladder-versions.jsonl is a copy of runs/rsi/<RUN_ID>/versions.jsonl
+  const lad = await fetch('runs/chess-ladder-versions.jsonl', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
   const lv = lad.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id && v.elo != null);
   ladder = lv.length ? {seed: lv[0], best: keptChain(lv).at(-1) || lv[0], kept: lv.filter(v => v.kept && v.parent).length, cut: lv.filter(v => !v.kept).length} : null;
   statsDone = true;

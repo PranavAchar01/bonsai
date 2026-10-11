@@ -1,11 +1,7 @@
 {
- "rules": "You are a coding agent. Read .docs/instructions.md and the test file first, then implement the solution file so every behavior and edge case the tests check is covered. Never edit the test file.",
- "tools": [
-  "Read",
-  "Edit",
-  "Write"
- ],
- "max_turns": 10,
+ "rules": "Convert each meeting time using the real time zone and daylight saving rules in force on the stated date, and reply with only the answer in the exact form the question asks for.\nWork out each zone's UTC offset separately for that exact date: changeover dates differ by region, southern zones shift the opposite way, some zones never shift; carry the calendar day when the result crosses midnight.",
+ "tools": [],
+ "max_turns": 2,
  "model": "haiku",
  "id": "g2b"
 }

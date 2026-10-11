@@ -1,10 +1,7 @@
 {
- "rules": "Answer the question in .docs/instructions.md. Do any arithmetic with Bash, not in your head.",
- "tools": [
-  "Read",
-  "Bash"
- ],
- "max_turns": 4,
+ "rules": "Convert each meeting time using the real time zone and daylight saving rules in force on the stated date, and reply with only the answer in the exact form the question asks for.\nWork through UTC: fix each zone's offset separately for that exact date (the US and Europe switch on different weeks, the southern hemisphere runs opposite, some zones never switch or sit on half or quarter hours), then carry any change of day or date into the answer.",
+ "tools": [],
+ "max_turns": 2,
  "model": "haiku",
  "id": "g1b"
 }

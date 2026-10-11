@@ -1,10 +1,9 @@
 {
- "rules": "Answer the question in .docs/instructions.md. Work it step by step, then recheck the result and the requested answer format before answering.",
+ "rules": "Convert each meeting time by running Python's zoneinfo in Bash for the stated date rather than recalling offsets from memory, and reply with only the answer in the exact form the question asks for.",
  "tools": [
-  "Read",
-  "Write"
+  "Bash"
  ],
- "max_turns": 3,
+ "max_turns": 4,
  "model": "haiku",
  "id": "g1a"
 }

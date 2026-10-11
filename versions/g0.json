@@ -1,5 +1,5 @@
 {
- "rules": "Answer the question in .docs/instructions.md.",
+ "rules": "Convert each meeting time using the real time zone and daylight saving rules in force on the stated date, and reply with only the answer in the exact form the question asks for.",
  "tools": [
   "Read",
   "Write"

@@ -1,8 +1,7 @@
 {
- "rules": "Read .docs/instructions.md and answer it in exactly the format it asks for.",
+ "rules": "Compute each conversion in Bash with Python's zoneinfo (IANA tz database) for the stated date rather than from memory, and reply with only the answer in the exact form the question asks for.",
  "tools": [
-  "Read",
-  "Write"
+  "Bash"
  ],
  "max_turns": 4,
  "model": "haiku",
