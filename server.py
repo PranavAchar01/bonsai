@@ -123,6 +123,7 @@ def emit(kind: str, **d) -> None:
 
 def take_heavy_lock() -> None:
     """One heavy job at a time on this machine: wait for the lock, clear it if its owner is gone."""
+    HEAVY_LOCK.parent.mkdir(parents=True, exist_ok=True)
     while not stop.is_set():
         try:
             HEAVY_LOCK.mkdir()
