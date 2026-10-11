@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "redirects": [{ "source": "/", "destination": "/web/", "permanent": false }],
+  "rewrites": [
+    { "source": "/web/api/:rest*", "destination": "/api/proxy?p=/api/:rest*" },
+    { "source": "/web/lineage.json", "destination": "/api/proxy?p=/lineage.json" },
+    { "source": "/web/replays/:rest*", "destination": "/api/proxy?p=/replays/:rest*" },
+    { "source": "/tasks/chess/_replays/:ver/:game", "destination": "/api/proxy?p=/replays/chess/:ver/:game" },
+    { "source": "/runs/:file", "destination": "/api/proxy?p=/runs/:file" }
+  ]
+}
