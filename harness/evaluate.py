@@ -82,6 +82,8 @@ def steps(ev: dict) -> list[dict]:
     kind, msg = ev.get("type"), ev.get("message") or {}
     if kind == "result":
         return [{"kind": "result", "text": str(ev.get("result") or ev.get("subtype") or "")[-600:]}]
+    if not isinstance(msg, dict):  # some stream events carry "message" as plain text
+        return []
     out = []
     for part in msg.get("content") or [] if isinstance(msg.get("content"), list) else []:
         if part.get("type") == "text" and kind == "assistant":
