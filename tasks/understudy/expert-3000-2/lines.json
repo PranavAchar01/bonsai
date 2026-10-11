@@ -1,0 +1,102 @@
+[
+ {
+  "id": 0,
+  "text": "seed 10025: gripper closed on air; cube stayed at z 0.019 m after 750 frames"
+ },
+ {
+  "id": 1,
+  "text": "seed 10026: cube lifted and placed, rests 1.1 cm from bowl centre after 225 frames"
+ },
+ {
+  "id": 2,
+  "text": "seed 10027: cube lifted and placed, rests 1.0 cm from bowl centre after 224 frames"
+ },
+ {
+  "id": 3,
+  "text": "seed 10028: cube lifted and placed, rests 0.4 cm from bowl centre after 208 frames"
+ },
+ {
+  "id": 4,
+  "text": "seed 10029: cube never left the table, 750 frames"
+ },
+ {
+  "id": 5,
+  "text": "seed 10030: placed in 6.9 s, cube 1.2 cm off centre, gripper open"
+ },
+ {
+  "id": 6,
+  "text": "seed 10031: placed in 7.4 s, cube 0.8 cm off centre, gripper open"
+ },
+ {
+  "id": 7,
+  "text": "seed 10032: episode done at frame 213, cube settled inside the bowl"
+ },
+ {
+  "id": 8,
+  "text": "seed 10033: cube never left the table, 750 frames"
+ },
+ {
+  "id": 9,
+  "text": "seed 10034: cube lifted and placed, rests 0.7 cm from bowl centre after 227 frames"
+ },
+ {
+  "id": 10,
+  "text": "seed 10035: cube lifted and placed, rests 0.4 cm from bowl centre after 207 frames"
+ },
+ {
+  "id": 11,
+  "text": "seed 10036: placed in 7.0 s, cube 0.3 cm off centre, gripper open"
+ },
+ {
+  "id": 12,
+  "text": "seed 10037: episode done at frame 221, cube settled inside the bowl"
+ },
+ {
+  "id": 13,
+  "text": "seed 10038: placed in 7.3 s, cube 0.8 cm off centre, gripper open"
+ },
+ {
+  "id": 14,
+  "text": "seed 10039: episode done at frame 209, cube settled inside the bowl"
+ },
+ {
+  "id": 15,
+  "text": "seed 10040: cube lifted and placed, rests 1.0 cm from bowl centre after 213 frames"
+ },
+ {
+  "id": 16,
+  "text": "seed 10041: episode done at frame 210, cube settled inside the bowl"
+ },
+ {
+  "id": 17,
+  "text": "seed 10042: placed in 7.1 s, cube 0.7 cm off centre, gripper open"
+ },
+ {
+  "id": 18,
+  "text": "seed 10043: episode done at frame 217, cube settled inside the bowl"
+ },
+ {
+  "id": 19,
+  "text": "seed 10044: episode done at frame 208, cube settled inside the bowl"
+ },
+ {
+  "id": 20,
+  "text": "seed 10045: cube never left the table, 750 frames"
+ },
+ {
+  "id": 21,
+  "text": "seed 10046: cube lifted and placed, rests 0.8 cm from bowl centre after 233 frames"
+ },
+ {
+  "id": 22,
+  "text": "seed 10047: episode done at frame 218, cube settled inside the bowl"
+ },
+ {
+  "id": 23,
+  "text": "seed 10048: placed in 7.6 s, cube 3.0 cm off centre, gripper open"
+ },
+ {
+  "id": 24,
+  "text": "seed 10049: cube lifted and placed, rests 1.4 cm from bowl centre after 220 frames"
+ }
+]

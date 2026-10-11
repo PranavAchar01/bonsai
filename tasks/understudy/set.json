@@ -1,0 +1,18 @@
+{
+  "name": "Understudy: name robot failures (RSI on a VLA pipeline)",
+  "prompt": "Label every line in lines.json with one failure term and write labels.json.",
+  "solution": ["labels.json"],
+  "hidden": ["expected.json"],
+  "agent": "python3 {root}/tasks/understudy/_agent.py",
+  "grade": "python3 {root}/tasks/understudy/_grade.py labels.json {task}/expected.json",
+  "seed": {
+    "rules": "You read robot log lines and say what went wrong.",
+    "tools": [],
+    "max_turns": 1
+  },
+  "tools": {
+    "terms": "adds what each failure term means",
+    "pipeline": "adds how Understudy makes these lines: Runway clips, 21 physics gates, MuJoCo rollouts of a SmolVLA policy"
+  },
+  "timeout": 600
+}

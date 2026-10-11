@@ -1,0 +1,102 @@
+[
+ {
+  "id": 0,
+  "text": "seed 10000: cube never left the table, 750 frames"
+ },
+ {
+  "id": 1,
+  "text": "seed 10001: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 2,
+  "text": "seed 10002: cube never left the table, 750 frames"
+ },
+ {
+  "id": 3,
+  "text": "seed 10003: cube never left the table, 750 frames"
+ },
+ {
+  "id": 4,
+  "text": "seed 10004: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 5,
+  "text": "seed 10005: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 6,
+  "text": "seed 10006: cube never left the table, 750 frames"
+ },
+ {
+  "id": 7,
+  "text": "seed 10007: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 8,
+  "text": "seed 10008: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 9,
+  "text": "seed 10009: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 10,
+  "text": "seed 10010: cube never left the table, 750 frames"
+ },
+ {
+  "id": 11,
+  "text": "seed 10011: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 12,
+  "text": "seed 10012: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 13,
+  "text": "seed 10013: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 14,
+  "text": "seed 10014: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 15,
+  "text": "seed 10015: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 16,
+  "text": "seed 10016: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 17,
+  "text": "seed 10017: gripper closed on air; cube stayed at z 0.015 m after 750 frames"
+ },
+ {
+  "id": 18,
+  "text": "seed 10018: cube never left the table, 750 frames"
+ },
+ {
+  "id": 19,
+  "text": "seed 10019: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 20,
+  "text": "seed 10020: cube never left the table, 750 frames"
+ },
+ {
+  "id": 21,
+  "text": "seed 10021: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 22,
+  "text": "seed 10022: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 23,
+  "text": "seed 10023: no lift detected, time limit hit at frame 750"
+ },
+ {
+  "id": 24,
+  "text": "seed 10024: cube never left the table, 750 frames"
+ }
+]
