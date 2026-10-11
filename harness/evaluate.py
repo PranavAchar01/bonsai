@@ -105,7 +105,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
             env=own,
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=(spec or {}).get("timeout", 600),
         )
         out = (
             json.loads(agent.stdout)
