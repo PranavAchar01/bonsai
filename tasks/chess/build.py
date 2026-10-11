@@ -1,59 +1,38 @@
-"""Build the chess set: mate-in-one positions found in seeded random games.
+"""Build the chess set: one folder per game against Stockfish.
 
-  uv run --no-project --with chess python tasks/chess/build.py
+  python tasks/chess/build.py
 
-Each puzzle folder holds the position and the instructions. There is no answer file:
-the grader replays the agent's move and asks the rules of chess whether it is checkmate.
+Games differ by opening and by which colour the agent plays.
 """
 
-import random
+import json
 import shutil
 from pathlib import Path
 
-import chess
-
 HERE = Path(__file__).parent
-COUNT = 24
-
-
-def find(rng: random.Random) -> chess.Board | None:
-    board = chess.Board()
-    for _ in range(rng.randint(30, 90)):
-        if board.is_game_over():
-            return None
-        board.push(rng.choice(list(board.legal_moves)))
-    for move in board.legal_moves:
-        board.push(move)
-        mate = board.is_checkmate()
-        board.pop()
-        if mate:
-            return board
-    return None
-
-
-def main() -> None:
-    rng, seen, boards = random.Random(11), set(), []
-    while len(boards) < COUNT:
-        b = find(rng)
-        if b and b.board_fen() not in seen:
-            seen.add(b.board_fen())
-            boards.append(b)
-    for old in HERE.glob("m1-*"):
-        shutil.rmtree(old)
-    for i, b in enumerate(boards, 1):
-        d = HERE / f"m1-{i:02d}"
+OPENINGS = {
+    "italian": "e2e4 e7e5 g1f3 b8c6 f1c4 f8c5",
+    "sicilian": "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4",
+    "french": "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6",
+    "caro-kann": "e2e4 c7c6 d2d4 d7d5 b1c3 d5e4",
+    "queens-gambit": "d2d4 d7d5 c2c4 e7e6 b1c3 g8f6",
+    "kings-indian": "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7",
+    "english": "c2c4 e7e5 b1c3 g8f6 g1f3 b8c6",
+    "london": "d2d4 d7d5 c1f4 g8f6 e2e3 c7c5",
+    "ruy-lopez": "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6",
+    "scandinavian": "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5",
+}
+for old in HERE.glob("game-*"):
+    shutil.rmtree(old)
+for name, line in OPENINGS.items():
+    for color in ("white", "black"):
+        d = HERE / f"game-{name}-{color}"
         (d / ".docs").mkdir(parents=True)
-        (d / "position.fen").write_text(b.fen() + "\n")
-        side = "White" if b.turn else "Black"
+        (d / "game.json").write_text(json.dumps(
+            {"color": color, "opening": line.split(), "skill": 0, "moves": 18, "margin": 3}, indent=1))  # fmt: skip
         (d / ".docs/instructions.md").write_text(
-            f"# Mate in one\n\n{side} to move. There is a move that checkmates at once.\n\n"
-            f"FEN: `{b.fen()}`\n\n```\n{b}\n```\n\n"
-            "Uppercase letters are White, lowercase are Black, rank 8 is the top row and file a is the left column.\n\n"
-            "Write the move to `answer.txt` in UCI form (from-square then to-square, for example `e2e4`, "
-            "or `e7e8q` for a promotion). One move, nothing else.\n"
+            f"# {name}, playing {color}\n\nPlay {color} against Stockfish (skill level 0) from the {name} opening.\n"
+            "The game runs to move 18. You pass if you win, draw, or reach move 18 without an illegal-move forfeit "
+            "and no more than 3 points of material behind.\n"
         )
-    print(f"{len(boards)} puzzles")
-
-
-if __name__ == "__main__":
-    main()
+print(len(OPENINGS) * 2, "games")

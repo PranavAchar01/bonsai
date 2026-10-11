@@ -52,7 +52,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     # A task is "name" (Python) or "lang/name", for example "cpp/zebra-puzzle".
     lang, _, ex = name.rpartition("/")
     lang = lang or "python"
-    work = scratch / lang / ex
+    work = (scratch / lang / ex).resolve()
     shutil.rmtree(work, ignore_errors=True)
     spec = task_set(lang)
     if spec:
@@ -110,7 +110,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
         out = (
             json.loads(agent.stdout)
             if agent.stdout.strip().startswith("{")
-            else {"result": agent.stdout[-500:]}
+            else {"result": (agent.stdout or agent.stderr)[-500:]}
         )
     except subprocess.TimeoutExpired:
         out = {"result": "agent timeout"}
@@ -138,7 +138,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
             text=True,
             timeout=300,
         )
-        passed, tail = test.returncode == 0, test.stdout[-600:]
+        passed, tail = test.returncode == 0, (test.stdout + test.stderr)[-600:]
     except subprocess.TimeoutExpired:
         passed, tail = False, "test timeout"
     row = {
