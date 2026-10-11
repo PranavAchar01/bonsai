@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai Type</title>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Xanh+Mono:ital@0;1&family=Italiana&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;1,6..96,400;1,6..96,700&family=Syne:wght@500;800&family=Syne+Mono&family=Fragment+Mono&family=Gloock&family=Martian+Mono:wdth,wght@75,400&family=DotGothic16&family=Major+Mono+Display&family=Rampart+One&family=Nabla&family=Zen+Antique&family=Courier+Prime&family=Darumadrop+One&family=Kode+Mono&family=Unbounded:wght@300;700&family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=gambetta@400,401&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=boska@400,401,701&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=panchang@300,800&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=tanker@400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=zodiak@401&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f6f3ee; --ink:#1d1b19; --paper:#efe7d6; --faint:#8b8272; --seal:#b5332a; --line:rgba(29,27,25,.14); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Inter Tight", system-ui, sans-serif; padding:32px 24px 80px; }
+  h2 { font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0 0 14px; font-weight:600; }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+  .tag { font:600 12px "Inter Tight", sans-serif; padding:10px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:8px; }
+  .tag span:last-child { color:var(--faint); font-weight:400; text-align:right; }
+  .s { background:var(--paper); padding:24px; min-height:330px; position:relative; overflow:hidden; flex:1; }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(29,27,25,.13); font-size:12px; }
+  .cut { color:var(--seal); text-decoration:line-through; text-decoration-color:rgba(181,51,42,.55); }
+  .faint { color:var(--faint); }
+
+  /* 1 calligraphy scroll */
+  .t1 { font-family:"Xanh Mono", monospace; display:grid; grid-template-columns:1fr auto; gap:20px; }
+  .t1 .v { writing-mode:vertical-rl; font:120px/1 "Yuji Syuku", serif; letter-spacing:.05em; }
+  .t1 .n { font-size:96px; line-height:.9; font-style:italic; }
+  /* 2 fashion hairline */
+  .t2 { text-align:center; }
+  .t2 h1 { font:400 46px "Italiana", serif; letter-spacing:.42em; margin:6px 0 0 .42em; }
+  .t2 .n { font:italic 400 132px/1 "Bodoni Moda", serif; margin:8px 0 2px; letter-spacing:-.04em; }
+  .t2 .row { font:italic 14px "Bodoni Moda", serif; }
+  /* 3 gallery wide, dark */
+  .t3 { background:#151413; color:#efe7d6; font-family:"Syne Mono", monospace; }
+  .t3 h1 { font:800 74px/.85 "Syne", sans-serif; margin:0; letter-spacing:-.04em; text-transform:uppercase; }
+  .t3 .n { font:500 88px/1 "Syne", sans-serif; letter-spacing:-.06em; margin-top:18px; }
+  .t3 .row { border-color:rgba(239,231,214,.15); }
+  .t3 .cut { color:#ff6a5c; }
+  /* 4 ultra wide */
+  .t4 { font-family:"Fragment Mono", monospace; }
+  .t4 h1 { font:800 40px "Panchang", sans-serif; margin:0; letter-spacing:-.02em; }
+  .t4 .sub { font:300 11px "Panchang", sans-serif; letter-spacing:.3em; text-transform:uppercase; }
+  .t4 .n { font:800 92px/1 "Panchang", sans-serif; margin:22px 0 10px; letter-spacing:-.05em; }
+  /* 5 heavy ink */
+  .t5 { font-family:"Martian Mono", monospace; font-stretch:75%; }
+  .t5 h1 { font:400 58px/1 "Gloock", serif; margin:0; }
+  .t5 .n { font:400 120px/.9 "Gloock", serif; letter-spacing:-.03em; }
+  /* 6 clash + gambetta */
+  .t6 { font-family:"Gambetta", serif; }
+  .t6 h1 { font:600 64px/.9 "Clash Display", sans-serif; margin:0; letter-spacing:-.03em; }
+  .t6 .n { font:italic 400 110px/1 "Gambetta", serif; letter-spacing:-.04em; }
+  .t6 .row { font-size:15px; }
+  /* 7 boska */
+  .t7 { font-family:"Fragment Mono", monospace; }
+  .t7 h1 { font:italic 700 70px/.9 "Boska", serif; margin:0; letter-spacing:-.02em; }
+  .t7 .n { font:italic 400 130px/1.05 "Boska", serif; }
+  /* 8 tanker poster */
+  .t8 { background:var(--seal); color:#f6efe2; font-family:"Zodiak", serif; font-style:italic; }
+  .t8 h1 { font:400 92px/.82 "Tanker", sans-serif; margin:0; text-transform:uppercase; letter-spacing:-.01em; }
+  .t8 .n { font:400 86px/1 "Tanker", sans-serif; margin-top:10px; }
+  .t8 .row { border-color:rgba(246,239,226,.3); font-size:14px; }
+  .t8 .cut { color:#1d1b19; text-decoration-color:#1d1b19; }
+  /* 9 pixel garden */
+  .t9 { background:#0f1712; color:#a9e2a0; font-family:"DotGothic16", monospace; }
+  .t9 h1 { font-size:54px; margin:0; font-weight:400; letter-spacing:.06em; }
+  .t9 .n { font-size:100px; line-height:1; }
+  .t9 .row { border-color:rgba(169,226,160,.18); font-size:14px; }
+  .t9 .cut { color:#ff7a6a; }
+  /* 10 major mono */
+  .t10 { font-family:"Major Mono Display", monospace; }
+  .t10 h1 { font-size:44px; margin:0; font-weight:400; }
+  .t10 .n { font-size:96px; line-height:1; margin:16px 0 8px; }
+  /* 11 toy 3D */
+  .t11 { font-family:"Kode Mono", monospace; background:#f3ead9; }
+  .t11 h1 { font:400 76px/1 "Rampart One", sans-serif; margin:0; }
+  .t11 .n { font:400 120px/1 "Nabla", sans-serif; }
+  /* 12 antique press */
+  .t12 { font-family:"Courier Prime", monospace; }
+  .t12 h1 { font:400 80px/1 "Zen Antique", serif; margin:0; }
+  .t12 .n { font:700 70px/1 "Courier Prime", monospace; display:inline-block; background:var(--seal); color:var(--paper); padding:4px 14px 0; margin:14px 0; }
+  /* 13 soft brush */
+  .t13 { font-family:"Kode Mono", monospace; background:#e9efe4; }
+  .t13 h1 { font:400 72px/1 "Darumadrop One", sans-serif; margin:0; color:#2f4a3e; }
+  .t13 .n { font:400 112px/1 "Darumadrop One", sans-serif; color:#2f4a3e; }
+  /* 14 unbounded + instrument */
+  .t14 { font-family:"Instrument Serif", serif; }
+  .t14 h1 { font:700 50px/1 "Unbounded", sans-serif; margin:0; letter-spacing:-.04em; }
+  .t14 .sub { font:italic 22px "Instrument Serif", serif; }
+  .t14 .n { font:italic 400 150px/.85 "Instrument Serif", serif; letter-spacing:-.04em; }
+  .t14 .row { font-size:16px; }
+</style>
+</head>
+<body>
+<h2>Type directions. Each card is a full treatment, not just a font swap. Pick one, or mix a heading from one with numbers from another.</h2>
+<div class="grid">
+
+<div class="card"><div class="tag"><span>1 · Calligraphy scroll</span><span>Yuji Syuku + Xanh Mono</span></div>
+<div class="s t1"><div>
+  <div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40% · held-out</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+  <div class="row"><span>g4a edge-case checklist</span><span>63</span></div>
+</div><div class="v">盆栽</div></div></div>
+
+<div class="card"><div class="tag"><span>2 · Fashion hairline</span><span>Italiana + Bodoni Moda italic</span></div>
+<div class="s t2"><h1>BONSAI</h1><div class="faint" style="font:italic 15px 'Bodoni Moda'">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint" style="font:italic 14px 'Bodoni Moda'">from forty, on problems it has never seen</div><br>
+  <div class="row"><span>g1b — run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a — edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>3 · Gallery, dark</span><span>Syne 800 + Syne Mono</span></div>
+<div class="s t3"><h1>Bon<br>sai.</h1>
+  <div class="n">63<span style="font-size:.4em">%</span></div><div style="opacity:.6">↑ from 40 · held-out pass rate</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>4 · Ultra-wide</span><span>Panchang + Fragment Mono</span></div>
+<div class="s t4"><h1>BONSAI</h1><div class="sub">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>5 · Heavy ink</span><span>Gloock + Martian Mono condensed</span></div>
+<div class="s t5"><h1>Bonsai</h1><div class="faint">A HARNESS THAT PRUNES ITSELF</div><br>
+  <div class="n">63%</div><div class="faint">FROM 40%</div><br>
+  <div class="row"><span>G1B RUN TESTS FIRST</span><span>47</span></div>
+  <div class="row cut"><span>G2A EDIT THE TEST FILE</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>6 · Display + italic</span><span>Clash Display + Gambetta</span></div>
+<div class="s t6"><h1>Bonsai</h1><div class="faint" style="font-style:italic;font-size:17px">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint" style="font-style:italic">from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>7 · Sharp italic serif</span><span>Boska + Fragment Mono</span></div>
+<div class="s t7"><h1>Bonsai</h1><div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>8 · Poster on seal red</span><span>Tanker + Zodiak italic</span></div>
+<div class="s t8"><h1>Bon<br>sai</h1><div>a harness that prunes itself</div>
+  <div class="n">63%</div><div>from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>9 · Pixel garden</span><span>DotGothic16</span></div>
+<div class="s t9"><h1>盆栽 BONSAI</h1><div style="opacity:.6">a harness that prunes itself</div>
+  <div class="n">63%</div><div style="opacity:.6">from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>10 · Geometric lowercase</span><span>Major Mono Display</span></div>
+<div class="s t10"><h1>bonsai</h1><div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div><br>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>11 · Toy 3D</span><span>Rampart One + Nabla + Kode Mono</span></div>
+<div class="s t11"><h1>盆栽</h1><div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>12 · Antique press</span><span>Zen Antique + Courier Prime</span></div>
+<div class="s t12"><h1>盆栽</h1><div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>13 · Soft brush, moss</span><span>Darumadrop One + Kode Mono</span></div>
+<div class="s t13"><h1>bonsai</h1><div class="faint">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint">from 40%</div>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+<div class="card"><div class="tag"><span>14 · Clash of scales</span><span>Unbounded + Instrument Serif</span></div>
+<div class="s t14"><h1>BONSAI</h1><div class="sub">a harness that prunes itself</div>
+  <div class="n">63%</div><div class="faint" style="font-style:italic">from 40%</div>
+  <div class="row"><span>g1b run tests first</span><span>47</span></div>
+  <div class="row cut"><span>g2a edit the test file</span><span>63</span></div>
+</div></div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(255,250,238,.55), rgba(0,0,0,0) 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(80,64,40,.18) 100%),
+      var(--paper);
+    color:var(--ink); font-family:"IBM Plex Mono", monospace;
+  }
+  /* paper grain */
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.28; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .title { position:fixed; left:28px; top:22px; font-family:"Yuji Syuku", serif; font-size:64px; line-height:1; pointer-events:none; }
+  .title small { display:block; font:12px "IBM Plex Mono", monospace; letter-spacing:.18em; color:var(--faint); margin-top:10px; text-transform:uppercase; }
+  .lbl { position:fixed; font-size:11px; white-space:nowrap; pointer-events:none; transform:translate(-50%, -50%); transition:opacity .6s; opacity:0; }
+  .lbl.cut { color:var(--seal); }
+  .lbl.on { opacity:.9; }
+  .bar { position:fixed; left:28px; bottom:22px; display:flex; gap:10px; align-items:center; font-size:12px; color:var(--faint); }
+  .bar button { font:inherit; color:var(--ink); background:transparent; border:1px solid rgba(29,27,25,.35); padding:6px 12px; cursor:pointer; }
+  .bar button:hover { background:rgba(29,27,25,.06); }
+  .seal { position:fixed; right:28px; bottom:22px; width:44px; height:44px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:26px "Yuji Syuku", serif; opacity:.9; }
+</style>
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }</script>
+</head>
+<body>
+<div class="title">盆栽<small>a harness that prunes itself</small></div>
+<div id="labels"></div>
+<div class="bar"><button id="replay">replay</button><span id="clock"></span><span>drag to turn</span></div>
+<div class="seal">盆</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// Sample lineage. Same shape as runs/versions.jsonl rows the page will read later.
+const VERSIONS = [
+  {id:"g0", parent:null, kept:true,  score:.40, signal:"seed"},
+  {id:"g1a",parent:"g0", kept:false, score:.37, signal:"no gain"},
+  {id:"g1b",parent:"g0", kept:true,  score:.47, signal:"claimed pass, never ran"},
+  {id:"g2a",parent:"g1b",kept:false, score:.63, signal:"cheat caught"},
+  {id:"g2b",parent:"g1b",kept:true,  score:.53, signal:"same edit repeated"},
+  {id:"g3a",parent:"g2b",kept:true,  score:.57, signal:"prune"},
+  {id:"g3b",parent:"g2b",kept:false, score:.50, signal:"tokens up, score down"},
+  {id:"g4a",parent:"g3a",kept:true,  score:.63, signal:"gave up early"},
+];
+
+// ---------- utilities ----------
+const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const UP = V(0, 1, 0);
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const rr = (a, b) => a + rnd() * (b - a);
+function hash(x, y, z) { const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return h - Math.floor(h); }
+function noise3(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf);
+  const L = (a, b, t) => a + (b - a) * t;
+  const c = (i, j, k) => hash(xi + i, yi + j, zi + k);
+  return L(L(L(c(0,0,0), c(1,0,0), u), L(c(0,1,0), c(1,1,0), u), v),
+           L(L(c(0,0,1), c(1,0,1), u), L(c(0,1,1), c(1,1,1), u), v), w) * 2 - 1;
+}
+const fbm = (x, y, z) => noise3(x, y, z) * .6 + noise3(x * 2.1, y * 2.1, z * 2.1) * .3 + noise3(x * 4.3, y * 4.3, z * 4.3) * .1;
+function randDir() { const u = rnd() * 2 - 1, a = rnd() * Math.PI * 2, s = Math.sqrt(1 - u * u); return V(s * Math.cos(a), u, s * Math.sin(a)); }
+
+// ---------- geometry buffers ----------
+// Wood: every ring vertex remembers its ring center and birth time, so the shader can grow it from nothing.
+const W = { pos:[], nor:[], cen:[], bir:[], dea:[], col:[], idx:[] };
+// Needles: line segments; base vertex and tip vertex share aBase, so the shader can extend each needle outward.
+const N = { pos:[], base:[], bir:[], dea:[], col:[] };
+
+function addTube(pts, rad, bir, opt = {}) {
+  const radial = opt.radial || 10, bark = opt.bark ?? .06, n = pts.length, base = W.pos.length / 3;
+  const T = V(), Nm = V(), B = V();
+  const t0 = pts[1].clone().sub(pts[0]).normalize();
+  Nm.copy(Math.abs(t0.y) < .9 ? UP : V(1, 0, 0)).cross(t0).normalize();
+  let s = opt.s0 || 0;
+  for (let i = 0; i < n; i++) {
+    T.copy(pts[Math.min(i + 1, n - 1)]).sub(pts[Math.max(i - 1, 0)]).normalize();
+    Nm.sub(T.clone().multiplyScalar(Nm.dot(T))).normalize();
+    B.crossVectors(T, Nm);
+    if (i) s += pts[i].distanceTo(pts[i - 1]);
+    const dead = opt.cutAt != null && i > opt.cutAt ? opt.death : -1;
+    for (let k = 0; k < radial; k++) {
+      const a = k / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      const dir = Nm.clone().multiplyScalar(ca).addScaledVector(B, sa);
+      // bark plates: noise stretched along the branch, so fissures run lengthwise
+      const nz = fbm(ca * 1.7 + opt.seed, sa * 1.7, s * .9);
+      let r = rad[i] * (1 + bark * nz);
+      if (opt.flare) {                          // root flare with buttress lobes
+        const f = Math.max(0, 1 - (pts[i].y + .12) / .55);
+        r *= 1 + .55 * f * f * f + .45 * f * f * Math.pow(Math.max(0, Math.sin(a * 3 + .7)), 2);
+      }
+      const p = pts[i].clone().addScaledVector(dir, r);
+      W.pos.push(p.x, p.y, p.z); W.nor.push(dir.x, dir.y, dir.z);
+      W.cen.push(pts[i].x, pts[i].y, pts[i].z); W.bir.push(bir[i]); W.dea.push(dead);
+      const fis = noise3(ca * 6 + opt.seed, sa * 6, s * 1.4);
+      const shade = .3 + 1.0 * Math.pow(nz * .5 + .5, 1.3) + .35 * Math.max(0, fis) - .25 * Math.max(0, -fis) + (opt.light || 0);
+      W.col.push(shade, shade * .97, shade * .93);
+    }
+  }
+  for (let i = 0; i < n - 1; i++) for (let k = 0; k < radial; k++) {
+    const a = base + i * radial + k, b = base + i * radial + (k + 1) % radial, c = a + radial, d = b + radial;
+    W.idx.push(a, b, c, b, d, c);
+  }
+}
+
+// Walk a branch: small steps, each bent by noise (gnarl) and a pull (up, out, down).
+function walk(start, dir, len, o = {}) {
+  const steps = Math.max(4, Math.round(len / (o.step || .05)));
+  const pts = [start.clone()], d = dir.clone().normalize(), p = start.clone(), sd = rnd() * 50;
+  for (let i = 1; i <= steps; i++) {
+    const f = o.freq || 1.6;
+    d.add(V(noise3(p.x * f + sd, p.y * f, p.z * f), noise3(p.x * f, p.y * f + sd, p.z * f), noise3(p.x * f, p.y * f, p.z * f + sd)).multiplyScalar(o.gnarl ?? .25));
+    if (o.pull) d.addScaledVector(o.pull, o.pullK ?? .08);
+    d.normalize();
+    p.addScaledVector(d, len / steps);
+    if (o.floor != null && p.y < o.floor) p.y = o.floor;
+    pts.push(p.clone());
+  }
+  return pts;
+}
+const taper = (n, r0, r1, k = .8) => Array.from({length:n}, (_, i) => r0 + (r1 - r0) * Math.pow(i / (n - 1), k));
+const ramp = (n, b0, b1) => Array.from({length:n}, (_, i) => b0 + (b1 - b0) * i / (n - 1));
+
+const NEEDLE_LIGHT = new THREE.Color(0x7d9867), NEEDLE_MID = new THREE.Color(0x3f5a45), NEEDLE_DARK = new THREE.Color(0x18211b);
+function tuft(P, birth, death, size, count) {
+  for (let j = 0; j < count; j++) {
+    const d = randDir(); d.y = Math.abs(d.y) * 1.1 + .15; d.normalize();       // brushes splay up and out, flat underneath
+    const L = size * rr(.55, 1.15), b = P.clone().add(randDir().multiplyScalar(size * .12)), t = b.clone().addScaledVector(d, L);
+    const up = d.y, c = up > .55 ? NEEDLE_MID.clone().lerp(NEEDLE_LIGHT, (up - .55) / .45 * rr(.4, 1))
+                                 : NEEDLE_DARK.clone().lerp(NEEDLE_MID, up / .55 * rr(.6, 1));
+    const a = rr(.55, .9), bt = birth + rr(0, .7);
+    for (const q of [b, t]) { N.pos.push(q.x, q.y, q.z); N.base.push(b.x, b.y, b.z); N.bir.push(bt); N.dea.push(death); N.col.push(c.r, c.g, c.b, a); }
+  }
+}
+
+// ---------- the tree ----------
+const by = {}; VERSIONS.forEach(v => (by[v.parent] ??= []).push(v));
+const kept = []; for (let v = VERSIONS.find(v => !v.parent); v; v = (by[v.id] || []).find(c => c.kept)) kept.push(v);
+const SEG = 1.7, TRUNK_T = kept.length * SEG;      // seconds of growth per kept version
+const pads = [], cuts = [], labels = [];
+
+// Trunk: an S-curve (moyogi) with noise on top.
+const trunkPts = [], TN = 150, H = 4.3;
+for (let i = 0; i < TN; i++) {
+  const t = i / (TN - 1);
+  trunkPts.push(V(Math.sin(t * 4.0 + .3) * .85 - t * .35 + fbm(t * 3, 1, 0) * .12, -.12 + t * H, Math.cos(t * 3.0) * .4 - .4 + fbm(t * 3, 5, 0) * .12));
+}
+const trunkR = t => .07 + .22 * Math.pow(1 - t, 1.3);
+const trunkB = t => t * TRUNK_T;
+addTube(trunkPts, trunkPts.map((_, i) => trunkR(i / (TN - 1))), trunkPts.map((_, i) => trunkB(i / (TN - 1))), {radial:32, bark:.18, flare:true, seed:3});
+const trunkAt = t => trunkPts[Math.round(t * (TN - 1))];
+
+// Surface roots, spreading over the soil.
+for (let i = 0; i < 6; i++) {
+  const a = i / 6 * Math.PI * 2 + rr(-.3, .3), d = V(Math.cos(a), -.35, Math.sin(a));
+  const pts = walk(V(0, .05, 0).add(trunkPts[0]).setY(.02), d, rr(.6, 1.1), {gnarl:.2, pull:V(0, -1, 0), pullK:.05, floor:-.13});
+  addTube(pts, taper(pts.length, .16, .02, .6), ramp(pts.length, 0, .9), {radial:10, bark:.1, seed:i + 9});
+}
+
+// Foliage pad: a fan of twigs, needle brushes all along each twig, domed top, flat underside.
+function pad(at, dir, size, birth, death, density = 1) {
+  const flat = V(dir.x, 0, dir.z).normalize(), twigs = Math.round(9 + size * 8);
+  const center = at.clone().addScaledVector(flat, size * .35).add(V(0, size * .12, 0));
+  for (let i = 0; i < twigs; i++) {
+    const ang = rr(-1.5, 1.5), td = flat.clone().applyAxisAngle(UP, ang).add(V(0, rr(-.05, .25), 0));
+    const len = size * rr(.45, 1.0), tb = birth + rr(0, .5);
+    const pts = walk(at, td, len, {gnarl:.35, step:.04, pull:UP, pullK:.03});
+    addTube(pts, taper(pts.length, .035, .006), ramp(pts.length, tb, tb + .5), {radial:5, bark:.05, seed:i, death, cutAt:death > 0 ? -1 : null, light:.1});
+    for (let k = Math.floor(pts.length * .25); k < pts.length; k += 2) {
+      const p = pts[k].clone(), dc = p.distanceTo(center) / size;
+      p.y += size * .18 * Math.max(0, 1 - dc * dc);        // dome
+      tuft(p, tb + .3 + k / pts.length * .5, death, rr(.11, .17), Math.round(rr(34, 52) * density));
+    }
+    for (let f = 0; f < 2; f++) {                          // forks: twiglets off each twig
+      const m = Math.floor(pts.length * rr(.35, .7)), fd = td.clone().applyAxisAngle(UP, f ? .7 : -.7);
+      const fp = walk(pts[m], fd, len * rr(.3, .5), {gnarl:.4, step:.04, pull:UP, pullK:.04}), fb = tb + .25;
+      addTube(fp, taper(fp.length, .014, .004), ramp(fp.length, fb, fb + .3), {radial:4, bark:0, seed:f, death, cutAt:death > 0 ? -1 : null, light:.1});
+      for (let k = 1; k < fp.length; k += 2) tuft(fp[k].clone().add(V(0, size * .08, 0)), fb + .4, death, rr(.09, .14), Math.round(rr(26, 40) * density));
+    }
+  }
+  // soft pigment wash behind the needles and a shadow proxy that only casts
+  pads.push({center, size, birth, death});
+}
+
+// Branches: one per child version; kept ones carry pads, pruned ones grow, then get cut back to a stub.
+kept.forEach((v, i) => {
+  (by[v.id] || []).forEach((c, k) => {
+    const tA = Math.min(.92, .2 + .68 * i / (kept.length - 1) + k * .07);
+    const start = trunkAt(tA).clone(), a = i * 2.35 + k * 2.6 + .4;
+    const out = V(Math.cos(a), 0, Math.sin(a));
+    const b0 = trunkB(tA) + .2, len = c.kept ? 1.1 + c.score * 1.5 : .95;
+    const pts = walk(start, out.clone().add(V(0, .25, 0)), len, {gnarl:.22, pull:V(0, -1, 0).addScaledVector(out, .5), pullK:.035});
+    const b1 = b0 + len * .9, death = c.kept ? -1 : b1 + 1.6, cutI = Math.floor(pts.length * .3);
+    addTube(pts, taper(pts.length, trunkR(tA) * .55, .035, .7), ramp(pts.length, b0, b1), {radial:14, bark:.1, seed:i * 3 + k, death, cutAt:c.kept ? null : cutI});
+    const end = pts.at(-1);
+    pad(end, out, c.kept ? .65 + c.score * .9 : .5, b1 - .2, death, c.kept ? 1 : .7);
+    if (c.kept) {
+      // a secondary branch off the middle makes the pad read as a real limb, not a lollipop
+      const m = pts[Math.floor(pts.length * .55)], sd = out.clone().applyAxisAngle(UP, k % 2 ? .9 : -.9);
+      const sp = walk(m, sd.add(V(0, .2, 0)), len * .45, {gnarl:.3, pull:V(0, -1, 0), pullK:.03});
+      const sb = b0 + len * .5;
+      addTube(sp, taper(sp.length, trunkR(tA) * .25, .02), ramp(sp.length, sb, sb + .6), {radial:8, bark:.08, seed:i + k + 20});
+      pad(sp.at(-1), sd, .45, sb + .4, -1, .9);
+      labels.push({el:mk(`${c.id}  ${Math.round(c.score * 100)}%`), at:end.clone().add(V(0, -.35, 0)), t:b1 + .8});
+    } else {
+      const cp = pts[cutI], dir = pts[cutI + 1].clone().sub(cp).normalize();
+      cuts.push({at:cp, dir, r:trunkR(tA) * .55 * .9, t:death});
+      labels.push({el:mk(`${c.id}  ${c.signal}`, 'cut'), at:cp.clone().addScaledVector(dir, .35).add(V(0, .25, 0)), t:death + .3});
+    }
+  });
+});
+// Apex crown from the top of the trunk.
+const top = trunkPts.at(-1), topDir = top.clone().sub(trunkPts[TN - 6]).normalize();
+for (let i = 0; i < 4; i++) {
+  const d = V(Math.cos(i * 1.7), .5, Math.sin(i * 1.7)), pts = walk(top, d, rr(.4, .7), {gnarl:.3, pull:UP, pullK:.02});
+  addTube(pts, taper(pts.length, .09, .02), ramp(pts.length, TRUNK_T - .3, TRUNK_T + .4), {radial:8, seed:40 + i});
+  pad(pts.at(-1), d, .55, TRUNK_T, -1);
+}
+const best = kept.at(-1);
+labels.push({el:mk(`${best.id}  ${Math.round(best.score * 100)}%  best`), at:top.clone().add(V(0, 1.05, 0)), t:TRUNK_T + 1.2});
+const END = Math.max(TRUNK_T + 2, ...cuts.map(c => c.t + 1.5));
+
+function mk(text, cls = '') { const d = document.createElement('div'); d.className = 'lbl ' + cls; d.textContent = text; document.getElementById('labels').appendChild(d); return d; }
+
+// ---------- scene ----------
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xefe7d6, 11, 34);
+const cam = new THREE.PerspectiveCamera(30, 1, .1, 200);
+cam.position.set(1.8, 3.6, 15.5);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.target.set(0, 1.9, 0); controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = .35;
+controls.minDistance = 5; controls.maxDistance = 20; controls.maxPolarAngle = Math.PI * .56; controls.enablePan = false;
+
+scene.add(new THREE.HemisphereLight(0xfff8ec, 0x6f6455, 2.2));
+const sun = new THREE.DirectionalLight(0xfff3e0, 1.3);
+sun.position.set(-6, 10, 4); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 14; sun.shadow.blurSamples = 20; sun.shadow.bias = -.0005;
+Object.assign(sun.shadow.camera, {left:-7, right:7, top:9, bottom:-4, near:1, far:30});
+scene.add(sun);
+
+const U = { uTime:{value:0} };
+function growPatch(mat) {
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = U.uTime;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        attribute vec3 aCenter; attribute float aBirth; attribute float aDeath; uniform float uTime;`)
+      .replace('#include <begin_vertex>', `
+        float g = clamp((uTime - aBirth) / .55, 0., 1.); g = g * g * (3. - 2. * g);
+        float th = .55 + .45 * clamp((uTime - aBirth) / 6., 0., 1.);          // keeps thickening after it arrives
+        if (aDeath > 0.) g *= 1. - clamp((uTime - aDeath) / .25, 0., 1.);
+        vec3 transformed = aCenter + (position - aCenter) * g * th;`);
+  };
+  return mat;
+}
+
+// wood
+const wg = new THREE.BufferGeometry();
+wg.setAttribute('position', new THREE.Float32BufferAttribute(W.pos, 3));
+wg.setAttribute('normal', new THREE.Float32BufferAttribute(W.nor, 3));
+wg.setAttribute('color', new THREE.Float32BufferAttribute(W.col, 3));
+wg.setAttribute('aCenter', new THREE.Float32BufferAttribute(W.cen, 3));
+wg.setAttribute('aBirth', new THREE.Float32BufferAttribute(W.bir, 1));
+wg.setAttribute('aDeath', new THREE.Float32BufferAttribute(W.dea, 1));
+wg.setIndex(W.idx);
+const wood = new THREE.Mesh(wg, growPatch(new THREE.MeshLambertMaterial({color:0x5b5048, vertexColors:true, side:THREE.DoubleSide})));
+wood.castShadow = true;
+wood.customDepthMaterial = growPatch(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}));
+wood.frustumCulled = false;
+scene.add(wood);
+
+// needles
+const ng = new THREE.BufferGeometry();
+ng.setAttribute('position', new THREE.Float32BufferAttribute(N.pos, 3));
+ng.setAttribute('aBase', new THREE.Float32BufferAttribute(N.base, 3));
+ng.setAttribute('aBirth', new THREE.Float32BufferAttribute(N.bir, 1));
+ng.setAttribute('aDeath', new THREE.Float32BufferAttribute(N.dea, 1));
+ng.setAttribute('color', new THREE.Float32BufferAttribute(N.col, 4));
+const nm = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+nm.onBeforeCompile = sh => {
+  sh.uniforms.uTime = U.uTime;
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', `#include <common>
+      attribute vec3 aBase; attribute float aBirth; attribute float aDeath; uniform float uTime;`)
+    .replace('#include <begin_vertex>', `
+      float g = clamp((uTime - aBirth) / .7, 0., 1.); g = 1. - pow(1. - g, 3.);
+      vec3 transformed = aBase + (position - aBase) * g;
+      float fade = step(.001, g);
+      if (aDeath > 0.) {                                   // cut: needles drop and drift
+        float d = uTime - aDeath - fract(sin(aBirth * 91.7) * 437.5) * .5;
+        if (d > 0.) {
+          transformed.y -= 2.2 * d * d;
+          transformed.x += sin(d * 3. + aBirth * 17.) * .18 * d;
+          transformed.z += cos(d * 2.3 + aBirth * 11.) * .18 * d;
+          fade *= 1. - clamp(d / 1.1, 0., 1.);
+        }
+      }
+      #ifdef USE_COLOR_ALPHA
+        vColor.a *= fade;
+      #endif`);
+};
+const needles = new THREE.LineSegments(ng, nm); needles.frustumCulled = false; scene.add(needles);
+
+// pigment washes + shadow proxies for each pad
+function washTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  for (let i = 0; i < 40; i++) {
+    const px = 128 + rr(-50, 50), py = 128 + rr(-30, 30), r = rr(30, 90), g = x.createRadialGradient(px, py, r * .2, px, py, r);
+    g.addColorStop(0, 'rgba(255,255,255,.05)'); g.addColorStop(.8, 'rgba(255,255,255,.09)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const WASH = washTexture();
+const proxyMat = new THREE.MeshBasicMaterial({colorWrite:false, depthWrite:false});
+const padObjs = pads.map(p => {
+  const sprites = [0, 1, 2].map(j => {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, color:j === 2 ? 0x2f4a3e : 0x5f7d5c, transparent:true, opacity:0, depthWrite:false}));
+    s.position.copy(p.center).add(V(rr(-.2, .2), j === 2 ? -.12 : rr(0, .15), rr(-.2, .2)));
+    s.userData.k = p.size * (j === 2 ? 1.7 : 2.1) * rr(.85, 1.1); s.renderOrder = -1; scene.add(s); return s;
+  });
+  const proxy = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), proxyMat);
+  proxy.position.copy(p.center); proxy.castShadow = true; scene.add(proxy);
+  return {p, sprites, proxy};
+});
+
+// red cut seals
+const cutObjs = cuts.map(c => {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(c.r, c.r * 1.05, .03, 20), new THREE.MeshBasicMaterial({color:0xb5332a}));
+  m.position.copy(c.at); m.quaternion.setFromUnitVectors(UP, c.dir); scene.add(m); return {c, m};
+});
+
+// pot, soil, moss, stones
+const ink = c => new THREE.MeshLambertMaterial({color:c});
+{
+  const shape = new THREE.Shape(), w = 1.75, d = 1.15, r = .22;
+  shape.moveTo(-w + r, -d); shape.lineTo(w - r, -d); shape.quadraticCurveTo(w, -d, w, -d + r); shape.lineTo(w, d - r); shape.quadraticCurveTo(w, d, w - r, d);
+  shape.lineTo(-w + r, d); shape.quadraticCurveTo(-w, d, -w, d - r); shape.lineTo(-w, -d + r); shape.quadraticCurveTo(-w, -d, -w + r, -d);
+  const g = new THREE.ExtrudeGeometry(shape, {depth:.5, bevelEnabled:true, bevelThickness:.04, bevelSize:.04, bevelSegments:3, curveSegments:8});
+  g.rotateX(-Math.PI / 2); g.translate(0, -.62, 0);
+  const pa = g.attributes.position;
+  for (let i = 0; i < pa.count; i++) { const y = pa.getY(i), k = .86 + .14 * Math.min(1, Math.max(0, (y + .62) / .55)); pa.setX(i, pa.getX(i) * k); pa.setZ(i, pa.getZ(i) * k); }
+  g.computeVertexNormals();
+  const pot = new THREE.Mesh(g, ink(0x37302b)); pot.castShadow = true; scene.add(pot);
+  for (const [x, z] of [[-1.25, -.75], [1.25, -.75], [-1.25, .75], [1.25, .75]]) {
+    const f = new THREE.Mesh(new THREE.BoxGeometry(.3, .14, .22), ink(0x2a2420)); f.position.set(x, -.66, z); f.castShadow = true; scene.add(f);
+  }
+  const soil = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 2.1), ink(0x2e2720)); soil.rotation.x = -Math.PI / 2; soil.position.y = -.1; scene.add(soil);
+  const mp = [], mc = [], green = [new THREE.Color(0x56704a), new THREE.Color(0x3c5236), new THREE.Color(0x7d915e)];
+  for (let i = 0; i < 9000; i++) {
+    const x = rr(-1.6, 1.6), z = rr(-1, 1), dd = Math.hypot(x, z * 1.4), h = Math.max(0, .14 - dd * .08) + fbm(x * 3, z * 3, 0) * .03;
+    if (fbm(x * 1.4, z * 1.4, 4) < -.25) continue;                        // bare patches
+    mp.push(x, -.09 + h, z); const c = green[i % 3]; mc.push(c.r, c.g, c.b);
+  }
+  const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.Float32BufferAttribute(mp, 3)); mg.setAttribute('color', new THREE.Float32BufferAttribute(mc, 3));
+  scene.add(new THREE.Points(mg, new THREE.PointsMaterial({size:.035, vertexColors:true})));
+  for (const [x, z, s] of [[1.05, .35, .22], [1.3, .1, .13], [-1.15, -.45, .17]]) {
+    const st = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 1), ink(0x6d6760)); st.position.set(x, -.08, z); st.scale.y = .6; st.rotation.set(rnd(), rnd(), rnd()); st.castShadow = true; scene.add(st);
+  }
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({color:0x3a2e20, opacity:.09}));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -.73; floor.receiveShadow = true; scene.add(floor);
+}
+
+// far hills and sun: ink washes in a ring around the tree
+for (let i = 0; i < 9; i++) {
+  const a = i / 9 * Math.PI * 2, s = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, color:0x5c6a7c, transparent:true, opacity:.55, depthWrite:false}));
+  s.position.set(Math.cos(a) * 20, rr(.5, 1.6), Math.sin(a) * 20); s.scale.set(rr(12, 18), rr(4, 6), 1); scene.add(s);
+}
+const sunS = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, color:0xc4473b, transparent:true, opacity:.5, depthWrite:false, fog:false}));
+sunS.position.set(9, 9, -16); sunS.scale.set(5, 5, 1); scene.add(sunS);
+
+// ---------- run ----------
+let start = performance.now();
+document.getElementById('replay').onclick = () => { start = performance.now(); };
+const clock = document.getElementById('clock');
+const sm = x => { x = Math.min(Math.max(x, 0), 1); return x * x * (3 - 2 * x); };
+
+function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+const tmp = V();
+renderer.setAnimationLoop(now => {
+  const t = (now - start) / 1000; U.uTime.value = t;
+  clock.textContent = `generation ${Math.min(kept.length, Math.floor(t / SEG) + 1)} of ${kept.length}`;
+  for (const {p, sprites, proxy} of padObjs) {
+    let g = sm((t - p.birth - .4) / 1.6);
+    if (p.death > 0) g *= 1 - sm((t - p.death) / .8);
+    sprites.forEach(s => { s.material.opacity = g * .6; s.scale.set(s.userData.k * (.6 + .4 * g), s.userData.k * .55 * (.6 + .4 * g), 1); });
+    proxy.scale.set(p.size * 1.05 * g + 1e-4, p.size * .38 * g + 1e-4, p.size * .9 * g + 1e-4);
+  }
+  for (const {c, m} of cutObjs) { const g = sm((t - c.t) / .3); m.scale.setScalar(g < .01 ? 1e-4 : g * (1 + .3 * Math.sin(Math.min(1, (t - c.t) / .3) * Math.PI))); }
+  controls.update();
+  renderer.render(scene, cam);
+  for (const l of labels) {
+    tmp.copy(l.at).project(cam);
+    l.el.style.left = (tmp.x * .5 + .5) * innerWidth + 'px'; l.el.style.top = (-tmp.y * .5 + .5) * innerHeight + 'px';
+    l.el.classList.toggle('on', t > l.t && tmp.z < 1);
+  }
+});
+</script>
+</body>
+</html>
