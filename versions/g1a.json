@@ -1,11 +1,10 @@
 {
- "rules": "You are a coding agent. Read .docs/instructions.md, then implement the solution file. Before finishing, re-check your output against every requirement stated there.",
+ "rules": "Answer the question in .docs/instructions.md. Work it step by step, then recheck the result and the requested answer format before answering.",
  "tools": [
   "Read",
-  "Edit",
   "Write"
  ],
- "max_turns": 12,
+ "max_turns": 3,
  "model": "haiku",
  "id": "g1a"
 }
