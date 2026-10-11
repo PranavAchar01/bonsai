@@ -28,14 +28,24 @@
   /* one page: the stage shows the tree, the score charts or the chess replay */
   #pane { position:absolute; left:0; right:0; top:104px; bottom:0; width:100%; height:calc(100% - 104px); border:0; border-top:1px solid var(--line); background:var(--paper); z-index:1; display:none; }
   body.pane #pane { display:block; } body.pane #guide, body.pane .legend, body.pane .seal, body.pane #steps, body.pane #phase { display:none !important; }
-  /* home: say what the agent should get better at, and the agents that exist */
-  #home { position:absolute; left:0; right:0; top:104px; bottom:0; overflow-y:auto; background:var(--paper); border-top:1px solid var(--line); z-index:2; display:none; padding:44px 48px 60px; }
-  body.home #home { display:block; } body.home #guide, body.home .legend, body.home .seal, body.home #steps, body.home #phase { display:none !important; }
-  #home .h-in { max-width:860px; margin:0 auto; } #home .h-title { font-size:30px; margin-bottom:16px; }
-  #h-prompt { width:100%; height:96px; resize:none; background:none; border:1px solid var(--ink); padding:14px 16px; font:15px/1.5 "IBM Plex Mono", monospace; color:var(--ink); outline:none; }
-  #home .h-row { display:flex; align-items:center; gap:18px; margin-top:12px; } #home .h-row span { flex:1; font-size:12px; color:var(--faint); line-height:1.5; }
-  #h-flow { display:flex; gap:10px; margin:22px 0 40px; font-size:11.5px; color:var(--faint); } #h-flow div { flex:1; border-top:1px solid var(--line); padding-top:8px; } #h-flow b { display:block; color:var(--ink); font-weight:500; margin-bottom:2px; }
-  #home .h-k { font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:12px; }
+  /* home: a full-screen landing. The grown tree is the background, one prompt box sits on it, the agents are below the fold. */
+  #home { position:fixed; inset:0; overflow-y:auto; background:var(--paper); z-index:40; display:none; scroll-behavior:smooth; }
+  body.home #home { display:block; } body.home #stage { z-index:40; }
+  #home .hero { position:relative; height:100vh; min-height:560px; overflow:hidden; display:flex; flex-direction:column; }
+  #h-bg { position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }
+  #home .hero::after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse 52% 30% at 50% 44%, color-mix(in srgb, var(--paper) 86%, transparent) 35%, transparent 85%), linear-gradient(to bottom, transparent 70%, var(--paper)); }
+  #home .h-top { position:relative; z-index:2; display:flex; align-items:center; padding:22px 34px; } #home .h-top .px { font-size:22px; flex:1; }
+  #home .h-top button { border:0; font-size:14px; color:var(--faint); padding:3px 12px; } #home .h-top button:hover { color:var(--ink); }
+  #home .h-mid { position:relative; z-index:2; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 24px 40px; text-align:center; }
+  #home .h-title { font-size:clamp(34px, 5vw, 64px); line-height:1.15; margin-bottom:30px; max-width:900px; }
+  #home .h-box { width:min(720px, 100%); display:flex; align-items:flex-end; gap:10px; background:color-mix(in srgb, var(--paper) 94%, #fff); border:1px solid var(--ink); padding:10px 10px 10px 20px; box-shadow:6px 6px 0 rgba(29,27,25,.12); }
+  #h-prompt { flex:1; height:58px; resize:none; background:none; border:0; padding:8px 0; font:16px/1.5 "IBM Plex Mono", monospace; color:var(--ink); outline:none; text-align:left; }
+  #h-go { font-size:15px; padding:9px 18px; white-space:nowrap; }
+  #h-note { margin-top:14px; font-size:12px; color:var(--faint); min-height:18px; max-width:760px; }
+  #home .h-down { position:relative; z-index:2; align-self:center; margin-bottom:22px; border:0; font-size:13px; color:var(--faint); letter-spacing:.14em; text-transform:uppercase; }
+  #home .h-in { max-width:1080px; margin:0 auto; padding:36px 34px 90px; }
+  #h-flow { display:flex; gap:18px; margin:0 0 44px; font-size:12px; color:var(--faint); } #h-flow div { flex:1; border-top:1px solid var(--line); padding-top:10px; } #h-flow b { display:block; color:var(--ink); font-weight:500; margin-bottom:3px; }
+  #home .h-k { font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:14px; }
   #tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:16px; }
   .tile { border:1px solid var(--line); padding:16px 18px 14px; cursor:pointer; text-align:left; background:none; color:var(--ink); font:inherit; display:flex; flex-direction:column; gap:6px; min-height:150px; } .tile:hover { border-color:var(--ink); }
   .tile .t-st { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); } .tile .t-st.done { color:var(--moss, #4f6e3f); } .tile .t-st.live { color:var(--seal); }
@@ -220,20 +230,30 @@
   </form>
   </div>
   <iframe id="pane" title="Scores and replay"></iframe>
-  <div id="home"><div class="h-in">
-    <div class="px h-title">What should your agent get better at?</div>
-    <form onsubmit="makeAgent(event)">
-      <textarea id="h-prompt" placeholder="For example: answer questions about lease clauses with one label" maxlength="600"></textarea>
-      <div class="h-row"><span id="h-note"></span><button class="go big" id="h-go" type="submit">Create agent</button></div>
-    </form>
-    <div id="h-flow">
-      <div><b>1 · Task set</b>The writer model turns the sentence into graded problems, half kept back.</div>
-      <div><b>2 · Container</b>The agent gets a document in MongoDB Atlas (bonsai.agents). Every version it tries lands in bonsai.versions.</div>
-      <div><b>3 · Self-improvement</b>It rewrites its own rules, tools and turn budget. Raindrop traces every attempt and marks each change kept or cut.</div>
+  <div id="home">
+    <section class="hero">
+      <iframe id="h-bg" title="" tabindex="-1" aria-hidden="true"></iframe>
+      <div class="h-top"><span class="px">盆栽 Bonsai</span><button type="button" onclick="setView('tree')">tree</button><button type="button" onclick="setView('scores')">scores</button><button type="button" onclick="setView('replay')">replay</button></div>
+      <div class="h-mid">
+        <div class="px h-title">What should your agent get better at?</div>
+        <form class="h-box" onsubmit="makeAgent(event)">
+          <textarea id="h-prompt" placeholder="Answer questions about lease clauses with one label" maxlength="600" onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); }"></textarea>
+          <button class="go" id="h-go" type="submit">Create agent</button>
+        </form>
+        <div id="h-note"></div>
+      </div>
+      <button type="button" class="h-down px" onclick="document.getElementById('h-agents').scrollIntoView()">agents ↓</button>
+    </section>
+    <div class="h-in" id="h-agents">
+      <div id="h-flow">
+        <div><b>1 · Task set</b>The writer model turns the sentence into graded problems, half kept back.</div>
+        <div><b>2 · Container</b>The agent gets a document in MongoDB Atlas (bonsai.agents). Every version it tries lands in bonsai.versions.</div>
+        <div><b>3 · Self-improvement</b>It rewrites its own rules, tools and turn budget. Raindrop traces every attempt and marks each change kept or cut.</div>
+      </div>
+      <div class="h-k">Agents</div>
+      <div id="tiles"></div>
     </div>
-    <div class="h-k">Agents</div>
-    <div id="tiles"></div>
-  </div></div>
+  </div>
   <div id="guide" hidden>
     <div class="px g-title">Grow a better agent</div>
     <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
@@ -607,30 +627,33 @@ function setView(v) {
   document.body.classList.toggle('pane', !!src); document.body.classList.toggle('home', v === 'home');
   if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
   for (const k of ['home', 'tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
-  if (v === 'home') { if (viewing) openAgent(null, true); renderHome(); }
+  if (v === 'home') { if (viewing) openAgent(null, true); renderHome(); if (!$('h-bg').src) $('h-bg').src = 'tree.html?embed=1&bare=1&src=runs/health-versions.jsonl'; }
 }
 
 // Home: one sentence makes an agent. Tiles are the agents that exist: the one growing now, and every finished
 // run that beat where it started. A finished tile opens the whole run, replayed from the seed.
-let viewing = null, runStats = {}, statsAt = 0, madeSeen = null;
+let viewing = null, runStats = {}, statsAt = 0, statsDone = false, madeSeen = null;
+// the last tiles are remembered, so the agents are on the page before the server has answered
+try { const h = localStorage.getItem('bonsai-tiles'); if (h) $('tiles').innerHTML = h; } catch {}
 const TREE_SRC = 'tree.html?embed=1&bare=1';
 async function pullStats() {
   if (!app || Date.now() - statsAt < 20000) return; statsAt = Date.now();
-  for (const set of app.sets) {
-    if (runStats[set.key] === null && !(app.hosted || []).some(h => h.key === set.key)) continue;   // looked before, nothing there
+  await Promise.all(app.sets.map(async set => {
+    if (runStats[set.key] === null && !(app.hosted || []).some(h => h.key === set.key)) return;   // looked before, nothing there
     const file = `runs/${set.key}-versions.jsonl`;
     const text = await fetch(file, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
     const vs = text.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id);
-    if (!vs.length) { runStats[set.key] = null; continue; }
+    if (!vs.length) { runStats[set.key] = null; return; }
     const kept = keptChain(vs);
     runStats[set.key] = {file, seed: vs[0].score, best: kept.at(-1).score, kept: vs.filter(v => v.kept && v.parent).length, cut: vs.filter(v => !v.kept).length};
-  }
+  }));
+  statsDone = true;
   renderHome();
 }
 function renderHome() {
   if (!app || !document.body.classList.contains('home')) return;
   const pct = x => Math.round(x * 100), job = app.job, running = job?.status === 'running', mk = app.making || {};
-  $('h-note').textContent = mk.busy || (mk.text && Date.now() < noteUntil) ? mk.text : growErr && Date.now() < growErr.until ? growErr.text : 'One sentence is enough. The agent that solves the problems is Claude Haiku and never changes; only its harness does.';
+  $('h-note').textContent = mk.busy || (mk.text && Date.now() < noteUntil) ? mk.text : growErr && Date.now() < growErr.until ? growErr.text : '';
   $('h-go').disabled = !!mk.busy; $('h-go').textContent = mk.busy ? 'Making…' : 'Create agent';
   const tiles = [];
   const live = running && app.sets.find(x => x.name === job.set);
@@ -642,7 +665,8 @@ function renderHome() {
     else if (mine) tiles.push(`<button class="tile" onclick="openSet('${esc(set.key)}')"><span class="t-st">${st ? 'completed · no gain yet' : 'ready to grow'}</span><span class="t-name">${esc(set.name)}</span><span class="t-sc">${st ? pct(st.best) + '%' : '<small>' + set.count + ' problems</small>'}</span><span class="t-ft">${esc((mine.prompt || '').slice(0, 90))} · ${mine.atlas ? 'in bonsai.agents' : 'local only'}</span></button>`);
   }
   const html = tiles.join('') || '<div class="faint" style="font-size:12px">No agent yet. Type a sentence above.</div>';
-  if ($('tiles').dataset.h !== html) { $('tiles').innerHTML = html; $('tiles').dataset.h = html; }
+  if (!statsDone && !tiles.length) return;   // keep the remembered tiles until the scores are in
+  if ($('tiles').dataset.h !== html) { $('tiles').innerHTML = html; $('tiles').dataset.h = html; try { localStorage.setItem('bonsai-tiles', html); } catch {} }
 }
 let noteUntil = 0;
 async function makeAgent(e) {
