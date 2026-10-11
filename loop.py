@@ -66,7 +66,7 @@ def store(doc: dict) -> None:
         from pymongo import MongoClient
 
         try:
-            MongoClient(uri, serverSelectionTimeoutMS=8000)["bonsai"]["versions"].replace_one(
+            MongoClient(uri, serverSelectionTimeoutMS=30000)["bonsai"]["versions"].replace_one(
                 {"id": doc["id"]}, doc, upsert=True
             )
             print(f"atlas: stored {doc['id']}", file=sys.stderr, flush=True)
