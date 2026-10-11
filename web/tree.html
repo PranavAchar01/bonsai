@@ -122,7 +122,10 @@ function setPalette(P) {
 }
 let palIdx = comboN % 2; setPalette(LIGHT[palIdx]);
 const fogFrom = new THREE.Color(LIGHT[palIdx].bg), fogTo = fogFrom.clone(); let palT = 1;
-setInterval(() => { palIdx = 1 - palIdx; setPalette(LIGHT[palIdx]); fogFrom.copy(scene.fog.color); fogTo.set(LIGHT[palIdx].bg); palT = 0; }, 45000);
+function swapTo(i) { palIdx = i; setPalette(LIGHT[palIdx]); fogFrom.copy(scene.fog.color); fogTo.set(LIGHT[palIdx].bg); palT = 0; }
+// Embedded, the main page owns the palette and tells the tree when it changes; on its own the tree alternates by itself.
+if (q.get('embed')) addEventListener('message', e => { const k = e.data?.palette; if (e.origin === location.origin && PALETTES[k] && !PIN) { LIGHT[0] = LIGHT[1] = PALETTES[k]; swapTo(0); } });
+else setInterval(() => swapTo(1 - palIdx), 45000);
 
 // ---------- tree + labels ----------
 const labelsEl = document.getElementById('labels'), labels = [];
