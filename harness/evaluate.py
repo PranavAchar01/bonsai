@@ -193,8 +193,10 @@ def main() -> None:
     ap.add_argument("--scratch", required=True)
     ap.add_argument("--out", default="runs/baseline.json")
     a = ap.parse_args()
-    harness = json.loads(Path(a.harness).read_text()) if a.harness else BASE_HARNESS
     tasks = a.tasks or sorted(p.name for p in PRACTICE.iterdir())[: a.n]
+    # Without --harness, a connected set is scored on its own seed (set.json "seed"), the same one the loop starts from.
+    own = (task_set(tasks[0].rpartition("/")[0]) or {}).get("seed", {})
+    harness = json.loads(Path(a.harness).read_text()) if a.harness else {**BASE_HARNESS, **own}
     t0 = time.time()
     with ThreadPoolExecutor(a.workers) as ex:
         rows = list(ex.map(lambda t: run_one(t, harness, Path(a.scratch)), tasks))

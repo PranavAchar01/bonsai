@@ -24,7 +24,9 @@ from harness import evaluate as runner
 
 ROOT = Path(__file__).parent
 VERSIONS = ROOT / "versions"
-LOG = ROOT / "runs" / "versions.jsonl"
+# BONSAI_LOG lets several loops run side by side, one log per set. Only the default log feeds the page.
+LOG = Path(os.getenv("BONSAI_LOG") or ROOT / "runs" / "versions.jsonl")
+MAIN_LOG = not os.getenv("BONSAI_LOG")
 ALLOWED_TOOLS = ["Read", "Edit", "Write", "Bash", "Glob", "Grep"]
 MAX_TURNS_CAP = 30
 
@@ -56,7 +58,8 @@ def store(doc: dict) -> None:
     with LOG.open("a") as f:
         f.write(json.dumps(doc) + "\n")
     versions = [json.loads(line) for line in LOG.read_text().splitlines()]
-    (ROOT / "web" / "lineage.json").write_text(json.dumps({"versions": versions}))
+    if MAIN_LOG:
+        (ROOT / "web" / "lineage.json").write_text(json.dumps({"versions": versions}))
     uri = os.getenv("MONGODB_URI")
     if uri:
         from pymongo import MongoClient
