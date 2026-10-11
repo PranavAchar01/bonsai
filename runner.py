@@ -6,6 +6,7 @@ exercise's own tests decide pass or fail.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -26,6 +27,13 @@ BASE_HARNESS = {
     "max_turns": 12,
     "model": "haiku",
 }
+
+# Raindrop tracing is on only when RAINDROP_WRITE_KEY is set
+RAINDROP = None
+if os.getenv("RAINDROP_WRITE_KEY"):
+    import raindrop.analytics as RAINDROP
+
+    RAINDROP.init(os.environ["RAINDROP_WRITE_KEY"])
 
 
 def run_one(name: str, harness: dict, scratch: Path) -> dict:
@@ -93,6 +101,32 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
         passed, tail = test.returncode == 0, test.stdout[-600:]
     except subprocess.TimeoutExpired:
         passed, tail = False, "test timeout"
+    if RAINDROP:
+        harness_id = hashlib.sha256(json.dumps(harness, sort_keys=True).encode()).hexdigest()[:8]
+        eid = RAINDROP.track_ai(
+            user_id="bonsai",
+            event="polyglot_task",
+            model=harness["model"],
+            input=prompt,
+            output=out.get("result") or "",
+            convo_id=harness_id,
+            properties={
+                "task": name,
+                "harness_id": harness_id,
+                "passed": passed,
+                "turns": out.get("num_turns") or 0,
+                "cost_usd": out.get("total_cost_usd") or 0,
+                "test_tail": tail,
+            },
+        )
+        # free plan allows one custom signal: pass/fail lives in sentiment
+        RAINDROP.track_signal(
+            event_id=eid,
+            name="task_outcome",
+            signal_type="feedback",
+            sentiment="POSITIVE" if passed else "NEGATIVE",
+            comment=tail[-300:],
+        )
     return {
         "task": name,
         "passed": passed,
@@ -120,6 +154,8 @@ def main() -> None:
     with ThreadPoolExecutor(a.workers) as ex:
         rows = list(ex.map(lambda t: run_one(t, harness, Path(a.scratch)), tasks))
     wall = time.time() - t0
+    if RAINDROP:
+        RAINDROP.flush()
     summary = {
         "harness": harness,
         "n": len(rows),
