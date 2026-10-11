@@ -116,6 +116,36 @@
   .board { display:grid; grid-template-columns:repeat(8, 1fr); aspect-ratio:1; border:1px solid var(--ink); margin:4px 0; }
   .board i { display:grid; place-items:center; font-style:normal; font-size:15px; line-height:1; } .board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); }
   .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; line-height:1.7; } .logline span { color:var(--faint); }
+
+  /* first-time clarity: one primary action, readable steps, a guide, a legend */
+  .lead { font:15px "DotGothic16"; color:var(--faint); }
+  .sel.big { font-size:17px; max-width:300px; }
+  button.big { font-size:15px; padding:6px 22px; }
+  button.link { border:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
+  #halt:disabled { display:none; }
+  #opts { flex-basis:100%; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline; padding-top:4px; color:var(--faint); }
+  #opts[hidden] { display:none; } #opts label { display:flex; gap:6px; align-items:baseline; }
+  #steps { display:flex; gap:0; margin:12px 0 0; padding:0; list-style:none; counter-reset:s; flex-wrap:wrap; }
+  #steps[hidden] { display:none; }
+  #steps li { counter-increment:s; font:12px "DotGothic16"; color:var(--faint); padding:4px 14px 4px 0; }
+  #steps li::before { content:counter(s); display:inline-grid; place-items:center; width:18px; height:18px; margin-right:6px; border:1px solid currentColor; border-radius:50%; font-size:10px; }
+  #steps li + li::after { content:""; }
+  #steps li.done { color:var(--ink); } #steps li.done::before { content:"✓"; }
+  #steps li.now { color:var(--paper); } #steps li.now::before { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  #steps li.now { color:var(--ink); }
+  #phase { margin-top:6px; }
+  #guide { position:absolute; left:50%; top:44%; transform:translate(-50%, -50%); width:min(460px, calc(100% - 48px)); z-index:2; text-align:left; }
+  #guide[hidden] { display:none; }
+  #guide .g-title { font-size:32px; margin-bottom:8px; }
+  #guide p { font-size:13px; line-height:1.7; margin:0 0 14px; }
+  #guide ol { margin:0 0 20px; padding-left:22px; font-size:13px; line-height:1.9; } #guide b { font-weight:500; }
+  #guide .g-note { margin-top:10px; }
+  .guide-on #tree3d { opacity:.12; }
+  .legend { position:absolute; left:84px; bottom:30px; z-index:2; display:flex; gap:16px; color:var(--faint); font-size:11px; }
+  .legend i { display:inline-block; width:14px; height:3px; margin-right:6px; vertical-align:3px; border-radius:2px; }
+  .legend .k { background:#4f6e3f; } .legend .c { background:var(--seal); width:8px; height:8px; border-radius:50%; vertical-align:0; } .legend .t { background:#c8d67a; }
+  .lbl .i { display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid currentColor; border-radius:50%; font-size:9px; letter-spacing:0; cursor:help; }
+  [title] { cursor:help; } button[title], select[title], label[title] { cursor:pointer; }
   ::-webkit-scrollbar { width:7px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
 
   @media (max-width:900px) {
@@ -132,16 +162,20 @@
   <header>
     <h1>盆栽 Bonsai</h1>
     <form id="ask" onsubmit="grow(event)" style="display:contents">
-      <span class="faint">grow</span><select id="agent" class="sel" onchange="pickAgent()"></select>
-      <span class="faint">on</span><select id="set" class="sel" onchange="fillCount(); fillTools()"></select>
-      <span class="faint">for</span><select id="gens" class="sel"><option value="1">1 generation</option><option value="2">2 generations</option><option value="3" selected>3 generations</option><option value="4">4 generations</option><option value="5">5 generations</option></select>
-      <span class="faint">on</span><select id="count" class="sel"></select>
-      <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
-      <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
-      <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
+      <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
+      <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
+      <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
+      <div id="opts" hidden>
+        <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
+        <label title="Each round: find its mistakes, write one change, test the change, keep it or cut it.">rounds <select id="gens" class="sel"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label>
+        <label title="How many problems to use. Half are for practice, half are kept back to test each change fairly.">problems <select id="count" class="sel"></select></label>
+        <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
+        <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
+      </div>
     </form>
   </header>
-  <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
+  <ol id="steps" hidden><li>Test the start</li><li>Find mistakes</li><li>Write a change</li><li>Test the change</li><li>Keep or cut</li></ol>
+  <div id="phase"><span class="dot"></span><b>Ready</b> · pick what to improve at, then press Grow</div>
   <form id="newset" onsubmit="createSet(event)" hidden>
     <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
     <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
@@ -158,6 +192,20 @@
       <button type="button" onclick="toggleAgent()">Cancel</button><button type="submit" id="na-save">Save</button><button class="go" type="submit" id="na-grow" onclick="growAfterSave = true">Save and grow</button></div>
   </form>
   </div>
+  <div id="guide" hidden>
+    <div class="px g-title">Grow a better agent</div>
+    <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
+    <ol>
+      <li><b>Pick</b> what it should get better at, at the top.</li>
+      <li><b>Press Grow.</b> Everything after that runs by itself.</li>
+      <li><b>Watch the tree.</b> Each kept change grows a branch. Each rejected change is cut.</li>
+    </ol>
+    <button class="go big" onclick="grow()">Grow on <span id="g-set">chess</span></button>
+    <div class="faint g-note" id="g-note">A run takes a while: each round tests every problem twice.</div>
+  </div>
+  <div class="legend" title="How to read the tree">
+    <span><i class="k"></i>kept change</span><span><i class="c"></i>cut change</span><span><i class="t"></i>being tested</span>
+  </div>
   <div class="seal">盆</div>
 </div>
 
@@ -169,15 +217,15 @@
 
 <aside id="margin">
   <div class="sec">
-    <div class="lbl">held-out pass rate</div>
+    <div class="lbl" title="The share of problems it solves that it never practised on. Every change is judged on these alone.">score on new problems <span class="i">?</span></div>
     <div id="score"><span class="n" id="s-num">--</span><span class="faint" id="s-note">no run yet</span></div>
   </div>
   <div class="sec">
-    <div class="lbl">agents <span id="ag-count" class="faint" style="letter-spacing:0;text-transform:none"></span><span class="sp"></span><button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></div>
+    <div class="lbl" title="Every agent in the current run. Click one to watch it work.">agents <span id="ag-count" class="faint" style="letter-spacing:0;text-transform:none"></span><span class="sp"></span><button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></div>
     <div id="agents"></div>
   </div>
   <div class="sec" id="list-head">
-    <div class="lbl">lineage<span class="sp"></span><button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">best</button></div>
+    <div class="lbl" title="Every change it tried, newest first. Click one to see what happened.">history<span class="sp"></span><button id="sort-latest" class="on" onclick="setSort('latest')">newest</button><button id="sort-score" onclick="setSort('score')">best</button></div>
   </div>
   <div id="ledger"></div>
   <div id="version"></div>
@@ -214,11 +262,11 @@ function keptChain(vs) {
 function renderLedger() {
   const vs = window.__d.versions, kept = keptChain(vs), best = kept.at(-1);
   $('s-num').textContent = vs.length ? pct(best.score) : '--';
-  $('s-note').innerHTML = vs.length ? `from ${pct(kept[0].score)}<br>${kept.length - 1} kept · ${vs.length - kept.length} cut` : 'no run yet';
-  if (!vs.length) { $('ledger').innerHTML = '<div class="empty">No versions yet. Press Grow; the first one appears when the seed has been scored.</div>'; return; }
+  $('s-note').innerHTML = vs.length ? `started at ${pct(kept[0].score)}<br>${kept.length - 1} kept · ${vs.length - kept.length} cut` : 'nothing grown yet';
+  if (!vs.length) { $('ledger').innerHTML = '<div class="empty">Nothing yet. Press Grow: the first entry appears once the starting version has been tested.</div>'; return; }
   const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
   $('ledger').innerHTML = order.map(v => {
-    const sub = !v.parent ? 'the seed harness' : v.kept ? `shed: ${v.shed || 'nothing'}${v.signal ? ' · signal: ' + v.signal : ''}` : `cut: ${v.signal || 'no gain'}`;
+    const sub = !v.parent ? 'where it started' : v.kept ? `because: ${v.signal || 'n/a'} · removed: ${v.shed || 'nothing'}` : `cut: ${v.signal === 'cheat caught' ? 'it tampered with the tests' : 'it did not score higher'}`;
     return `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}" data-id="${esc(v.id)}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change)}</span><span class="sub">${esc(sub)}</span></span><span class="n">${pct(v.score)}</span></div>`;
   }).join('');
 }
@@ -230,10 +278,10 @@ function renderVersion() {
   if (!opened) return;
   const vs = window.__d.versions, v = vs.find(x => x.id === opened); if (!v) return openVersion(null);
   const par = vs.find(p => p.id === v.parent), verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'cut';
-  const head = `<button onclick="openVersion(null)">← all versions</button>
+  const head = `<button onclick="openVersion(null)">← history</button>
     <h2>${esc(v.id)}<small class="${verdict === 'cut' ? 'cut-t' : 'kept'}">${verdict}</small></h2>
     <div class="faint">${par ? `parent ${esc(par.id)} · ${pct(par.score)} → ${pct(v.score)} held-out` : `held-out ${pct(v.score)}`}${v.tokens ? ` · ~${v.tokens} tokens of rules` : ''}</div>
-    <div class="tabs">${['story', 'proof', 'diff', 'harness', 'activity'].map(t => `<button class="${t === tab ? 'on' : ''}" onclick="setTab('${t}')">${t}</button>`).join('')}</div>`;
+    <div class="tabs">${Object.entries(TABS).map(([t, name]) => `<button class="${t === tab ? 'on' : ''}" onclick="setTab('${t}')">${name}</button>`).join('')}</div>`;
   let body = '';
   if (tab === 'story') body = `<div class="story">
       <div class="k">what failed</div><div class="big">${esc(v.signal || (v.parent ? 'not recorded' : 'nothing yet: this is where the tree starts'))}</div>
@@ -307,7 +355,8 @@ async function load() {
   let data = {versions:[]};
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; renderLedger(); renderVersion(); renderTerm();
+  if (window.__d && data.versions.length > window.__d.versions.length) lastStoredAt = Date.now();
+  window.__d = data; renderLedger(); renderVersion(); renderGuide(); renderTerm();
 }
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
@@ -348,8 +397,9 @@ function renderRun() {
     if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
   $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow'; if (!running) stopping = false; $('halt').textContent = stopping ? 'Stopping…' : 'Stop';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
-  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
-    : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
+  renderSteps(job, running);
+  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>Ready</b> · pick what to improve at, then press Grow'
+    : running ? `<b>${esc(plain(job.phase))}</b>${progress()} · ${esc(job.set)} · ${secs(a.now - job.started)}`
     : job.status === 'error' ? `<b>run failed</b> · ${esc(job.error)}`
     : `<b>${esc(job.status)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · took ${secs(job.ended - job.started)}`);
   // A refused Grow stays on screen long enough to read, instead of being wiped by the next poll.
@@ -360,14 +410,15 @@ function renderRun() {
   $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${done.length} done` : '';
   $('agents').innerHTML = show.length ? show.map(x => {
     const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status;
-    return `<div class="ag ${esc(x.status)}" data-key="${esc(JSON.stringify({version:x.version, task:x.task, split:x.split, role:x.role}))}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
-  }).join('') : `<div class="empty">None yet. A run starts one solver per problem, on the model being improved, and a proposer that reads their failures and rewrites the harness.</div>`;
+    return `<div class="ag ${esc(x.status)}" data-key="${esc(JSON.stringify({version:x.version, task:x.task, split:x.split, role:x.role}))}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(ROLE[x.role] || x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
+  }).join('') : `<div class="empty">None yet. A run starts one player per problem and one writer who studies their mistakes. Click any of them to watch it work.</div>`;
   if (opened && tab === 'activity') renderVersion();
   const sig2 = JSON.stringify(a.studio || []);
   if (sig2 !== studioSig) { studioSig = sig2; const keep = wantAgent ?? $('agent').value; wantAgent = null;
-    $('agent').innerHTML = `<option value="">the seed</option>${(a.studio || []).map(x => `<option value="${esc(x.key)}">${esc(x.name)} · ${esc(x.model)}</option>`).join('')}<option value="+">+ new agent…</option>`;
+    $('agent').innerHTML = `<option value="">the starting version</option>${(a.studio || []).map(x => `<option value="${esc(x.key)}">${esc(x.name)} · ${esc(x.model)}</option>`).join('')}<option value="+">+ new agent…</option>`;
     $('agent').value = (a.studio || []).some(x => x.key === keep) ? keep : ''; fillTools(); }
   if (watching) renderWatchHead();
+  renderGuide();
   renderTerm();
 }
 
@@ -405,7 +456,7 @@ function renderWatchHead() {
   const st = !x ? '' : x.status === 'working' ? 'working ' + secs(app.now - x.started) : x.status === 'cheat' ? 'edited tests' : x.status;
   el.innerHTML = `<button onclick="watchAgent(null)">← back</button>
     <h2 class="px" style="font-size:24px;font-weight:400;margin:10px 0 2px">${esc(short(watching.task))}</h2>
-    <div class="faint">${esc(watching.role)} · ${esc(watching.version)} · ${esc(watching.split)} · ${esc(x?.model || '')}</div>
+    <div class="faint">${esc(ROLE[watching.role] || watching.role)} · ${esc(watching.version)} · ${esc(watching.split)} · ${esc(x?.model || '')}</div>
     <div style="margin-top:4px"><span class="${x?.status === 'passed' ? 'kept' : /failed|cheat/.test(x?.status) ? 'cut-t' : ''}">${esc(st)}</span>${x?.trace ? ` · <span class="faint">raindrop trace</span> ${esc(x.trace)}` : app?.raindrop ? '' : ' · <span class="faint">not traced: no RAINDROP_WRITE_KEY</span>'}</div>`;
   document.getElementById('tree3d').contentWindow?.postMessage({focus:watching.version}, location.origin);
 }
@@ -442,6 +493,52 @@ async function grow(e) {
   if (ok) { lastJson = ''; openVersion(null); }
   poll(); load();
 }
+
+// Plain words for what the loop reports, and the five steps of one round.
+const ROLE = {solver:'player', proposer:'writer'};
+const TABS = {story:'What happened', proof:'Before & after', diff:'Exact change', harness:'Full setup', activity:'Log'};
+function plain(t) {
+  return String(t || '').replace(/^scoring the seed on held-out problems/, 'Testing the starting version on new problems')
+    .replace(/^running (\S+) on practice problems to find what fails/, 'Finding what $1 gets wrong on practice problems')
+    .replace(/^proposer is reading the failures and writing (\S+)/, 'The writer is studying the mistakes and writing $1')
+    .replace(/^scoring (\S+) on held-out problems:?/, 'Testing $1 on new problems:')
+    .replace(/^starting$/, 'Starting');
+}
+function stepOf(t) {
+  t = String(t || '');
+  return /seed|^starting/.test(t) ? 0 : /practice/.test(t) ? 1 : /proposer|writing/.test(t) ? 2 : /held-out/.test(t) ? 3 : -1;
+}
+function progress() {
+  const t = app?.job?.phase || '', vid = (t.match(/(g\d+[a-z]?)/) || [])[1] || (stepOf(t) === 0 ? 'g0' : null);
+  const split = stepOf(t) === 1 ? 'practice' : 'held-out';
+  const mine = (app?.agents || []).filter(x => x.split === split && (!vid || x.version === vid));
+  return mine.length ? ` · ${mine.filter(x => x.ended).length} of ${mine.length} done` : '';
+}
+let lastStoredAt = 0;
+function renderSteps(job, running) {
+  const el = $('steps'); el.hidden = !running;
+  if (!running) return;
+  let n = stepOf(job.phase);
+  if (Date.now() - lastStoredAt < 6000) n = 4;          // a version was just stored: keep or cut
+  [...el.children].forEach((li, i) => li.className = i < n ? 'done' : i === n ? 'now' : '');
+}
+function renderGuide() {
+  const empty = !(window.__d?.versions?.length), busy = app?.job?.status === 'running';
+  $('guide').hidden = !empty || busy; document.body.classList.toggle('guide-on', empty && !busy);
+  const set = app?.sets.find(x => x.key === $('set').value);
+  $('g-set').textContent = set ? set.name.split(':')[0].toLowerCase() : 'this';
+}
+function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
+// Esc closes whatever is open, innermost first.
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('newagent').hidden) return toggleAgent(false);
+  if (!$('newset').hidden) return toggleNew();
+  if (watching) return watchAgent(null);
+  if (opened) return openVersion(null);
+  if (!$('opts').hidden) return toggleOpts(false);
+  if (document.body.classList.contains('term')) return toggleTerm(false);
+});
 async function stopRun() { stopping = true; await post('api/stop', {}); poll(); }
 let termOn = innerWidth > 1300; try { if (localStorage.term === '0') termOn = false; } catch {}
 if (termOn) toggleTerm(true);
