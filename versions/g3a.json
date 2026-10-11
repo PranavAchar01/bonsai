@@ -1,0 +1,7 @@
+{
+ "rules": "Each log line names a failure stage and the symptom that ended the run; label the earliest stage that failed, never the end-of-run symptom. Output one label per line, same order, nothing else.",
+ "tools": [],
+ "max_turns": 1,
+ "model": "haiku",
+ "id": "g3a"
+}
