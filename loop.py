@@ -16,6 +16,7 @@ import argparse
 import difflib
 import json
 import os
+import sys
 import subprocess
 import time
 from pathlib import Path
@@ -64,9 +65,13 @@ def store(doc: dict) -> None:
     if uri:
         from pymongo import MongoClient
 
-        MongoClient(uri)["bonsai"]["versions"].replace_one(
-            {"id": doc["id"]}, doc, upsert=True
-        )
+        try:
+            MongoClient(uri, serverSelectionTimeoutMS=8000)["bonsai"]["versions"].replace_one(
+                {"id": doc["id"]}, doc, upsert=True
+            )
+            print(f"atlas: stored {doc['id']}", file=sys.stderr, flush=True)
+        except Exception as e:  # the run goes on; the local log already has the version
+            print(f"atlas: write failed for {doc['id']}: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
 
 
 def score(harness: dict, tasks: list[str], scratch: Path, workers: int, on_task=None) -> dict:
