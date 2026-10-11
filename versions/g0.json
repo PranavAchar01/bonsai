@@ -1,7 +1,10 @@
 {
- "rules": "You are a chess player. Look at the position and choose a good legal move.",
- "tools": [],
- "max_turns": 1,
+ "rules": "Answer the question in .docs/instructions.md.",
+ "tools": [
+  "Read",
+  "Write"
+ ],
+ "max_turns": 4,
  "model": "haiku",
  "id": "g0"
 }

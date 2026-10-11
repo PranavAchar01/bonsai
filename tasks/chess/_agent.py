@@ -76,7 +76,8 @@ for uci in cfg["opening"]:
     board.push_uci(uci)
 live(kind="opening", text=" ".join(history), fen=board.fen())
 start = len(board.move_stack)
-engine = chess.engine.SimpleEngine.popen_uci(shutil.which("stockfish") or "/opt/homebrew/bin/stockfish")
+# a loaded machine can take far longer than the default 10 s to start or answer
+engine = chess.engine.SimpleEngine.popen_uci(shutil.which("stockfish") or "/opt/homebrew/bin/stockfish", timeout=180)
 engine.configure({"Skill Level": cfg["skill"]})
 try:
     while not board.is_game_over() and board.fullmove_number <= cfg["moves"]:

@@ -52,6 +52,18 @@ mongod --port 27018 --dbpath runs/mongo-data
 uv run --no-project --with pymongo python tasks/mongo/build.py --load
 ```
 
+### Understudy: robot failures (RSI on a VLA pipeline)
+
+[Understudy](https://github.com/PranavAchar01/understudy-replay) is one place we plugged Bonsai in. With a Runway API key, it films people doing a robot task. 21 physics gates and a MuJoCo replay throw out the clips a robot should not learn from, and SmolVLA, a vision-language-action model, trains on the rest. The last stage is text: every gate rejection and every MuJoCo rollout prints a line. `tasks/understudy/` asks an agent to name each line with one failure term (`grasp_miss`, `missed_bowl`, `duplicated_object` and so on), so the data step knows what to fix. Bonsai grows that agent's rules: recursive self-improvement on the data that trains the VLA.
+
+The 12 problems are batches of the 277 lines from Understudy's completed runs (the Runway clip gates and five MuJoCo evaluations). The gold term comes from the structured fields behind each line, never from the text. A problem passes at 90% of its lines right. Rebuild from an Understudy checkout:
+
+```bash
+python3 tasks/understudy/build.py ../understudy-replay
+```
+
+For an LLM instead of a VLA there is no Runway step: connect the agent's own transcripts as a set, the same way.
+
 ### Your own agent or task
 
 Drop a folder with a `set.json` into `tasks/` and it appears in the dropdown. The file names the prompt, the grading command and, if you want, your own agent command in place of Claude. `tasks/README.md` has the format.

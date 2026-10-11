@@ -25,6 +25,11 @@
   /* stage: tree on the left, ledger on the right */
   #stage { position:fixed; left:var(--term); top:0; bottom:0; right:var(--margin); }
   #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  /* one page: the stage shows the tree, the score charts or the chess replay */
+  #pane { position:absolute; left:0; right:0; top:104px; bottom:0; width:100%; height:calc(100% - 104px); border:0; border-top:1px solid var(--line); background:var(--paper); z-index:1; display:none; }
+  body.pane #pane { display:block; } body.pane #guide, body.pane .legend, body.pane .seal, body.pane #steps, body.pane #phase { display:none !important; }
+  #views { display:flex; gap:14px; margin-left:auto; } #views button { border:0; padding:4px 0; color:var(--faint); font-size:13px; } #views button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
+  #tools { flex-basis:100%; display:flex; gap:14px; align-items:baseline; } #tools button { border:0; padding:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
 
   /* terminal: the agent's files and every change to them, down the left side */
@@ -53,6 +58,15 @@
   .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; vertical-align:1px; }
   #phase.live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
   .seal { position:absolute; left:32px; bottom:24px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; z-index:2; transition:background-color 6s; }
+
+  /* live view: the agent at work on one problem, in a view made for that kind of task */
+  #live { flex:none; height:372px; display:none; flex-direction:column; background:var(--paper); border-top:1px solid var(--ink); }
+  #live.on { display:flex; }
+  #live .lh { display:flex; align-items:center; gap:8px; padding:6px 26px; border-bottom:1px solid var(--line); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  #live .lh b { color:var(--ink); font-weight:400; overflow:hidden; text-overflow:ellipsis; } #live .lh .sp { flex:1; }
+  #live .lh button { font-size:10.5px; padding:0 7px; letter-spacing:0; text-transform:none; }
+  #live iframe { flex:1; width:100%; border:0; min-height:0; }
+  #live.small { height:auto; } #live.small iframe { display:none; }
 
   /* new benchmark, unfolds under the ask */
   #newset { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
@@ -165,12 +179,12 @@
       <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
       <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
       <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
+      <nav id="views"><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The same chess game played by two versions, side by side">replay</button></nav>
+      <div id="tools"><button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button><button type="button" onclick="toggleAgent(true)">+ new agent</button><button type="button" id="term-btn" onclick="toggleTerm()">terminal</button></div>
       <div id="opts" hidden>
         <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
         <label title="Each round: find its mistakes, write one change, test the change, keep it or cut it.">rounds <select id="gens" class="sel"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label>
         <label title="How many problems to use. Half are for practice, half are kept back to test each change fairly.">problems <select id="count" class="sel"></select></label>
-        <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
-        <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
       </div>
     </form>
   </header>
@@ -192,6 +206,7 @@
       <button type="button" onclick="toggleAgent()">Cancel</button><button type="submit" id="na-save">Save</button><button class="go" type="submit" id="na-grow" onclick="growAfterSave = true">Save and grow</button></div>
   </form>
   </div>
+  <iframe id="pane" title="Scores and replay"></iframe>
   <div id="guide" hidden>
     <div class="px g-title">Grow a better agent</div>
     <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
@@ -210,7 +225,7 @@
 </div>
 
 <section id="term">
-  <div class="tbar"><span>agent files · versions/</span><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
+  <div class="tbar"><span>agent files · versions/</span><button onclick="window.open('out/latest/context.md')" title="The agent's context file after the last run">context file</button><button onclick="window.open('out/latest/CHANGES.md')" title="Everything that changed in the last run">changes</button><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
   <div id="t-files"></div>
   <div id="t-out"></div>
 </section>
@@ -230,6 +245,10 @@
   <div id="ledger"></div>
   <div id="version"></div>
   <div id="watch"></div>
+  <div id="live">
+    <div class="lh"><span class="dot" id="lv-dot"></span><b id="lv-what"></b><span id="lv-kind"></span><span class="sp"></span><button id="lv-gen" onclick="genView()" title="Have the proposer model write a view for this benchmark">write a view</button><button onclick="$('live').classList.toggle('small')">–</button></div>
+    <iframe id="lv-frame" sandbox="allow-scripts" title="The agent at work"></iframe>
+  </div>
 </aside>
 
 <script type="module">
@@ -466,7 +485,7 @@ async function pullWatch() {
   let lines = [];
   try { const r = await fetch(`api/watch?version=${encodeURIComponent(watching.version)}&task=${encodeURIComponent(watching.task)}`, {cache:'no-store'}); if (r.ok) lines = (await r.json()).lines; } catch {}
   const fen = [...lines].reverse().find(l => l.fen)?.fen;
-  $('w-board').innerHTML = fen ? board(fen) : '';
+  $('w-board').innerHTML = fen && !$('live').classList.contains('on') ? board(fen) : '';
   const t0 = lines[0]?.t || 0, ago = l => '+' + secs(l.t - t0);
   const row = l => l.kind === 'move' ? `<div class="step move"><span class="w">${l.by === 'agent' ? 'move ' + l.n : 'reply'}</span><span><b>${esc(l.san)}</b> <span class="faint">${l.by === 'agent' ? 'played' : 'by Stockfish'}</span>${l.said ? `<span class="said">${esc(l.said.slice(-160))}</span>` : ''}</span></div>`
     : l.kind === 'tool' ? `<div class="step tool"><span class="w">${esc(l.tool)}</span><span>${esc(l.text)}</span></div>`
@@ -479,6 +498,31 @@ async function pullWatch() {
   $('w-steps').innerHTML = lines.length ? lines.map(l => row(l).replace('<span class="w">', `<span class="w" title="${ago(l)}">`)).join('') : '<div class="empty">Waiting for its first step.</div>';
   if (atEnd) box.scrollTop = box.scrollHeight;
 }
+// Live view: the newest working agent (or the one being watched), drawn by the view for its benchmark.
+// Views are separate pages in a sandboxed frame; one written by the model can draw and nothing else.
+let liveSrc = '', liveBusy = false, liveSet = null;
+function liveTarget() {
+  const A = (app?.agents || []).filter(x => x.role !== 'proposer');
+  if (watching && watching.role !== 'proposer') return A.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split) || watching;
+  return A.filter(x => x.status === 'working').sort((x, y) => x.started - y.started)[0] || A.filter(x => x.ended).sort((x, y) => y.ended - x.ended)[0] || null;
+}
+async function pullLive() {
+  const t = liveTarget(), box = $('live'); box.classList.toggle('on', !!t); if (!t || liveBusy) return;
+  const set = liveSet = app.sets.find(s => t.task.startsWith(s.key + '/')) || app.sets.find(s => s.key === 'python'), writing = (app.viewgen || []).includes(set.key);
+  $('lv-what').textContent = `${short(t.task)} · ${t.version}`; $('lv-dot').style.background = t.status === 'working' ? 'var(--seal)' : '';
+  $('lv-kind').textContent = writing ? 'writing its view…' : set.view.includes('/gen/') ? 'view written for it' : '';
+  $('lv-gen').disabled = writing; $('lv-gen').textContent = set.view.includes('/gen/') ? 'rewrite view' : 'write a view';
+  if (set.view !== liveSrc) { liveSrc = set.view; $('lv-frame').src = set.view; }
+  liveBusy = true;
+  try {
+    const r = await fetch(`api/watch?version=${encodeURIComponent(t.version)}&task=${encodeURIComponent(t.task)}`, {cache:'no-store'}), j = r.ok ? await r.json() : {lines:[]};
+    const css = getComputedStyle(document.documentElement), colors = Object.fromEntries(['paper', 'ink', 'faint', 'seal', 'moss'].map(k => [k, css.getPropertyValue('--' + k).trim()]));
+    $('lv-frame').contentWindow?.postMessage({lines:j.lines, question:j.question || '', agent:{task:t.task, version:t.version, status:t.status, model:t.model, split:t.split}, set:{key:set.key, name:set.name}, colors}, '*');
+  } catch {} finally { liveBusy = false; }
+}
+async function genView() { if (!liveSet) return; const hint = prompt('What should this view show? Leave empty to let it decide.', ''); if (hint === null) return; await post('api/views', {set:liveSet.key, hint}); poll(); }
+setInterval(pullLive, 1000);
+
 async function poll() {
   try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
   catch { $('phase').innerHTML = '<span class="dot"></span><b>view only</b> · start the app with python server.py to run it from here'; $('go').disabled = true; }
@@ -527,6 +571,17 @@ function renderGuide() {
   $('guide').hidden = !empty || busy; document.body.classList.toggle('guide-on', empty && !busy);
   const set = app?.sets.find(x => x.key === $('set').value);
   $('g-set').textContent = set ? set.name.split(':')[0].toLowerCase() : 'this';
+}
+function setView(v) {
+  const src = v === 'scores' ? 'benchmarks.html?embed=1' : v === 'replay' ? replaySrc() : '';
+  document.body.classList.toggle('pane', !!src);
+  if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
+  for (const k of ['tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
+}
+// Replay compares the seed with the best kept version of the chess tree when there is one.
+function replaySrc() {
+  const V = window.__d?.versions || [], best = V.filter(x => x.kept && x.generation > 0).sort((a, b) => b.score - a.score)[0];
+  return `replay.html?a=g0&b=${encodeURIComponent(best ? best.id : 'g0')}&game=game-caro-kann-white`;
 }
 function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
 // Esc closes whatever is open, innermost first.

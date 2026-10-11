@@ -5,3 +5,5 @@ __pycache__/
 .env*
 web/lineage.json
 *.bak
+web/out/
+FEATURES.pdf

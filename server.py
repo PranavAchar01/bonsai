@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -73,9 +74,108 @@ def sets_rows() -> list[tuple]:
 
 def sets() -> list[dict]:
     """What the dropdown offers. A set is only selectable if this machine can grade it."""
-    return [{"key": k, "name": n, "group": g, "ready": r, "why": w, "count": len(problems(k)),
+    return [{"key": k, "name": n, "group": g, "ready": r, "why": w, "count": len(problems(k)), "view": view_for(k),
              "tools": list((runner.task_set(k) or {}).get("tools", {}).keys()) if (runner.task_set(k) or {}).get("agent") else CLAUDE_TOOLS}
             for k, n, g, r, w in sets_rows()]  # fmt: skip
+
+
+# Live views: one small page per benchmark that shows the agent at work, drawn in a sandboxed frame.
+# Chess, question sets and coding have a hand-built one. Anything else gets one written for it by the
+# proposer model into web/views/gen/<set>.html, so the app's own code grows with each new kind of task.
+VIEWS = WEB / "views"
+VIEW_CSP = ('<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\' '
+            "https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:\">")  # fmt: skip
+viewgen: set[str] = set()
+
+
+def view_for(key: str) -> str:
+    made = VIEWS / "gen" / f"{key}.html"
+    if made.exists():
+        return f"views/gen/{key}.html?v={int(made.stat().st_mtime)}"
+    spec = runner.task_set(key) or {}
+    if key == "chess":
+        return "views/chess.html"
+    return "views/qa.html" if "grade_exact" in spec.get("grade", "") else "views/steps.html"
+
+
+def question(task: str) -> str:
+    """The problem as the agent sees it, for the live view."""
+    lang, _, name = task.rpartition("/")
+    for base in (runner.TASKS / task, runner.BENCH / (lang or "python") / "exercises/practice" / name):
+        f = base / ".docs" / "instructions.md"
+        if f.exists():
+            return f.read_text()[:3000]
+    return ""
+
+
+def sample_lines(key: str) -> list[dict]:
+    """A real live log from this set, if any run has produced one, so a written view fits real data."""
+    live = ROOT / "runs" / "live"
+    dirs = sorted((d for d in live.iterdir() if d.is_dir()), key=lambda d: -d.stat().st_mtime) if live.exists() else []
+    for d in dirs:
+        for name in problems(key)[:40]:
+            f = runner.live_path(d.name, name)
+            if f.exists():
+                return [json.loads(x) for x in f.read_text().splitlines()[:30] if x.strip()]
+    return []
+
+
+def write_view(key: str, hint: str) -> None:
+    try:
+        spec, names = runner.task_set(key) or {"name": key}, problems(key)
+        prompt = f"""Write one self-contained HTML page: a small live view (about 340 x 290 px) that shows an AI agent
+working on one problem from the benchmark "{spec.get("name", key)}". It must make what the agent is doing visible at a
+glance and fit THIS benchmark, not be a generic log. {("The user asked: " + hint) if hint else ""}
+
+How it gets data: the host posts a message about once a second; the page redraws from it every time:
+  {{lines: [...], question: "the problem text", agent: {{task, version, status, model}}, set: {{key, name}}, colors: {{paper, ink, faint, seal, moss}}}}
+agent.status is "working", "passed", "failed" or "cheat". lines is the agent's log so far, oldest first. Each line has
+t (seconds) and kind: "start", "tool" (tool, text), "said" (text), "result_of_tool" (text), "result" (text),
+"verdict" (passed, edited_tests, text). Other kinds may appear; ignore what you do not know.
+
+The task: {json.dumps({k: spec.get(k) for k in ("prompt", "solution", "tools")})}
+A sample problem: {question(names[0])[:1200] if names else "(none yet)"}
+Sample lines from a real run: {json.dumps(sample_lines(key))[:3000] or "(none yet)"}
+
+Rules: no network, no external scripts, no images, no libraries, no storage. Inline CSS and one inline script.
+Escape every string before putting it in innerHTML. Under 250 lines. Paper and ink look, no cards, no gradients,
+no emoji: use the CSS variables below and the fonts "DotGothic16" (display) and "IBM Plex Mono" (text).
+Here is the hand-built view for question sets, as the pattern to follow:
+
+{(VIEWS / "qa.html").read_text()}
+
+Reply with the HTML only, starting with <!doctype html>."""
+        out = subprocess.run([runner.CLAUDE, "-p", prompt, "--model", "claude-opus-5-5", "--output-format", "json", "--max-turns", "1"],
+                             capture_output=True, text=True, timeout=420)  # fmt: skip
+        text = json.loads(out.stdout)["result"]
+        low = text.lower()
+        html = text[low.index("<!doctype") : low.rindex("</html>") + 7]
+        # The page is model output: it runs in a sandboxed frame, and it may not load or call anything.
+        if "addEventListener" not in html or len(html) > 60_000 or re.search(r"<script[^>]+src=|<iframe|<object|<embed", html, re.I):
+            raise ValueError("the reply was not a usable view")
+        html = re.sub(r"<meta[^>]+Content-Security-Policy[^>]*>", "", html, flags=re.I)
+        html = re.sub(r"<head[^>]*>", lambda m: m[0] + VIEW_CSP, html, count=1, flags=re.I)
+        if VIEW_CSP not in html:
+            raise ValueError("the reply had no head")
+        (VIEWS / "gen").mkdir(parents=True, exist_ok=True)
+        (VIEWS / "gen" / f"{key}.html").write_text(html)
+        say(f"live view written for {spec.get('name', key)}: web/views/gen/{key}.html, {html.count(chr(10)) + 1} lines")
+    except Exception as e:  # the hand-built view stays in place
+        say(f"live view not written for {key}: {type(e).__name__}: {str(e)[-160:]}")
+    finally:
+        viewgen.discard(key)
+
+
+def generate_view(body: dict) -> tuple[int, dict]:
+    key, hint = str(body.get("set") or ""), " ".join(str(body.get("hint") or "").split())[:300]
+    if key not in {k for k, *_ in sets_rows()} or not re.fullmatch(r"[\w-]+", key):
+        return 400, {"error": "no such benchmark"}
+    if key in viewgen:
+        return 409, {"error": "a view is already being written for it"}
+    viewgen.add(key)
+    say(f"writing a live view for {key}" + (f": {hint}" if hint else ""))
+    threading.Thread(target=write_view, args=(key, hint), daemon=True).start()
+    return 200, {"ok": True}
 
 
 # Agents made on the page: a name and a starting harness. Grow can plant one as the seed of a new tree.
@@ -114,7 +214,7 @@ def watch(query: str) -> tuple[int, dict]:
         return 400, {"error": "bad agent"}
     f = runner.live_path(version, task)
     lines = [json.loads(x) for x in f.read_text().splitlines()[-300:] if x.strip()] if f.exists() else []
-    return 200, {"lines": lines}
+    return 200, {"lines": lines, "question": question(task)}
 
 
 def create_set(body: dict) -> tuple[int, dict]:
@@ -148,6 +248,7 @@ def create_set(body: dict) -> tuple[int, dict]:
             "seed": {"rules": rules, "tools": ["Read", "Write"], "max_turns": 4}}  # fmt: skip
     (base / "set.json").write_text(json.dumps(spec, indent=1))
     say(f"new benchmark connected: {name}, {len(items)} questions")
+    generate_view({"set": key})
     return 200, {"ok": True, "key": key, "count": len(items)}
 
 
@@ -229,6 +330,8 @@ def job(cfg: dict) -> None:
                 ended=time.time(),
             )
         say("stopped" if stop.is_set() else "run finished")
+        if held_lock and loop.report(state["job"].get("set", "")):
+            say("context file and change list written: web/out/latest/context.md, CHANGES.md")
     except (
         Exception
     ) as e:  # shown on the page: a run that dies silently looks like a hang
@@ -318,6 +421,15 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def send_text(self, text: str) -> None:
+        data = text.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_GET(self):
         path = self.path.split("?")[0]
         # Saved games, read-only: /replays/<set>/<version>/<game>.json from tasks/<set>/_replays/.
@@ -325,6 +437,15 @@ class Handler(SimpleHTTPRequestHandler):
         if m:
             f = runner.TASKS / m[1] / "_replays" / m[2] / f"{m[3]}.json"
             return self.send_json(200, json.loads(f.read_text())) if f.exists() else self.send_json(404, {"error": "no replay"})
+        # The score charts and the replay page read run logs and saved games, read-only. Hidden answers stay hidden.
+        m = re.fullmatch(r"/runs/([\w.-]+\.jsonl)", path)
+        if m:
+            f = ROOT / "runs" / m[1]
+            return self.send_text(f.read_text()) if f.exists() else self.send_json(404, {"error": "no such log"})
+        m = re.fullmatch(r"/tasks/([\w-]+)/(_replays/[\w-]+/[\w-]+\.json|[\w-]+/game\.json)", path)
+        if m:
+            f = runner.TASKS / m[1] / m[2]
+            return self.send_json(200, json.loads(f.read_text())) if f.exists() else self.send_json(404, {"error": "no such file"})
         if path == "/api/watch":
             return self.send_json(*watch(self.path.partition("?")[2]))
         if path != "/api/state":
@@ -334,7 +455,7 @@ class Handler(SimpleHTTPRequestHandler):
                 {k: v for k, v in a.items() if k != "key"} for a in state["agents"]
             ]
             body = {"job": state["job"], "agents": agents, "log": state["log"][-80:], "now": time.time(),
-                    "sets": sets(), "studio": saved_agents(),
+                    "sets": sets(), "studio": saved_agents(), "viewgen": sorted(viewgen),
                     "raindrop": runner.RAINDROP}  # fmt: skip
         self.send_json(200, body)
 
@@ -365,6 +486,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(*create_set(body))
             except (TypeError, ValueError, OSError) as e:
                 return self.send_json(400, {"error": f"could not create it: {e}"[:200]})
+        if self.path == "/api/views":
+            return self.send_json(*generate_view(body))
         if self.path == "/api/agents":
             try:
                 return self.send_json(*save_agent(body))

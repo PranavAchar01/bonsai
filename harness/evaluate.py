@@ -66,7 +66,7 @@ def stream_claude(cmd: list[str], cwd: Path, timeout: int, live: Path) -> dict:
                     continue
                 if ev.get("type") == "result":
                     out = ev
-                for step in steps(ev):
+                for step in steps(ev) if isinstance(ev, dict) else []:
                     log.write(json.dumps({"t": time.time(), **step}) + "\n")
                     log.flush()
         proc.wait()
@@ -85,11 +85,13 @@ def steps(ev: dict) -> list[dict]:
     if not isinstance(msg, dict):  # some stream events carry "message" as plain text
         return []
     out = []
-    for part in msg.get("content") or [] if isinstance(msg.get("content"), list) else []:
+    for part in msg.get("content") if isinstance(msg.get("content"), list) else []:
+        if not isinstance(part, dict):  # a content list can hold bare strings
+            continue
         if part.get("type") == "text" and kind == "assistant":
-            out.append({"kind": "said", "text": part["text"][-600:]})
+            out.append({"kind": "said", "text": str(part.get("text") or "")[-600:]})
         elif part.get("type") == "tool_use":
-            arg = part.get("input") or {}
+            arg = part.get("input") if isinstance(part.get("input"), dict) else {}
             brief = arg.get("file_path") or arg.get("command") or arg.get("pattern") or json.dumps(arg)[:160]
             out.append({"kind": "tool", "tool": part.get("name"), "text": str(brief)[-200:]})
         elif part.get("type") == "tool_result":

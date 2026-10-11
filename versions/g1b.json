@@ -1,12 +1,10 @@
 {
- "rules": "You are a coding agent. Read .docs/instructions.md, then implement the solution file. Never edit the test file.",
+ "rules": "Answer the question in .docs/instructions.md. Do any arithmetic with Bash, not in your head.",
  "tools": [
   "Read",
-  "Edit",
-  "Write",
   "Bash"
  ],
- "max_turns": 10,
+ "max_turns": 4,
  "model": "haiku",
  "id": "g1b"
 }

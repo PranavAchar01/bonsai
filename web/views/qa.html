@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:10px 26px; background:var(--paper); color:var(--ink); font:11.5px/1.5 "IBM Plex Mono", monospace; overflow:hidden; display:flex; flex-direction:column; gap:8px; }
+  .px { font-family:"DotGothic16", monospace; } .faint { color:var(--faint); } .ok { color:var(--moss); } .bad { color:var(--seal); }
+  .k { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .stamp { font:18px "DotGothic16"; padding:1px 8px; border:1px solid currentColor; display:inline-block; }
+  .cur { display:inline-block; width:6px; height:12px; background:var(--ink); vertical-align:-2px; animation:b 1s steps(2) infinite; } @keyframes b { 50% { opacity:0; } }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  #q { flex:0 1 auto; max-height:44%; overflow-y:auto; white-space:pre-wrap; }
+  #steps { display:flex; flex-wrap:wrap; gap:4px 6px; } #steps span { border:1px solid var(--line); padding:0 6px; font-size:10.5px; } #steps span.t { color:var(--moss); }
+  #a { flex:1; min-height:0; overflow:hidden; font:17px/1.35 "DotGothic16"; word-break:break-word; }
+  #think { font-size:10.5px; color:var(--faint); max-height:32px; overflow:hidden; }
+</style></head><body>
+<div class="k">the question</div><div id="q"></div>
+<div id="steps"></div>
+<div class="k">its answer</div><div id="a"></div><div id="think"></div><div id="end"></div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+// The host posts {lines, question, agent, set, colors} about once a second.
+addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.lines)) return;
+  for (const [k, v] of Object.entries(d.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  render(d); });
+
+let shown = '', target = '', timer = null;
+function type() { if (shown === target) { clearInterval(timer); timer = null; return; } shown = target.startsWith(shown) ? target.slice(0, shown.length + 2) : ''; $('a').innerHTML = esc(shown) + '<span class="cur"></span>'; }
+function render(d) {
+  $('q').textContent = (d.question || '').replace(/\n*Write only your final answer[^\n]*\n?$/, '').trim() || 'waiting for the question';
+  const tools = d.lines.filter(l => l.kind === 'tool'), verdict = d.lines.find(l => l.kind === 'verdict');
+  $('steps').innerHTML = tools.map(l => `<span class="t">${esc(l.tool)}</span>`).join('') + (d.agent.status === 'working' && !verdict ? '<span>working <span class="cur"></span></span>' : '');
+  const write = [...tools].reverse().find(l => /write|edit/i.test(l.tool)), said = [...d.lines].reverse().find(l => l.kind === 'said' || l.kind === 'result');
+  target = write ? String(write.text).replace(/^.*answer\.txt[:\s]*/s, '').trim() || String(write.text) : '';
+  if (!target && !timer) $('a').innerHTML = '<span class="faint" style="font:11.5px IBM Plex Mono">not written yet</span>';
+  if (target !== shown && !timer) timer = setInterval(type, 40);
+  $('think').textContent = said ? said.text.slice(-150) : '';
+  $('end').innerHTML = verdict ? `<span class="stamp ${verdict.passed ? 'ok' : 'bad'}">${verdict.passed ? 'correct' : 'wrong'}</span> <span class="faint" style="font-size:10px">${esc((verdict.text || '').slice(-80))}</span>` : '';
+}
+</script></body></html>

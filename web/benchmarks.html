@@ -12,9 +12,13 @@
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>if (new URLSearchParams(location.search).get("embed")) document.documentElement.classList.add("embed");</script>
 <style>
   :root { --paper:#1a1b26; --deep:#16161e; --ink:#c0caf5; --faint:#565f89; --muted:#8089b3; --line:rgba(122,162,247,.18);
     --kept:#7aa2f7; --cheat:#f7768e; }
+  /* inside the main page (?embed=1): its paper palette, no second title */
+  html.embed { --paper:#f1eadb; --deep:#e7ddc8; --ink:#1c1a17; --faint:#8a8273; --muted:#6f685b; --line:rgba(28,26,23,.16); --kept:#4d6b3c; --cheat:#b23a2a; }
+  html.embed body { background:var(--paper); } html.embed header { display:none; } html.embed .card { background:rgba(255,255,255,.35); }
   * { box-sizing: border-box; }
   body { margin:0; color:var(--ink); font-family:"Chakra Petch",sans-serif; min-height:100vh;
     background:radial-gradient(ellipse at 70% 0%, rgba(187,154,247,.10), transparent 55%),
@@ -70,6 +74,8 @@ const SETS = [
   { key: "finance", name: "Finance", src: "FinQA" },
   { key: "coding", name: "Coding", src: "Aider Polyglot C++" },
   { key: "chess", name: "Chess", src: "games vs Stockfish" },
+  { key: "understudy", name: "Understudy", src: "robot failure labels", file: "understudy-rsi.jsonl" },
+  { key: "current", name: "Latest run", src: "what the page last grew", file: "versions.jsonl" },
 ];
 const RUNS = new URLSearchParams(location.search).get("runs") || "../runs";  // ?runs= points at another folder of logs
 const W = 320, H = 190, M = { l: 34, r: 10, t: 8, b: 22 };
@@ -79,7 +85,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 async function getText(url) { try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? r.text() : null; } catch { return null; } }
 
 async function load(set) {
-  const log = await getText(`${RUNS}/${set.key}-versions.jsonl`);
+  const log = await getText(`${RUNS}/${set.file || set.key + "-versions.jsonl"}`);
   const versions = log ? log.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)) : [];
   return { ...set, versions };
 }
@@ -128,7 +134,7 @@ function card(s) {
 let DATA = [];
 async function render() {
   DATA = await Promise.all(SETS.map(load));
-  document.getElementById("grid").innerHTML = DATA.map(card).join("");
+  document.getElementById("grid").innerHTML = [...DATA].sort((a, b) => !!b.versions.length - !!a.versions.length).map(card).join("");  // trees that exist come first
   document.getElementById("table").innerHTML = `<tr><th>set</th><th>version</th><th>parent</th><th>gen</th><th>held-out</th><th>kept</th><th>change</th></tr>` +
     DATA.flatMap(s => s.versions.map(q => `<tr><td>${s.key}</td><td>${esc(q.id)}</td><td>${esc(q.parent ?? "")}</td><td>${q.generation}</td><td>${pct(q.score)}</td><td>${q.kept ? "kept" : q.signal === "cheat caught" ? "pruned (cheat)" : "pruned"}</td><td>${esc(q.change)}</td></tr>`)).join("");
 }
