@@ -1,0 +1,5 @@
+bench/
+fractalsearch/
+runs/
+__pycache__/
+.env*
