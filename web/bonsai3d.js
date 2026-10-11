@@ -598,7 +598,7 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
   // ---------- events from the loop ----------
   const api = {
     seed(v) { trunk.Ltarget = TLEN * .22; roots.Ltarget = 2; sprigs.Ltarget = trunk.Ltarget; sites[v.id] = {stumps:[]}; onLabel({text:`${v.id}  seed`, pos:V(0, .4, 0)}); },
-    propose(id, parent) { if (!attempts[id] && trunk.L > .3) makeAttempt(id, parent); },
+    propose(id, parent) { if (!attempts[id] && trunk.L > .3) { const a = makeAttempt(id, parent); onLabel({text:`${id}  testing`, pos:a.pad.centre.clone().add(V(0, a.pad.size * .7, 0))}); } },
     progress(id, done, total) { const a = attempts[id]; if (a) setGrowth(a, (.15 + .75 * done / Math.max(total, 1)) * a.full * .85); },
     verdict(v, instant = false) {
       if (!v.parent) { api.seed(v); if (instant) snap(trunk, roots, sprigs); return; }

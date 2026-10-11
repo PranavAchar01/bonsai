@@ -17,7 +17,7 @@ export function startFeed(emit, opts = {}) {
   const setMode = m => { if (m !== mode) { mode = m; emit({type:'mode', mode}); } };
   const getJSON = async u => { try { const r = await fetch(u, {cache:'no-store'}); return r.ok ? await r.json() : null; } catch { return null; } };
 
-  function startDemo() { if (!demo) { setMode('demo'); demo = simulate(e => queue.push(e)); } }
+  function startDemo() { if (!demo) { setMode('demo'); demo = simulate(e => queue.push(e), opts); } }
 
   async function poll() {
     if (opts.demo) return startDemo();
@@ -61,9 +61,11 @@ export function startFeed(emit, opts = {}) {
 }
 
 // A stand-in for the loop: practice run, proposal, held-out scoring, keep or prune. Never ends.
-function simulate(emit) {
-  let stopped = false;
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+// opts.stress = N first grows N generations at once (drawn grown), to see how a long run looks.
+function simulate(emit, opts = {}) {
+  let stopped = false, quick = +opts.stress || 0;
+  const wait = ms => quick ? Promise.resolve() : new Promise(r => setTimeout(r, ms));
+  const out = emit; emit = e => quick ? e.type === 'verdict' && out({...e, instant:true}) : out(e);
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const signals = ['claimed pass, never ran', 'same edit repeated', 'gave up early', 'stops before the hard cases', 'ignored the spec', 'tokens up, score down', 'no gain'];
   const changes = ['run the tests before finishing', 're-read the spec on failure', 'edge-case checklist', 'drop an unused tool', 'shorter rules',
@@ -74,6 +76,7 @@ function simulate(emit) {
     for (let gen = 1; !stopped; gen++) {
       emit({type:'phase', text:`running ${best.id} on practice problems to find what fails`}); await wait(1600);
       for (let i = 0, n = 1 + Math.floor(Math.random() * 4); i < n; i++) emit({type:'practice', failed:1});
+      if (quick && gen >= quick) quick = 0;
       for (let a = 0; a < 2 && !stopped; a++) {
         const id = `g${gen}${'ab'[a]}`;
         emit({type:'phase', text:`proposer is reading the failures and writing ${id}`}); emit({type:'propose', id, parent:best.id});
@@ -81,7 +84,7 @@ function simulate(emit) {
         emit({type:'phase', text:`scoring ${id} on held-out problems`});
         for (let d = 1; d <= 8 && !stopped; d++) { await wait(420); emit({type:'progress', id, done:d, total:8}); }
         const room = 1 - best.score, cheat = Math.random() < .08, kept = !cheat && Math.random() < .3 + .3 * Math.exp(-gen / 30);
-        const score = kept ? best.score + room * (.03 + Math.random() * .08) : cheat ? Math.min(.99, best.score + .05) : Math.max(.05, best.score - Math.random() * .06);
+        const score = kept ? best.score + room * (.015 + Math.random() * .045) : cheat ? Math.min(.99, best.score + .05) : Math.max(.05, best.score - Math.random() * .06);
         const v = {id, parent:best.id, kept, score, change:pick(changes), signal:cheat ? 'cheat caught' : pick(signals)};
         emit({type:'verdict', v}); await wait(1000);
         if (kept) { best = v; break; }
