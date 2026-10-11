@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* Layout: the tree is the page; one ledger runs down the right margin. Pixel garden on paper, no cards. */
-  :root { --paper:#efe7d6; --deep:#e7ddc8; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --moss:#4f6e3f; --line:rgba(29,27,25,.16); --margin:420px; }
+  :root { --paper:#efe7d6; --deep:#e7ddc8; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --moss:#4f6e3f; --line:rgba(29,27,25,.16); --margin:420px; --term:0px; }
   * { box-sizing:border-box; }
   html, body { height:100%; }
   body { margin:0; color:var(--ink); font:12px/1.5 "IBM Plex Mono", monospace; overflow:hidden; transition:background-color 6s, color 6s;
@@ -23,9 +23,23 @@
   button.halt { border-color:var(--seal); color:var(--seal); }
 
   /* stage: tree on the left, ledger on the right */
-  #stage { position:fixed; left:0; top:0; bottom:0; right:var(--margin); }
+  #stage { position:fixed; left:var(--term); top:0; bottom:0; right:var(--margin); }
   #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; }
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
+
+  /* terminal: the agent's files and every change to them, down the left side */
+  body.term { --term:400px; }
+  #term { position:fixed; left:0; top:0; bottom:0; width:400px; display:none; flex-direction:column; z-index:6; background:#191715; color:#e6decb; font:11.5px/1.6 "IBM Plex Mono", monospace; }
+  body.term #term { display:flex; }
+  #term .tbar { display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid rgba(230,222,203,.14); color:#9a917f; font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+  #term .tbar span { flex:1; } #term button { color:#e6decb; border-color:rgba(230,222,203,.25); font-size:10.5px; padding:1px 7px; }
+  #t-files { max-height:30%; overflow-y:auto; padding:8px 14px; border-bottom:1px solid rgba(230,222,203,.14); }
+  #t-files a { display:grid; grid-template-columns:14px 1fr auto; gap:6px; cursor:pointer; color:#e6decb; } #t-files a:hover, #t-files a.on { background:rgba(230,222,203,.09); }
+  #t-files a.cut { color:#9a917f; } #t-files i { font-style:normal; color:#9a917f; }
+  #t-out { flex:1; overflow-y:auto; padding:10px 14px 18px; white-space:pre-wrap; word-break:break-word; }
+  #t-out .cmd { color:#e6decb; margin-top:10px; } #t-out .cmd::before { content:"$ "; color:#8fae78; } #t-out .dim { color:#9a917f; }
+  #t-out .add, #t-files .ok { color:#8fae78; } #t-out .del, #t-files .no { color:#d46a5c; }
+  #t-out .cur { display:inline-block; width:7px; height:13px; background:#e6decb; vertical-align:-2px; animation:pulse 1.2s infinite; }
 
   /* the ask, as one sentence across the top of the stage */
   .askbar { position:absolute; left:32px; right:32px; top:22px; z-index:2; }
@@ -106,7 +120,7 @@
 
   @media (max-width:900px) {
     body { overflow:auto; } :root { --margin:0px; }
-    #stage { position:relative; height:78vh; right:0; } #margin { position:relative; width:auto; border-left:0; border-top:1px solid var(--line); }
+    #stage { position:relative; height:78vh; right:0; left:0; } #term { display:none !important; } #margin { position:relative; width:auto; border-left:0; border-top:1px solid var(--line); }
     #ledger, #version { overflow:visible; }
   }
 </style>
@@ -124,6 +138,7 @@
       <span class="faint">on</span><select id="count" class="sel"></select>
       <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
       <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
+      <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
     </form>
   </header>
   <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
@@ -145,6 +160,12 @@
   </div>
   <div class="seal">盆</div>
 </div>
+
+<section id="term">
+  <div class="tbar"><span>agent files · versions/</span><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
+  <div id="t-files"></div>
+  <div id="t-out"></div>
+</section>
 
 <aside id="margin">
   <div class="sec">
@@ -259,12 +280,34 @@ async function loadBoards(v, par) {
   if ($('boards') === el) el.innerHTML = (par ? side(par.id, a) : '') + side(v.id, b);
 }
 
+// Terminal: every harness file the loop has written, and what changed between them. Same data as the ledger.
+let termFile = null, termSig = '';
+const paint = d => esc(d).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n');
+function toggleTerm(on) { const b = document.body.classList; b.toggle('term', on); $('term-btn').classList.toggle('on', b.contains('term')); try { localStorage.term = b.contains('term') ? '1' : '0'; } catch {} termSig = ''; renderTerm(); }
+function openFile(id) { termFile = id; renderTerm(); }
+function renderTerm() {
+  if (!document.body.classList.contains('term')) return;
+  const vs = window.__d?.versions || [], log = app?.log || [], running = app?.job?.status === 'running';
+  const sig = JSON.stringify([vs.length, vs.at(-1)?.id, log.length, termFile, running]); if (sig === termSig) return; termSig = sig;
+  const by = Object.fromEntries(vs.map(v => [v.id, v])), state = v => !v.parent ? 'seed' : v.kept ? 'kept' : 'cut';
+  $('t-back').hidden = !termFile;
+  $('t-files').innerHTML = vs.length ? vs.map(v => `<a class="${state(v) === 'cut' ? 'cut' : ''} ${v.id === termFile ? 'on' : ''}" onclick="openFile('${esc(v.id)}')"><span class="${state(v) === 'cut' ? 'no' : 'ok'}">${state(v) === 'cut' ? '✕' : '●'}</span><span>versions/${esc(v.id)}.json</span><i>${pct(v.score)} ${state(v)}</i></a>`).join('') : '<span class="dim">no files yet: the seed is written when a run starts</span>';
+  const out = $('t-out'), atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 30;
+  const step = v => { const p = by[v.parent];
+    return !p ? `<div class="cmd">bonsai score versions/${esc(v.id)}.json</div>held-out ${pct(v.score)} · the seed harness`
+      : `<div class="cmd">bonsai propose --from ${esc(p.id)} --out versions/${esc(v.id)}.json</div><span class="dim">signal </span>${esc(v.signal || 'not recorded')}\n<span class="dim">change </span>${esc(v.change)}\n<span class="dim">shed   </span>${esc(v.shed || 'nothing')}\n${v.diff ? paint(v.diff) + '\n' : ''}held-out ${pct(p.score)} → ${pct(v.score)} · <span class="${v.kept ? 'add' : 'del'}">${v.kept ? 'kept' : 'cut'}</span>`; };
+  const f = by[termFile];
+  out.innerHTML = f ? `<div class="cmd">cat versions/${esc(f.id)}.json</div>${esc(JSON.stringify(f.harness ?? 'harness body not recorded', null, 2))}${f.parent ? `<div class="cmd">diff versions/${esc(f.parent)}.json versions/${esc(f.id)}.json</div>${f.diff ? paint(f.diff) : '<span class="dim">no diff recorded</span>'}` : ''}\n\n${step(f).replace(/^<div class="cmd">.*?<\/div>/, '')}`
+    : vs.map(step).join('\n') + `<div class="cmd">tail -f runs/activity.log</div>${log.slice(-40).map(l => `<span class="dim">${new Date(l.ts * 1000).toLocaleTimeString()}</span> ${esc(l.text)}`).join('\n') || '<span class="dim">nothing has run in this session yet</span>'}\n${running ? '<span class="cur"></span>' : ''}`;
+  if (!f && atEnd) out.scrollTop = out.scrollHeight;
+}
+
 function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderLedger(); }
 async function load() {
   let data = {versions:[]};
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; renderLedger(); renderVersion();
+  window.__d = data; renderLedger(); renderVersion(); renderTerm();
 }
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
@@ -325,6 +368,7 @@ function renderRun() {
     $('agent').innerHTML = `<option value="">the seed</option>${(a.studio || []).map(x => `<option value="${esc(x.key)}">${esc(x.name)} · ${esc(x.model)}</option>`).join('')}<option value="+">+ new agent…</option>`;
     $('agent').value = (a.studio || []).some(x => x.key === keep) ? keep : ''; fillTools(); }
   if (watching) renderWatchHead();
+  renderTerm();
 }
 
 // Agent studio: make an agent (model, rules, tools, turns), save it, and grow a tree from it.
@@ -399,6 +443,8 @@ async function grow(e) {
   poll(); load();
 }
 async function stopRun() { stopping = true; await post('api/stop', {}); poll(); }
+let termOn = innerWidth > 1300; try { if (localStorage.term === '0') termOn = false; } catch {}
+if (termOn) toggleTerm(true);
 load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
 </script>
 </body>

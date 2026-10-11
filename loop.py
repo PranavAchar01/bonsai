@@ -66,8 +66,10 @@ def store(doc: dict) -> None:
         from pymongo import MongoClient
 
         try:
+            # one tree per run: the seed's timestamp names the run, so trees do not overwrite each other
+            run = str(int(versions[0].get("ts") or 0))
             MongoClient(uri, serverSelectionTimeoutMS=30000)["bonsai"]["versions"].replace_one(
-                {"id": doc["id"]}, doc, upsert=True
+                {"id": doc["id"], "run": run}, {**doc, "run": run}, upsert=True
             )
             print(f"atlas: stored {doc['id']}", file=sys.stderr, flush=True)
         except Exception as e:  # the run goes on; the local log already has the version
