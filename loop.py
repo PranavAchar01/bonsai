@@ -34,6 +34,8 @@ PROPOSER = """You improve a coding agent by editing its harness. The harness is 
 Current harness:
 {harness}
 
+The person tending this agent asked for: {goal}
+
 It just ran {n} problems and failed {k}. Failures:
 {failures}
 
@@ -63,11 +65,23 @@ def store(doc: dict) -> None:
         )
 
 
-def score(harness: dict, tasks: list[str], scratch: Path, workers: int) -> dict:
+def score(harness: dict, tasks: list[str], scratch: Path, workers: int, on_task=None) -> dict:
+    """on_task(state, task, row) is called with "queued", "start" and "end" for each problem."""
     from concurrent.futures import ThreadPoolExecutor
 
+    def one(t: str) -> dict:
+        if on_task:
+            on_task("start", t, None)
+        row = runner.run_one(t, harness, scratch)
+        if on_task:
+            on_task("end", t, row)
+        return row
+
+    if on_task:
+        for t in tasks:
+            on_task("queued", t, None)
     with ThreadPoolExecutor(workers) as ex:
-        rows = list(ex.map(lambda t: runner.run_one(t, harness, scratch), tasks))
+        rows = list(ex.map(one, tasks))
     return {
         "score": sum(r["passed"] for r in rows) / len(rows),
         "cheated": any(r["edited_tests"] for r in rows),
@@ -75,7 +89,7 @@ def score(harness: dict, tasks: list[str], scratch: Path, workers: int) -> dict:
     }
 
 
-def propose(parent: dict, result: dict, pruned: list[str], model: str) -> dict:
+def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str = "") -> dict:
     fails = [r for r in result["rows"] if not r["passed"] or r["edited_tests"]]
     digest = "\n".join(
         f"- {r['task']} (turns {r['turns']}, edited tests: {r['edited_tests']})\n"
@@ -88,6 +102,7 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str) -> dict:
         harness=json.dumps(
             {k: parent[k] for k in ("rules", "tools", "max_turns", "model")}, indent=1
         ),
+        goal=goal or "a higher score on problems it has not seen",
         n=len(result["rows"]),
         k=len(fails),
         failures=digest or "(none)",
@@ -118,6 +133,72 @@ def diff(a: dict, b: dict) -> str:
     )  # fmt: skip
 
 
+def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet", scratch=None,
+        goal="", parent=None, emit=None, stopped=lambda: False) -> None:  # fmt: skip
+    """Grow the tree. `parent` is a stored version to branch from; without one the seed is scored first.
+
+    emit(kind, **data) reports what is happening: phase, task, proposed, version.
+    """
+    emit = emit or (lambda kind, **d: None)
+    scratch = Path(scratch)
+    VERSIONS.mkdir(exist_ok=True)
+
+    def tasks_cb(vid: str, split: str):
+        return lambda state, task, row: emit("task", version=vid, split=split, task=task, state=state, row=row)
+
+    if parent:
+        best = {**parent["harness"], "id": parent["id"]}
+        best_score, first = parent["score"], parent["generation"] + 1
+    else:
+        best, first = {**runner.BASE_HARNESS, "id": "g0"}, 1
+        emit("phase", text="scoring the seed on held-out problems", version="g0")
+        held = score(best, heldout, scratch / "g0-held", workers, tasks_cb("g0", "held-out"))
+        best_score = held["score"]
+        (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
+        doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": dict(runner.BASE_HARNESS),
+               "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
+               "trace_id": None, "ts": time.time()}  # fmt: skip
+        store(doc)
+        emit("version", doc=doc)
+        print(f"g0 seed held-out {best_score:.2f}", flush=True)
+
+    for gen in range(first, first + generations):
+        if stopped():
+            return
+        emit("phase", text=f"running {best['id']} on practice problems to find what fails", version=best["id"])
+        practice_run = score(best, practice, scratch / f"g{gen}-practice", workers, tasks_cb(best["id"], "practice"))
+        pruned: list[str] = []
+        for i in range(tries):
+            if stopped():
+                return
+            vid = f"g{gen}{'abcdef'[i]}"
+            emit("phase", text=f"proposer is reading the failures and writing {vid}", version=vid)
+            emit("task", version=vid, split="propose", task="one change, one thing shed", state="start", row=None)
+            p = propose(best, practice_run, pruned, proposer, goal)
+            emit("task", version=vid, split="propose", task="one change, one thing shed", state="end",
+                 row={"passed": True, "edited_tests": False, "said": p["change"]})  # fmt: skip
+            child = {**p["harness"], "id": vid}
+            emit("phase", text=f"scoring {vid} on held-out problems: {p['change']}", version=vid)
+            res = score(child, heldout, scratch / f"{vid}-held", workers, tasks_cb(vid, "held-out"))
+            kept = res["score"] > best_score and not res["cheated"]
+            fail_trace = next(
+                (r.get("trace_id") for r in practice_run["rows"] if not r["passed"]), None
+            )
+            doc = {"id": vid, "parent": best["id"], "generation": gen, "change": p["change"], "shed": p["shed"], "harness": p["harness"],
+                   "signal": "cheat caught" if res["cheated"] else p["signal"], "kept": kept,
+                   "score": res["score"], "tokens": len(child["rules"]) // 4,
+                   "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()}  # fmt: skip
+            store(doc)
+            emit("version", doc=doc)
+            (VERSIONS / f"{vid}.json").write_text(json.dumps(child, indent=1))
+            print(f"{vid} {'KEPT' if kept else 'PRUNED'} {res['score']:.2f} (best {best_score:.2f}) "
+                  f"{'CHEAT ' if res['cheated'] else ''}{p['change']}", flush=True)  # fmt: skip
+            if kept:
+                best, best_score = child, res["score"]
+                break
+            pruned.append(p["change"])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -130,44 +211,10 @@ def main() -> None:
     ap.add_argument("--tries", type=int, default=2, help="children per generation")
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--proposer", default="sonnet")
+    ap.add_argument("--goal", default="", help="what the person wants the agent to get better at")
     ap.add_argument("--scratch", required=True)
     a = ap.parse_args()
-    scratch = Path(a.scratch)
-    VERSIONS.mkdir(exist_ok=True)
-
-    best = {**runner.BASE_HARNESS, "id": "g0"}
-    held = score(best, a.heldout, scratch / "g0-held", a.workers)
-    best_score = held["score"]
-    (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
-    store({"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": dict(runner.BASE_HARNESS),
-           "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
-           "trace_id": None, "ts": time.time()})  # fmt: skip
-    print(f"g0 seed held-out {best_score:.2f}", flush=True)
-
-    for gen in range(1, a.generations + 1):
-        practice = score(best, a.practice, scratch / f"g{gen}-practice", a.workers)
-        pruned: list[str] = []
-        for i in range(a.tries):
-            vid = f"g{gen}{'abcdef'[i]}"
-            p = propose(best, practice, pruned, a.proposer)
-            child = {**p["harness"], "id": vid}
-            res = score(child, a.heldout, scratch / f"{vid}-held", a.workers)
-            kept = res["score"] > best_score and not res["cheated"]
-            fail_trace = next(
-                (r.get("trace_id") for r in practice["rows"] if not r["passed"]), None
-            )
-            store({"id": vid, "parent": best["id"], "generation": gen, "change": p["change"], "shed": p["shed"], "harness": p["harness"],
-                   "signal": "cheat caught" if res["cheated"] else p["signal"], "kept": kept,
-                   "score": res["score"], "tokens": len(child["rules"]) // 4,
-                   "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()})  # fmt: skip
-            (VERSIONS / f"{vid}.json").write_text(json.dumps(child, indent=1))
-            print(f"{vid} {'KEPT' if kept else 'PRUNED'} {res['score']:.2f} (best {best_score:.2f}) "
-                  f"{'CHEAT ' if res['cheated'] else ''}{p['change']}", flush=True)  # fmt: skip
-            if kept:
-                best, best_score = child, res["score"]
-                break
-            pruned.append(p["change"])
-
+    run(a.practice, a.heldout, a.generations, a.tries, a.workers, a.proposer, a.scratch, a.goal)
     if runner.RAINDROP:
         runner.raindrop.flush()
         runner.raindrop.shutdown()

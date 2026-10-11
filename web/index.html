@@ -10,7 +10,28 @@
   * { box-sizing:border-box; }
   html, body { height:100%; }
   body { margin:0; background:var(--paper); color:var(--ink); font-family:"Shippori Mincho",serif; display:flex; flex-direction:column; overflow:hidden; }
-  .mono, table, button, select, .stat, pre, dl { font-family:"IBM Plex Mono",monospace; }
+  .mono, table, button, select, input, .stat, pre, dl { font-family:"IBM Plex Mono",monospace; }
+  .ask { display:flex; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
+  .ask label { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--ink); font-family:"Shippori Mincho",serif; font-size:17px; color:var(--ink); padding:3px 2px; outline:none; }
+  .ask input::placeholder { color:var(--faint); }
+  .ask select { padding:4px 4px; font-size:11px; }
+  .ask button { font-size:12px; padding:6px 16px; }
+  .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
+  .ask button.halt { color:var(--seal); border-color:var(--seal); }
+  .ask button:disabled { opacity:.35; cursor:default; }
+  #phase { font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--faint); padding:6px 22px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #phase b { color:var(--ink); font-weight:400; } #phase.err b { color:var(--seal); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; }
+  .live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
+  #agents-box { flex:0 0 42%; min-height:0; display:flex; flex-direction:column; border-bottom:1px solid var(--line); }
+  #agents { overflow-y:auto; flex:1; font-family:"IBM Plex Mono",monospace; font-size:11px; }
+  .ag { display:grid; grid-template-columns:62px 1fr auto; gap:8px; padding:5px 18px; border-bottom:1px solid rgba(29,27,25,.06); align-items:baseline; }
+  .ag .role { color:var(--faint); } .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; }
+  .ag.working { background:rgba(29,27,25,.06); } .ag.working .st { color:var(--ink); } .ag.queued { color:var(--faint); }
+  .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
+  .empty { padding:10px 18px; color:var(--faint); font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1.7; }
+  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.7; } .logline span { color:var(--faint); }
   header { display:flex; align-items:baseline; gap:26px; padding:12px 22px; border-bottom:1px solid var(--line); }
   header > * { white-space:nowrap; }
   header h1 { font-weight:600; font-size:24px; letter-spacing:.08em; margin:0; }
@@ -18,7 +39,7 @@
   .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
   .stat b { font-family:"Shippori Mincho",serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
   .stat.red b { color:var(--seal); }
-  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:390px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 210px; }
+  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 210px; }
   .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
   #panel-board { grid-row:1 / span 2; border-right:1px solid var(--line); }
   #panel-graph { border-top:1px solid var(--line); }
@@ -62,8 +83,23 @@
   <span class="stat">best held-out<b id="s-best">–</b></span>
   <span class="stat" style="margin-left:auto" id="s-note"></span>
 </header>
+<form class="ask" id="ask" onsubmit="grow(event)">
+  <label for="goal">Ask it to get better at</label>
+  <input id="goal" maxlength="300" autocomplete="off" placeholder="finishing the hard cases instead of stopping early">
+  <label for="set">on</label><select id="set"></select>
+  <select id="count"><option value="8">8 problems</option><option value="14">14 problems</option><option value="0" selected>all problems</option></select>
+  <label for="gens">for</label><select id="gens"><option value="1">1 generation</option><option value="2" selected>2 generations</option><option value="3">3 generations</option><option value="5">5 generations</option></select>
+  <label for="from">from</label><select id="from"><option value="">best so far</option><option value="sel">selected version</option></select>
+  <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
+</form>
+<div id="phase"><span class="dot"></span><b>idle</b> · type what you want it to get better at, then Grow</div>
 <div class="wrap">
   <div class="panel" id="panel-board">
+    <div id="agents-box">
+      <h2>Agents <span id="ag-count" class="name"></span><span class="sp"></span>
+        <button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></h2>
+      <div id="agents"></div>
+    </div>
     <h2>Lineage <span class="sp"></span>
       <button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">highest score</button></h2>
     <div class="tablescroll"><table>
@@ -74,11 +110,11 @@
     <h2>Selected version <span id="sel-name" class="name"></span><span class="sp"></span>
       <button id="follow-btn" class="on" onclick="toggleFollow()">following latest</button></h2>
     <div class="seg" id="seg">
-      <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button>
+      <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button><button data-layer="activity" onclick="setLayer('activity')">activity</button>
     </div>
     <div class="viewer" id="viewer">
       <canvas id="c"></canvas><canvas id="fx"></canvas>
-      <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div>
+      <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div><div class="layer" id="layer-activity"></div>
     </div>
     <div class="stats" id="sel-stats"></div>
   </div>
@@ -235,7 +271,7 @@ function renderUI(data, kept) {
   $('s-count').textContent = vs.length; $('s-kept').textContent = vs.filter(v => v.kept).length - 1;
   $('s-cut').textContent = vs.filter(v => !v.kept).length; $('s-cheat').textContent = vs.filter(v => v.signal === 'cheat caught').length;
   $('s-best').textContent = `${pct(best.score)} from ${pct(kept[0].score)}`;
-  $('s-note').textContent = data.sample ? 'SAMPLE LINEAGE FOR LAYOUT · NO RUN HAS PRODUCED THESE NUMBERS' : '';
+  $('s-note').textContent = data.sample ? 'SAMPLE TREE · NO RUN YET' : '';
   const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
   $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
   const v = vs.find(v => v.id === selected), par = vs.find(p => p.id === v.parent);
@@ -254,7 +290,7 @@ const $ = id => document.getElementById(id);
 function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
 function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1).id; draw(window.__d); } }
 function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
-function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
+function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness','activity'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
 
 // Best held-out over time: ink step line through kept versions, red marks where a branch was cut.
 let chartPts = [];
@@ -306,7 +342,47 @@ cv.addEventListener('click', e => {
   const h = hits.filter(h => Math.hypot(h[0]-x, h[1]-y) < h[2]).sort((a, b) => a[2] - b[2])[0];
   if (h) select(h[3], true);
 });
-load(); addEventListener('resize', () => draw(window.__d || SAMPLE)); setInterval(load, 5000);
+
+// The run: what was asked, every agent working on it, and the log. Polled from the local server.
+let agentView = 'live', app = null;
+const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2, '0');
+function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
+function renderRun() {
+  const a = app; if (!a) return;
+  const job = a.job, running = job && job.status === 'running';
+  if (!$('set').options.length) $('set').innerHTML = Object.entries(a.sets).map(([k, v]) => `<option value="${esc(k)}">${esc(v.name)} (${v.count})</option>`).join('');
+  $('go').disabled = running; $('halt').disabled = !running; $('goal').disabled = running;
+  const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
+  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · type what you want it to get better at, then Grow'
+    : running ? `<b>${esc(job.phase)}</b> · asked: ${esc(job.goal || 'a higher held-out score')} · ${secs(a.now - job.started)}`
+    : job.status === 'error' ? `<b>run failed</b> · ${esc(job.error)}`
+    : `<b>${esc(job.status)}</b> · asked: ${esc(job.goal || 'a higher held-out score')} · took ${secs(job.ended - job.started)}`);
+  const all = a.agents, live = all.filter(x => x.status === 'working' || x.status === 'queued');
+  const done = all.filter(x => x.ended).sort((x, y) => y.ended - x.ended);
+  const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 6)] : [...all].reverse();
+  $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${live.filter(x => x.status === 'queued').length} queued · ${done.length} done` : '';
+  $('agents').innerHTML = show.length ? show.map(x => {
+    const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status + (x.turns ? ` · ${x.turns} turns` : '');
+    return `<div class="ag ${esc(x.status)}" title="${esc(x.said || '')}"><span class="role">${esc(x.role)}</span><span class="what">${esc(x.task)} <i>${esc(x.version)} · ${esc(x.split)} · ${esc(x.model)}</i></span><span class="st">${esc(st)}</span></div>`;
+  }).join('') : `<div class="empty">No agents yet. A run starts solver agents (one per problem, on the model being improved) and a proposer agent that reads their failures and rewrites the harness.</div>`;
+  $('layer-activity').innerHTML = a.log.length ? [...a.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts*1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
+}
+async function poll() {
+  try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
+  catch { $('phase').innerHTML = '<span class="dot"></span><b>view only</b> · start the app with python server.py to run it from here'; $('go').disabled = true; }
+}
+async function post(path, body) {
+  const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(() => ({})); if (!r.ok) { $('phase').className = 'err'; $('phase').innerHTML = `<span class="dot"></span><b>${esc(j.error || 'request failed')}</b>`; } return r.ok;
+}
+async function grow(e) {
+  e.preventDefault(); $('go').disabled = true;
+  const ok = await post('api/grow', {goal:$('goal').value, lang:$('set').value, count:+$('count').value, generations:+$('gens').value, parent:$('from').value === 'sel' ? selected : null});
+  if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
+  poll(); load();
+}
+async function halt() { await post('api/stop', {}); poll(); }
+load(); poll(); addEventListener('resize', () => draw(window.__d || SAMPLE)); setInterval(load, 3000); setInterval(poll, 1000);
 </script>
 </body>
 </html>
