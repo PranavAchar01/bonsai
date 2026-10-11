@@ -28,7 +28,7 @@
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
 
   /* the ask, as one sentence across the top of the stage */
-  .top { position:absolute; left:32px; right:32px; top:22px; z-index:2; }
+  .askbar { position:absolute; left:32px; right:32px; top:22px; z-index:2; }
   header { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 12px; }
   header h1 { margin:0 18px 0 0; font:400 28px "DotGothic16"; letter-spacing:.04em; }
   .sel { appearance:none; background:transparent; border:0; border-bottom:1px solid var(--ink); padding:1px 16px 1px 2px; font:14px "DotGothic16"; cursor:pointer; max-width:340px;
@@ -41,12 +41,23 @@
   .seal { position:absolute; left:32px; bottom:24px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; z-index:2; transition:background-color 6s; }
 
   /* new benchmark, unfolds under the ask */
-  #newset { position:absolute; left:32px; top:120px; width:min(640px, calc(100% - 64px)); z-index:3; padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
+  #newset { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
   #newset[hidden] { display:none; }
   #newset .row { display:flex; align-items:center; gap:10px; margin:6px 0; } #newset .row.top { align-items:flex-start; }
   #newset label { width:110px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
   #newset input, #newset textarea { flex:1; background:transparent; border:1px solid var(--line); padding:6px 8px; outline:none; resize:vertical; font-size:12px; }
   #ns-note { color:var(--faint); } #ns-note.err { color:var(--seal); }
+
+  /* new agent: same paper form as the new benchmark */
+  #newagent { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
+  #newagent[hidden] { display:none; }
+  #newagent .row { display:flex; align-items:center; gap:10px; margin:6px 0; } #newagent .row.top { align-items:flex-start; }
+  #newagent label.k { width:110px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  #newagent input[type=text], #newagent input[type=number], #newagent textarea, #newagent select { flex:1; background:transparent; border:1px solid var(--line); padding:6px 8px; outline:none; resize:vertical; font-size:12px; }
+  #newagent input[type=number] { flex:0 0 80px; }
+  #na-tools { display:flex; flex-wrap:wrap; gap:6px 14px; flex:1; } #na-tools label { display:flex; gap:5px; align-items:center; }
+  #newagent button { white-space:nowrap; }
+  #na-note { color:var(--faint); } #na-note.err { color:var(--seal); }
 
   /* margin */
   .sec { padding:16px 26px 0; }
@@ -56,6 +67,7 @@
   #agents { max-height:150px; overflow-y:auto; }
   .ag { display:grid; grid-template-columns:1fr auto; gap:8px; padding:3px 0; border-bottom:1px solid var(--line); font-size:11px; }
   .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; } .ag u { text-decoration:none; color:var(--moss); }
+  .ag { cursor:pointer; } .ag:hover { background:color-mix(in srgb, var(--ink) 4%, transparent); }
   .ag.queued { color:var(--faint); } .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
   .empty { color:var(--faint); padding:4px 0 8px; line-height:1.6; }
   #ledger { flex:1; overflow-y:auto; padding:0 26px 24px; }
@@ -68,6 +80,13 @@
   /* one version open in the margin */
   #version { display:none; flex:1; overflow-y:auto; padding:18px 26px 26px; }
   .open #version { display:block; } .open #ledger, .open #list-head { display:none; }
+  #watch { display:none; flex:1; overflow-y:auto; padding:18px 26px 26px; }
+  .watching #watch { display:block; } .watching #ledger, .watching #list-head, .watching #version { display:none !important; }
+  .step { display:grid; grid-template-columns:54px 1fr; gap:10px; padding:5px 0; border-bottom:1px solid var(--line); }
+  .step .w { color:var(--faint); font-size:10.5px; } .step.tool .w { color:var(--moss); } .step.bad { color:var(--seal); }
+  .step .said { display:block; color:var(--faint); font-size:10.5px; margin-top:2px; white-space:pre-wrap; }
+  .step.move b { font-family:"DotGothic16"; font-weight:400; font-size:14px; }
+  #w-board { width:220px; margin:10px 0 4px; }
   #version h2 { margin:6px 0 2px; font:400 30px "DotGothic16"; } #version h2 small { font-size:16px; margin-left:8px; }
   .kept { color:var(--moss); } .cut-t { color:var(--seal); }
   .tabs { display:flex; gap:14px; margin:16px 0 12px; border-bottom:1px solid var(--line); }
@@ -95,11 +114,12 @@
 <body>
 <div id="stage">
   <iframe id="tree3d" src="tree.html?embed=1&bare=1" title="The bonsai"></iframe>
-  <div class="top">
+  <div class="askbar">
   <header>
     <h1>盆栽 Bonsai</h1>
     <form id="ask" onsubmit="grow(event)" style="display:contents">
-      <span class="faint">improve it on</span><select id="set" class="sel" onchange="fillCount()"></select>
+      <span class="faint">grow</span><select id="agent" class="sel" onchange="pickAgent()"></select>
+      <span class="faint">on</span><select id="set" class="sel" onchange="fillCount(); fillTools()"></select>
       <span class="faint">for</span><select id="gens" class="sel"><option value="1">1 generation</option><option value="2">2 generations</option><option value="3" selected>3 generations</option><option value="4">4 generations</option><option value="5">5 generations</option></select>
       <span class="faint">on</span><select id="count" class="sel"></select>
       <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
@@ -107,13 +127,22 @@
     </form>
   </header>
   <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
-  </div>
   <form id="newset" onsubmit="createSet(event)" hidden>
     <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
     <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
     <div class="row top"><label for="ns-items">Questions</label><textarea id="ns-items" rows="7" placeholder="One per line, question then answer, separated by =>&#10;Is a signed NDA with no end date enforceable in California? Answer yes or no. => yes&#10;&#10;Or paste JSON lines: {&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}"></textarea></div>
     <div class="row"><span id="ns-note">At least 4 questions. Half are held out and never shown to the proposer. Answers match exactly, or within 1% for numbers.</span><span style="flex:1"></span><button type="button" onclick="toggleNew()">Cancel</button><button class="go" id="ns-go" type="submit">Connect</button></div>
   </form>
+  <form id="newagent" onsubmit="saveAgent(event)" hidden>
+    <div class="row"><label class="k" for="na-name">Name</label><input type="text" id="na-name" maxlength="40" placeholder="careful-player, test-first coder..."></div>
+    <div class="row"><label class="k" for="na-model">Model</label><select id="na-model"><option>haiku</option><option>sonnet</option><option>opus</option></select>
+      <label class="k" for="na-turns" style="width:auto;margin-left:10px">Turns</label><input type="number" id="na-turns" min="1" max="30" value="12"></div>
+    <div class="row top"><label class="k" for="na-rules">Starting rules</label><textarea id="na-rules" rows="5" placeholder="What it is told before any change. The loop will rewrite these as it learns."></textarea></div>
+    <div class="row"><label class="k">Tools</label><div id="na-tools"></div></div>
+    <div class="row"><span id="na-note">Every call it makes is traced to Raindrop when RAINDROP_WRITE_KEY is set. Planting it starts a new tree.</span><span style="flex:1"></span>
+      <button type="button" onclick="toggleAgent()">Cancel</button><button type="submit" id="na-save">Save</button><button class="go" type="submit" id="na-grow" onclick="growAfterSave = true">Save and grow</button></div>
+  </form>
+  </div>
   <div class="seal">盆</div>
 </div>
 
@@ -131,6 +160,7 @@
   </div>
   <div id="ledger"></div>
   <div id="version"></div>
+  <div id="watch"></div>
 </aside>
 
 <script type="module">
@@ -172,7 +202,7 @@ function renderLedger() {
   }).join('');
 }
 $('ledger').addEventListener('click', e => { const r = e.target.closest('.entry'); if (r) openVersion(r.dataset.id); });
-function openVersion(id) { opened = id; tab = 'story'; game = null; document.body.classList.toggle('open', !!id); renderVersion(); }
+function openVersion(id) { if (id && watching) watchAgent(null); opened = id; tab = 'story'; game = null; document.body.classList.toggle('open', !!id); renderVersion(); }
 function setTab(t) { tab = t; renderVersion(); }
 
 function renderVersion() {
@@ -244,7 +274,7 @@ function fillCount() {
   const opts = [...new Set([4, 8, 12, 20, 40, n].filter(k => k >= 4 && k <= n))].sort((x, y) => x - y);
   $('count').innerHTML = opts.map(k => `<option value="${k}" ${k === n ? 'selected' : ''}>${k === n ? 'all ' + k : k} problems</option>`).join('');
 }
-function toggleNew() { const f = $('newset'); f.hidden = !f.hidden; $('new-btn').classList.toggle('on', !f.hidden); if (!f.hidden) $('ns-name').focus(); }
+function toggleNew() { const f = $('newset'); f.hidden = !f.hidden; if (!f.hidden) $('newagent').hidden = true; $('new-btn').classList.toggle('on', !f.hidden); if (!f.hidden) $('ns-name').focus(); }
 function parseItems(text) {
   return text.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
     if (l.startsWith('{')) { try { const o = JSON.parse(l); return {q: o.question ?? o.q, a: String(o.answer ?? o.a ?? '')}; } catch { return null; } }
@@ -287,9 +317,72 @@ function renderRun() {
   $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${done.length} done` : '';
   $('agents').innerHTML = show.length ? show.map(x => {
     const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status;
-    return `<div class="ag ${esc(x.status)}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
+    return `<div class="ag ${esc(x.status)}" data-key="${esc(JSON.stringify({version:x.version, task:x.task, split:x.split, role:x.role}))}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
   }).join('') : `<div class="empty">None yet. A run starts one solver per problem, on the model being improved, and a proposer that reads their failures and rewrites the harness.</div>`;
   if (opened && tab === 'activity') renderVersion();
+  const sig2 = JSON.stringify(a.studio || []);
+  if (sig2 !== studioSig) { studioSig = sig2; const keep = wantAgent ?? $('agent').value; wantAgent = null;
+    $('agent').innerHTML = `<option value="">the seed</option>${(a.studio || []).map(x => `<option value="${esc(x.key)}">${esc(x.name)} · ${esc(x.model)}</option>`).join('')}<option value="+">+ new agent…</option>`;
+    $('agent').value = (a.studio || []).some(x => x.key === keep) ? keep : ''; fillTools(); }
+  if (watching) renderWatchHead();
+}
+
+// Agent studio: make an agent (model, rules, tools, turns), save it, and grow a tree from it.
+let studioSig = '', wantAgent = null, growAfterSave = false;
+function pickAgent() { if ($('agent').value === '+') { $('agent').value = ''; toggleAgent(true); } }
+function toggleAgent(show) { const f = $('newagent'); f.hidden = show === undefined ? !f.hidden : !show; if (!f.hidden) { $('newset').hidden = true; fillTools(); $('na-name').focus(); } }
+function fillTools() {
+  const set = app?.sets.find(x => x.key === $('set').value), on = new Set([...$('na-tools').querySelectorAll('input:checked')].map(i => i.value));
+  $('na-tools').innerHTML = (set?.tools || []).map(t => `<label><input type="checkbox" value="${esc(t)}" ${on.has(t) ? 'checked' : ''}>${esc(t)}</label>`).join('') || '<span class="faint">this benchmark has no tools to switch on</span>';
+}
+async function saveAgent(e) {
+  e.preventDefault(); const note = $('na-note'), andGrow = growAfterSave; growAfterSave = false;
+  const body = {name:$('na-name').value, model:$('na-model').value, rules:$('na-rules').value, max_turns:+$('na-turns').value,
+    tools:[...$('na-tools').querySelectorAll('input:checked')].map(i => i.value)};
+  const r = await fetch('api/agents', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { note.className = 'err'; note.textContent = j.error || 'could not save it'; return; }
+  note.className = ''; wantAgent = j.key; await poll(); $('agent').value = j.key; toggleAgent(false);
+  if (andGrow) grow();
+}
+
+// Watch one agent: its live log (each step, tool, move, verdict), streamed from runs/live/ through the server.
+let watching = null, watchTimer = null;
+$('agents').addEventListener('click', e => { const r = e.target.closest('.ag'); if (r) watchAgent(JSON.parse(r.dataset.key)); });
+function watchAgent(k) {
+  watching = k; document.body.classList.toggle('watching', !!k); clearInterval(watchTimer);
+  if (!k) return;
+  $('watch').innerHTML = '<div id="w-head"></div><div id="w-board"></div><div id="w-steps"></div>';
+  renderWatchHead(); pullWatch(); watchTimer = setInterval(pullWatch, 1000);
+}
+function liveAgent() { return app?.agents.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split); }
+function renderWatchHead() {
+  const x = liveAgent(), el = $('w-head'); if (!el) return;
+  const st = !x ? '' : x.status === 'working' ? 'working ' + secs(app.now - x.started) : x.status === 'cheat' ? 'edited tests' : x.status;
+  el.innerHTML = `<button onclick="watchAgent(null)">← back</button>
+    <h2 class="px" style="font-size:24px;font-weight:400;margin:10px 0 2px">${esc(short(watching.task))}</h2>
+    <div class="faint">${esc(watching.role)} · ${esc(watching.version)} · ${esc(watching.split)} · ${esc(x?.model || '')}</div>
+    <div style="margin-top:4px"><span class="${x?.status === 'passed' ? 'kept' : /failed|cheat/.test(x?.status) ? 'cut-t' : ''}">${esc(st)}</span>${x?.trace ? ` · <span class="faint">raindrop trace</span> ${esc(x.trace)}` : app?.raindrop ? '' : ' · <span class="faint">not traced: no RAINDROP_WRITE_KEY</span>'}</div>`;
+  document.getElementById('tree3d').contentWindow?.postMessage({focus:watching.version}, location.origin);
+}
+async function pullWatch() {
+  if (!watching) return;
+  if (watching.role === 'proposer') { $('w-steps').innerHTML = `<div class="empty">The proposer reads the failures in one call and writes one change. Its answer shows here when it lands.</div>${liveAgent()?.said ? `<div class="step"><span class="w">wrote</span><span>${esc(liveAgent().said)}</span></div>` : ''}`; return; }
+  let lines = [];
+  try { const r = await fetch(`api/watch?version=${encodeURIComponent(watching.version)}&task=${encodeURIComponent(watching.task)}`, {cache:'no-store'}); if (r.ok) lines = (await r.json()).lines; } catch {}
+  const fen = [...lines].reverse().find(l => l.fen)?.fen;
+  $('w-board').innerHTML = fen ? board(fen) : '';
+  const t0 = lines[0]?.t || 0, ago = l => '+' + secs(l.t - t0);
+  const row = l => l.kind === 'move' ? `<div class="step move"><span class="w">${l.by === 'agent' ? 'move ' + l.n : 'reply'}</span><span><b>${esc(l.san)}</b> <span class="faint">${l.by === 'agent' ? 'played' : 'by Stockfish'}</span>${l.said ? `<span class="said">${esc(l.said.slice(-160))}</span>` : ''}</span></div>`
+    : l.kind === 'tool' ? `<div class="step tool"><span class="w">${esc(l.tool)}</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'said' ? `<div class="step"><span class="w">said</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'result_of_tool' ? `<div class="step"><span class="w">got</span><span class="faint">${esc(l.text)}</span></div>`
+    : l.kind === 'illegal' ? `<div class="step bad"><span class="w">illegal</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'verdict' ? `<div class="step ${l.passed && !l.edited_tests ? '' : 'bad'}"><span class="w">graded</span><span class="${l.passed && !l.edited_tests ? 'kept' : ''}">${l.edited_tests ? 'edited the tests' : l.passed ? 'passed' : 'failed'}<span class="said">${esc(l.text)}</span></span></div>`
+    : `<div class="step"><span class="w">${esc(l.kind)}</span><span class="faint">${esc(l.text || '')}</span></div>`;
+  const box = $('watch'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  $('w-steps').innerHTML = lines.length ? lines.map(l => row(l).replace('<span class="w">', `<span class="w" title="${ago(l)}">`)).join('') : '<div class="empty">Waiting for its first step.</div>';
+  if (atEnd) box.scrollTop = box.scrollHeight;
 }
 async function poll() {
   try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
@@ -300,8 +393,8 @@ async function post(path, body) {
   const j = await r.json().catch(() => ({})); growErr = r.ok ? null : {text: j.error || 'request failed', until: Date.now() + 8000}; return r.ok;
 }
 async function grow(e) {
-  e.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
-  const ok = await post('api/grow', {set:$('set').value, generations:+$('gens').value, count:+$('count').value});
+  e?.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
+  const ok = await post('api/grow', {set:$('set').value, generations:+$('gens').value, count:+$('count').value, agent:$('agent').value || null});
   if (ok) { lastJson = ''; openVersion(null); }
   poll(); load();
 }

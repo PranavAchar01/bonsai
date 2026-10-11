@@ -614,6 +614,13 @@ export function createBonsai({scene, form = 'moyogi', foliage = 'pine', accent =
       else setTimeout(() => cut(a, v.signal), 500);
     },
     shed(n = 1) { drift.burst(n); },
+    focus(id) {                                                  // label the shoot of one version, for an agent being watched
+      const a = attempts[id], last = api._focusAt || 0;
+      if (now - last < 5 && api._focusId === id) return;
+      api._focusAt = now; api._focusId = id;
+      const pos = a ? a.pad.centre.clone().add(V(0, a.pad.size * .8, 0)) : pointOn(trunk, Math.max(trunk.L, .3)).add(V(0, .4, 0));
+      onLabel({text:`watching ${id}`, pos});
+    },
     bounds() {
       let top = tipY() + .4, r = 1.8;
       for (const p of pads) { top = Math.max(top, p.centre.y + p.size * .5); r = Math.max(r, Math.hypot(p.centre.x, p.centre.z) + p.size); }

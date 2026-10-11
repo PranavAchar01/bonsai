@@ -166,8 +166,9 @@ def diff(a: dict, b: dict) -> str:
 
 
 def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-opus-5-5", scratch=None,
-        goal="", parent=None, emit=None, stopped=lambda: False) -> None:  # fmt: skip
+        goal="", parent=None, emit=None, stopped=lambda: False, start=None) -> None:  # fmt: skip
     """Grow the tree. `parent` is a stored version to branch from; without one the seed is scored first.
+    `start` is an agent made on the page ({name, model, rules, tools, max_turns}); it replaces the set's seed.
 
     emit(kind, **data) reports what is happening: phase, task, proposed, version.
     """
@@ -184,13 +185,13 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
         best_score, first = parent["score"], parent["generation"] + 1
     else:
         # A connected set may bring its own starting harness ("seed" in set.json).
-        seed = {**runner.BASE_HARNESS, **spec.get("seed", {})}
+        seed = {**runner.BASE_HARNESS, **spec.get("seed", {}), **{k: v for k, v in (start or {}).items() if k in runner.BASE_HARNESS}}
         best, first = {**seed, "id": "g0"}, 1
         emit("phase", text="scoring the seed on held-out problems", version="g0")
         held = score(best, heldout, scratch / "g0-held", workers, tasks_cb("g0", "held-out"))
         best_score = held["score"]
         (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
-        doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": seed,
+        doc = {"id": "g0", "parent": None, "generation": 0, "change": f"seed: {start['name']}" if start else "seed harness", "signal": None, "harness": seed,
                "kept": True, "score": best_score, "results": results(heldout, held), "tokens": len(best["rules"]) // 4, "diff": "",
                "trace_id": None, "ts": time.time()}  # fmt: skip
         store(doc)
