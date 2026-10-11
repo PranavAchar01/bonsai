@@ -110,7 +110,7 @@
   <span style="flex:1"></span>
   <label for="gens">Generations</label><select id="gens"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
   <label for="count">Problems</label><select id="count"></select>
-  <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
+  <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
 </form>
 <form id="newset" onsubmit="createSet(event)" hidden>
   <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
@@ -230,7 +230,7 @@ function renderRun() {
   if (sig !== setsSig) { setsSig = sig; const keep = wantSet || $('set').value; wantSet = null; const groups = [...new Set(a.sets.map(x => x.group))];
     $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
     if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
-  $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow';
+  $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow'; if (!running) stopping = false; $('halt').textContent = stopping ? 'Stopping…' : 'Stop';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
   ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
     : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
@@ -262,7 +262,8 @@ async function grow(e) {
   if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
   poll(); load();
 }
-async function halt() { await post('api/stop', {}); poll(); }
+let stopping = false;
+async function stopRun() { stopping = true; await post('api/stop', {}); poll(); }
 load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
 </script>
 </body>
