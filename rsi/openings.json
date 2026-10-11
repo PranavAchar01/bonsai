@@ -1,0 +1,165 @@
+{
+ "note": "16 ECO families, 2-4 book lines each (4-8 plies, UCI from the start position). 12 train families feed games that are mined into the digest; 4 held families feed only the exam bank. The line is picked by the game seed; the agent plays both colours. Frozen for a run.",
+ "families": [
+  {
+   "family": "italian",
+   "eco": "C50",
+   "split": "train",
+   "lines": [
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "c2c3", "g8f6"]
+   ]
+  },
+  {
+   "family": "ruy-lopez",
+   "eco": "C60",
+   "split": "train",
+   "lines": [
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "g8f6"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6"]
+   ]
+  },
+  {
+   "family": "scotch",
+   "eco": "C45",
+   "split": "train",
+   "lines": [
+    ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "g8f6"],
+    ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "f8c5"]
+   ]
+  },
+  {
+   "family": "sicilian",
+   "eco": "B20",
+   "split": "train",
+   "lines": [
+    ["e2e4", "c7c5", "g1f3", "d7d6", "d2d4", "c5d4"],
+    ["e2e4", "c7c5", "g1f3", "b8c6"],
+    ["e2e4", "c7c5", "b1c3", "b8c6", "g2g3", "g7g6"]
+   ]
+  },
+  {
+   "family": "french",
+   "eco": "C00",
+   "split": "train",
+   "lines": [
+    ["e2e4", "e7e6", "d2d4", "d7d5"],
+    ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6"],
+    ["e2e4", "e7e6", "d2d4", "d7d5", "e4e5", "c7c5"]
+   ]
+  },
+  {
+   "family": "caro-kann",
+   "eco": "B10",
+   "split": "train",
+   "lines": [
+    ["e2e4", "c7c6", "d2d4", "d7d5"],
+    ["e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "c8f5"],
+    ["e2e4", "c7c6", "d2d4", "d7d5", "e4e5", "c8f5"]
+   ]
+  },
+  {
+   "family": "scandinavian",
+   "eco": "B01",
+   "split": "train",
+   "lines": [
+    ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5"],
+    ["e2e4", "d7d5", "e4d5", "g8f6"],
+    ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5d6"]
+   ]
+  },
+  {
+   "family": "pirc",
+   "eco": "B07",
+   "split": "train",
+   "lines": [
+    ["e2e4", "d7d6", "d2d4", "g8f6", "b1c3", "g7g6"],
+    ["e2e4", "d7d6", "d2d4", "g8f6", "b1c3", "g7g6", "f2f4", "f8g7"],
+    ["e2e4", "d7d6", "d2d4", "g8f6", "b1c3", "g7g6", "g1f3", "f8g7"]
+   ]
+  },
+  {
+   "family": "queens-gambit",
+   "eco": "D30",
+   "split": "train",
+   "lines": [
+    ["d2d4", "d7d5", "c2c4", "e7e6"],
+    ["d2d4", "d7d5", "c2c4", "e7e6", "b1c3", "g8f6"],
+    ["d2d4", "d7d5", "c2c4", "d5c4", "g1f3", "g8f6"]
+   ]
+  },
+  {
+   "family": "kings-indian",
+   "eco": "E60",
+   "split": "train",
+   "lines": [
+    ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7"],
+    ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6"],
+    ["d2d4", "g8f6", "c2c4", "g7g6", "g1f3", "f8g7"]
+   ]
+  },
+  {
+   "family": "london",
+   "eco": "D02",
+   "split": "train",
+   "lines": [
+    ["d2d4", "d7d5", "c1f4", "g8f6"],
+    ["d2d4", "g8f6", "c1f4", "e7e6", "e2e3", "c7c5"],
+    ["d2d4", "d7d5", "g1f3", "g8f6", "c1f4", "c7c5"]
+   ]
+  },
+  {
+   "family": "english",
+   "eco": "A20",
+   "split": "train",
+   "lines": [
+    ["c2c4", "e7e5", "b1c3", "g8f6"],
+    ["c2c4", "c7c5", "b1c3", "b8c6", "g2g3", "g7g6"],
+    ["c2c4", "g8f6", "b1c3", "e7e5", "g1f3", "b8c6"]
+   ]
+  },
+  {
+   "family": "slav",
+   "eco": "D10",
+   "split": "held",
+   "lines": [
+    ["d2d4", "d7d5", "c2c4", "c7c6"],
+    ["d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6"],
+    ["d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6", "b1c3", "d5c4"]
+   ]
+  },
+  {
+   "family": "nimzo-indian",
+   "eco": "E20",
+   "split": "held",
+   "lines": [
+    ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4"],
+    ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "e8g8"],
+    ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "e2e3", "e8g8"]
+   ]
+  },
+  {
+   "family": "dutch",
+   "eco": "A80",
+   "split": "held",
+   "lines": [
+    ["d2d4", "f7f5", "g2g3", "g8f6"],
+    ["d2d4", "f7f5", "c2c4", "g8f6", "g2g3", "e7e6"],
+    ["d2d4", "e7e6", "c2c4", "f7f5", "g2g3", "g8f6"]
+   ]
+  },
+  {
+   "family": "alekhine",
+   "eco": "B02",
+   "split": "held",
+   "lines": [
+    ["e2e4", "g8f6", "e4e5", "f6d5"],
+    ["e2e4", "g8f6", "e4e5", "f6d5", "d2d4", "d7d6"],
+    ["e2e4", "g8f6", "e4e5", "f6d5", "d2d4", "d7d6", "g1f3", "c8g4"]
+   ]
+  }
+ ]
+}
