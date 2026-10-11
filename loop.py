@@ -74,6 +74,11 @@ def store(doc: dict) -> None:
             print(f"atlas: write failed for {doc['id']}: {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
 
 
+def results(tasks: list[str], res: dict) -> list[dict]:
+    """Per-problem outcome on held-out, so the page can show which problems a change won or lost."""
+    return [{"task": t, "passed": bool(r["passed"]), "cheat": bool(r.get("edited_tests"))} for t, r in zip(tasks, res["rows"])]
+
+
 def score(harness: dict, tasks: list[str], scratch: Path, workers: int, on_task=None) -> dict:
     """on_task(state, task, row) is called with "queued", "start" and "end" for each problem."""
     from concurrent.futures import ThreadPoolExecutor
@@ -179,7 +184,7 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
         best_score = held["score"]
         (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
         doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": seed,
-               "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
+               "kept": True, "score": best_score, "results": results(heldout, held), "tokens": len(best["rules"]) // 4, "diff": "",
                "trace_id": None, "ts": time.time()}  # fmt: skip
         store(doc)
         emit("version", doc=doc)
@@ -209,7 +214,7 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
             )
             doc = {"id": vid, "parent": best["id"], "generation": gen, "change": p["change"], "shed": p["shed"], "harness": p["harness"],
                    "signal": "cheat caught" if res["cheated"] else p["signal"], "kept": kept,
-                   "score": res["score"], "tokens": len(child["rules"]) // 4,
+                   "score": res["score"], "results": results(heldout, res), "tokens": len(child["rules"]) // 4,
                    "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()}  # fmt: skip
             store(doc)
             emit("version", doc=doc)

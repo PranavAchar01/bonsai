@@ -4,159 +4,142 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bonsai</title>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --paper:#efe7d6; --deep:#e7ddc8; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --line:rgba(29,27,25,.16); --moss:#4f6e3f; --blue:#5b5348; --cyan:#2f4a3e; --violet:#1d1b19; --hover:rgba(29,27,25,.05); }
+  /* Layout: the tree is the page; one ledger runs down the right margin. Pixel garden on paper, no cards. */
+  :root { --paper:#efe7d6; --deep:#e7ddc8; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --moss:#4f6e3f; --line:rgba(29,27,25,.16); --margin:420px; }
   * { box-sizing:border-box; }
   html, body { height:100%; }
-  body { margin:0; background:var(--paper); color:var(--ink); font-family:"DotGothic16",monospace; display:flex; flex-direction:column; overflow:hidden; }
-  .mono, table, button, select, input, .stat, pre, dl { font-family:"DotGothic16",monospace; }
-  .ask { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
-  .ask label { font-family:"DotGothic16",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
-  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"DotGothic16",monospace; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
-  .ask input::placeholder { color:var(--faint); }
-  .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"DotGothic16",monospace; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
-  .rd { font-family:"DotGothic16",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
-  .ag .what u { text-decoration:none; color:var(--moss); }
-  .ask button { font-size:12px; padding:6px 16px; white-space:nowrap; }
-  .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
-  .ask button.halt { color:var(--seal); border-color:var(--seal); }
-  .ask button:disabled { opacity:.35; cursor:default; }
-  #phase { font-family:"DotGothic16",monospace; font-size:11px; color:var(--faint); padding:6px 22px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #phase b { color:var(--ink); font-weight:400; } #phase.err b { color:var(--seal); }
-  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; }
-  .live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
-  #agents-box { flex:0 0 42%; min-height:0; display:flex; flex-direction:column; border-bottom:1px solid var(--line); }
-  #agents { overflow-y:auto; flex:1; font-family:"DotGothic16",monospace; font-size:11px; }
-  .ag { display:grid; grid-template-columns:62px 1fr auto; gap:8px; padding:5px 18px; border-bottom:1px solid var(--hover); align-items:baseline; }
-  .ag .role { color:var(--faint); } .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; }
-  .ag.working { background:var(--hover); } .ag.working .st { color:var(--ink); } .ag.queued { color:var(--faint); }
-  .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
-  .empty { padding:10px 18px; color:var(--faint); font-family:"DotGothic16",monospace; font-size:11px; line-height:1.7; }
-  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; font-family:"DotGothic16",monospace; font-size:12px; line-height:1.7; } .logline span { color:var(--faint); }
-  header { display:flex; align-items:baseline; gap:26px; padding:12px 22px; border-bottom:1px solid var(--line); }
-  header > * { white-space:nowrap; }
-  header h1 { font-weight:600; font-size:24px; letter-spacing:.08em; margin:0; }
-  header .tag { color:var(--faint); font-size:13px; }
-  .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
-  .stat b { font-family:"DotGothic16",monospace; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
-  .stat.red b { color:var(--seal); }
-  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
-  .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
-  #panel-board { border-right:1px solid var(--line); }
-  #panel-graph { border-top:1px solid var(--line); }
-  h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"DotGothic16",monospace; }
-  h2 .sp { flex:1; } h2 .name { color:var(--ink); letter-spacing:.04em; text-transform:none; }
-  button { background:none; border:1px solid var(--line); color:var(--faint); font-size:10.5px; padding:3px 8px; cursor:pointer; letter-spacing:.04em; }
-  button.on { color:var(--paper); background:var(--ink); border-color:var(--ink); }
-  select { background:none; border:1px solid var(--line); font-size:10.5px; color:var(--ink); }
-  .tablescroll { overflow-y:auto; flex:1; }
-  table { width:100%; border-collapse:collapse; font-size:11.5px; }
-  th { text-align:left; font-weight:400; color:var(--faint); font-size:10px; letter-spacing:.1em; padding:5px 8px; position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line); }
-  td { padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-  td:first-child, th:first-child { padding-left:18px; } .num { text-align:right; padding-right:18px !important; }
-  tr { cursor:pointer; } tbody tr:hover { background:var(--hover); }
-  tr.sel { background:rgba(29,27,25,.08); box-shadow:inset 3px 0 0 var(--ink); }
-  tr.cut { color:var(--seal); } tr.cut td.chg { text-decoration:line-through; text-decoration-color:rgba(181,51,42,.5); } tr.cut.sel { box-shadow:inset 3px 0 0 var(--seal); }
-  td .shed { display:block; color:var(--faint); font-size:10px; margin-top:2px; text-decoration:none; }
-  .seg { display:flex; gap:0; padding:0 18px 8px; } .seg button + button { border-left:0; }
-  .viewer { position:relative; flex:1; min-height:0; }
-  .viewer canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
-  #fx { pointer-events:none; }
-  .layer { position:absolute; inset:0; overflow:auto; padding:6px 22px 18px; background:var(--paper); display:none; }
-  .layer pre { font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; margin:0; }
-  .layer .add { color:var(--moss); } .layer .del { color:var(--seal); }
-  .layer dl { display:grid; grid-template-columns:110px 1fr; gap:8px 14px; font-size:12.5px; max-width:760px; } .layer dt { color:var(--faint); } .layer dd { margin:0; }
-  .layer .lede { font-size:22px; margin:6px 0 16px; max-width:760px; line-height:1.4; }
-  .stats { display:flex; gap:24px; padding:8px 18px; border-top:1px solid var(--line); font-family:"DotGothic16",monospace; font-size:11px; color:var(--faint); flex-wrap:wrap; }
-  .stats b { color:var(--ink); font-weight:400; } .stats .cut b { color:var(--seal); }
-  #chart { flex:1; min-height:0; width:100%; display:block; }
-  .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"DotGothic16",monospace; font-size:10.5px; color:var(--faint); }
-  @media (max-width:860px){ body{overflow:auto} .wrap{display:block} .viewer{flex:none;height:70vh} #panel-board{border-right:0} #chart{height:180px} }
-  #newset { padding:10px 22px 12px; border-bottom:1px solid var(--line); background:var(--deep); }
-  #newset[hidden] { display:none; }
-  #newset .row { display:flex; align-items:center; gap:10px; margin:5px 0; } #newset .row.top { align-items:flex-start; }
-  #newset label { width:110px; font-family:"DotGothic16",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
-  #newset input, #newset textarea { flex:1; background:var(--deep); border:1px solid var(--line); color:var(--ink); font-family:"DotGothic16",monospace; font-size:12px; padding:6px 8px; outline:none; resize:vertical; }
-  #newset input:focus, #newset textarea:focus { border-color:var(--cyan); }
-  #newset button { font-size:12px; padding:6px 16px; } #newset button.go { background:var(--violet); border-color:var(--violet); color:var(--deep); font-weight:600; }
-  #ns-note { font-family:"DotGothic16",monospace; font-size:11px; color:var(--faint); } #ns-note.err { color:var(--seal); }
-  .ask select { background:var(--deep); color:var(--ink); border:1px solid var(--line); }
-  /* Pixel garden on paper: the same pale palettes as the tree, alternating between sumi paper and matcha. */
-  body { background:radial-gradient(ellipse at 60% 30%, rgba(255,252,244,.45), transparent 60%), radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(60,48,30,.14) 100%), var(--paper); transition:background-color 6s, color 6s; }
+  body { margin:0; color:var(--ink); font:12px/1.5 "IBM Plex Mono", monospace; overflow:hidden; transition:background-color 6s, color 6s;
+    background:radial-gradient(ellipse at 40% 35%, rgba(255,252,244,.45), transparent 60%), radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(60,48,30,.14) 100%), var(--paper); }
   body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; mix-blend-mode:multiply; z-index:5;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-  header h1 { font-weight:400; letter-spacing:.06em; }
-  header .tag { color:var(--faint); } #s-note { color:var(--moss); }
-  h2 { color:var(--faint); } h2 .name { color:var(--ink); }
-  #panel-board { background:color-mix(in srgb, var(--deep) 55%, transparent); }
-  .ask button.go, #newset button.go { background:var(--ink); border-color:var(--ink); color:var(--paper); }
-  .ask select.big, .ask select, #newset input, #newset textarea { background:color-mix(in srgb, var(--paper) 70%, white); color:var(--ink); border-color:var(--line); }
-  .ask select.big { border-color:var(--ink); }
-  select option, select optgroup { background:var(--paper); color:var(--ink); }
-  button.on { background:var(--ink); border-color:var(--ink); color:var(--paper); }
-  .live .dot { background:var(--seal); } #phase b { color:var(--ink); }
-  tr.sel { box-shadow:inset 3px 0 0 var(--ink); } td.none { color:var(--faint); padding:14px 18px; cursor:default; }
-  .ag.working .st { color:var(--ink); } .layer .lede { color:var(--ink); }
-  .seal { position:fixed; right:18px; bottom:16px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font-size:22px; z-index:6; transition:background-color 6s; }
-  #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }
-  ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+  .px { font-family:"DotGothic16", monospace; font-weight:400; }
+  .faint { color:var(--faint); }
+  button, select, input, textarea { font:inherit; color:var(--ink); }
+  button { background:none; border:1px solid var(--line); padding:3px 10px; cursor:pointer; font-family:"DotGothic16"; font-size:12px; }
+  button.on, button.go { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  button:disabled { opacity:.35; cursor:default; }
+  button.halt { border-color:var(--seal); color:var(--seal); }
+
+  /* stage: tree on the left, ledger on the right */
+  #stage { position:fixed; left:0; top:0; bottom:0; right:var(--margin); }
+  #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
+
+  /* the ask, as one sentence across the top of the stage */
+  .top { position:absolute; left:32px; right:32px; top:22px; z-index:2; }
+  header { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 12px; }
+  header h1 { margin:0 18px 0 0; font:400 28px "DotGothic16"; letter-spacing:.04em; }
+  .sel { appearance:none; background:transparent; border:0; border-bottom:1px solid var(--ink); padding:1px 16px 1px 2px; font:14px "DotGothic16"; cursor:pointer; max-width:340px;
+    background-image:linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-size:4px 4px; background-position:right 6px top 9px, right 2px top 9px; background-repeat:no-repeat; }
+  select option, select optgroup { background:var(--paper); }
+  #phase { margin-top:10px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #phase b { color:var(--ink); font-weight:400; } #phase.err b { color:var(--seal); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; vertical-align:1px; }
+  #phase.live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
+  .seal { position:absolute; left:32px; bottom:24px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; z-index:2; transition:background-color 6s; }
+
+  /* new benchmark, unfolds under the ask */
+  #newset { position:absolute; left:32px; top:120px; width:min(640px, calc(100% - 64px)); z-index:3; padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
+  #newset[hidden] { display:none; }
+  #newset .row { display:flex; align-items:center; gap:10px; margin:6px 0; } #newset .row.top { align-items:flex-start; }
+  #newset label { width:110px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  #newset input, #newset textarea { flex:1; background:transparent; border:1px solid var(--line); padding:6px 8px; outline:none; resize:vertical; font-size:12px; }
+  #ns-note { color:var(--faint); } #ns-note.err { color:var(--seal); }
+
+  /* margin */
+  .sec { padding:16px 26px 0; }
+  .lbl { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .lbl .sp { flex:1; } .lbl button { font-size:10.5px; padding:1px 7px; letter-spacing:0; text-transform:none; }
+  #score { display:flex; align-items:baseline; gap:12px; } #score .n { font:400 66px/1 "DotGothic16"; }
+  #agents { max-height:150px; overflow-y:auto; }
+  .ag { display:grid; grid-template-columns:1fr auto; gap:8px; padding:3px 0; border-bottom:1px solid var(--line); font-size:11px; }
+  .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; } .ag u { text-decoration:none; color:var(--moss); }
+  .ag.queued { color:var(--faint); } .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
+  .empty { color:var(--faint); padding:4px 0 8px; line-height:1.6; }
+  #ledger { flex:1; overflow-y:auto; padding:0 26px 24px; }
+  .entry { display:grid; grid-template-columns:44px 1fr 34px; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .entry:hover { background:color-mix(in srgb, var(--ink) 4%, transparent); }
+  .entry .id { font-family:"DotGothic16"; font-size:13px; } .entry .n { text-align:right; font-family:"DotGothic16"; font-size:13px; }
+  .entry .sub { display:block; color:var(--faint); font-size:10.5px; margin-top:2px; }
+  .entry.cut { color:var(--seal); } .entry.cut .chg { text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--seal) 50%, transparent); }
+
+  /* one version open in the margin */
+  #version { display:none; flex:1; overflow-y:auto; padding:18px 26px 26px; }
+  .open #version { display:block; } .open #ledger, .open #list-head { display:none; }
+  #version h2 { margin:6px 0 2px; font:400 30px "DotGothic16"; } #version h2 small { font-size:16px; margin-left:8px; }
+  .kept { color:var(--moss); } .cut-t { color:var(--seal); }
+  .tabs { display:flex; gap:14px; margin:16px 0 12px; border-bottom:1px solid var(--line); }
+  .tabs button { border:0; padding:4px 0; color:var(--faint); } .tabs button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
+  .story .k { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:14px 0 3px; }
+  .story .big { font:400 17px/1.4 "DotGothic16"; }
+  pre { margin:0; font:11.5px/1.6 "IBM Plex Mono"; white-space:pre-wrap; word-break:break-word; } .add { color:var(--moss); } .del { color:var(--seal); }
+  .grid { display:grid; grid-template-columns:1fr 52px 52px; }
+  .grid div { padding:4px 0; border-bottom:1px solid var(--line); } .grid .h { color:var(--faint); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+  .grid .m { text-align:center; font-family:"DotGothic16"; } .won { color:var(--moss); } .lost { color:var(--seal); }
+  .grid a { color:inherit; } .grid a.on { text-decoration:underline; }
+  .boards { display:flex; gap:16px; margin-top:14px; } .boards > div { flex:1; }
+  .board { display:grid; grid-template-columns:repeat(8, 1fr); aspect-ratio:1; border:1px solid var(--ink); margin:4px 0; }
+  .board i { display:grid; place-items:center; font-style:normal; font-size:15px; line-height:1; } .board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); }
+  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; line-height:1.7; } .logline span { color:var(--faint); }
+  ::-webkit-scrollbar { width:7px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  @media (max-width:900px) {
+    body { overflow:auto; } :root { --margin:0px; }
+    #stage { position:relative; height:78vh; right:0; } #margin { position:relative; width:auto; border-left:0; border-top:1px solid var(--line); }
+    #ledger, #version { overflow:visible; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>盆栽 Bonsai</h1><span class="tag">a harness that prunes itself</span>
-  <span class="stat" style="margin-left:auto" id="s-note"></span>
-</header>
-<form class="ask" id="ask" onsubmit="grow(event)">
-  <label for="set">Improve it on</label><select id="set" class="big" onchange="fillCount()"></select>
-  <button type="button" id="new-btn" onclick="toggleNew()">+ New benchmark</button>
-  <span style="flex:1"></span>
-  <label for="gens">Generations</label><select id="gens"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
-  <label for="count">Problems</label><select id="count"></select>
-  <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
-</form>
-<form id="newset" onsubmit="createSet(event)" hidden>
-  <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
-  <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
-  <div class="row top"><label for="ns-items">Questions</label><textarea id="ns-items" rows="7" placeholder="One per line, question then answer, separated by =>&#10;Is a signed NDA with no end date enforceable in California? Answer yes or no. => yes&#10;&#10;Or paste JSON lines: {&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}"></textarea></div>
-  <div class="row"><span id="ns-note">At least 4 questions. Half are held out and never shown to the proposer. Answers match exactly, or within 1% for numbers.</span><span style="flex:1"></span><button type="button" onclick="toggleNew()">Cancel</button><button class="go" id="ns-go" type="submit">Connect</button></div>
-</form>
-<div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
-<div class="wrap">
-  <div class="panel" id="panel-board">
-    <div id="agents-box">
-      <h2>Agents <span id="ag-count" class="name"></span><span class="sp"></span>
-        <button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></h2>
-      <div id="agents"></div>
-    </div>
-    <h2>Lineage <span class="sp"></span>
-      <button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">highest score</button></h2>
-    <div class="tablescroll"><table>
-      <thead><tr><th>version</th><th>change</th><th class="num">held-out</th></tr></thead>
-      <tbody id="rows"></tbody></table></div>
+<div id="stage">
+  <iframe id="tree3d" src="tree.html?embed=1&bare=1" title="The bonsai"></iframe>
+  <div class="top">
+  <header>
+    <h1>盆栽 Bonsai</h1>
+    <form id="ask" onsubmit="grow(event)" style="display:contents">
+      <span class="faint">improve it on</span><select id="set" class="sel" onchange="fillCount()"></select>
+      <span class="faint">for</span><select id="gens" class="sel"><option value="1">1 generation</option><option value="2">2 generations</option><option value="3" selected>3 generations</option><option value="4">4 generations</option><option value="5">5 generations</option></select>
+      <span class="faint">on</span><select id="count" class="sel"></select>
+      <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled>Stop</button>
+      <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
+    </form>
+  </header>
+  <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
   </div>
-  <div class="panel" id="panel-solution">
-    <h2>Selected version <span id="sel-name" class="name"></span><span class="sp"></span>
-      <button id="follow-btn" class="on" onclick="toggleFollow()">following latest</button></h2>
-    <div class="seg" id="seg">
-      <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button><button data-layer="activity" onclick="setLayer('activity')">activity</button>
-    </div>
-    <div class="viewer" id="viewer">
-      <iframe id="tree3d" src="tree.html?embed=1" title="The bonsai"></iframe>
-      <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div><div class="layer" id="layer-activity"></div>
-    </div>
-    <div class="stats" id="sel-stats"></div>
-  </div>
+  <form id="newset" onsubmit="createSet(event)" hidden>
+    <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
+    <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
+    <div class="row top"><label for="ns-items">Questions</label><textarea id="ns-items" rows="7" placeholder="One per line, question then answer, separated by =>&#10;Is a signed NDA with no end date enforceable in California? Answer yes or no. => yes&#10;&#10;Or paste JSON lines: {&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}"></textarea></div>
+    <div class="row"><span id="ns-note">At least 4 questions. Half are held out and never shown to the proposer. Answers match exactly, or within 1% for numbers.</span><span style="flex:1"></span><button type="button" onclick="toggleNew()">Cancel</button><button class="go" id="ns-go" type="submit">Connect</button></div>
+  </form>
+  <div class="seal">盆</div>
 </div>
-<div class="seal">盆</div>
+
+<aside id="margin">
+  <div class="sec">
+    <div class="lbl">held-out pass rate</div>
+    <div id="score"><span class="n" id="s-num">--</span><span class="faint" id="s-note">no run yet</span></div>
+  </div>
+  <div class="sec">
+    <div class="lbl">agents <span id="ag-count" class="faint" style="letter-spacing:0;text-transform:none"></span><span class="sp"></span><button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></div>
+    <div id="agents"></div>
+  </div>
+  <div class="sec" id="list-head">
+    <div class="lbl">lineage<span class="sp"></span><button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">best</button></div>
+  </div>
+  <div id="ledger"></div>
+  <div id="version"></div>
+</aside>
+
 <script type="module">
 // The page and the tree share one palette: sumi paper and matcha, crossfading every 45 s.
 import { PALETTES } from './palettes.js';
 const LIGHT = ['paper', 'matcha'];
 let pal = 0;
 function setPalette(k) {
-  const P = PALETTES[k], r = document.documentElement.style, deep = P === PALETTES.paper ? '#e7ddc8' : '#d9e0c2';
+  const P = PALETTES[k], r = document.documentElement.style, deep = k === 'paper' ? '#e7ddc8' : '#d9e0c2';
   r.setProperty('--paper', P.bg); r.setProperty('--ink', P.ink); r.setProperty('--faint', P.faint); r.setProperty('--seal', P.accent); r.setProperty('--deep', deep);
   document.getElementById('tree3d').contentWindow?.postMessage({palette:k}, location.origin);
 }
@@ -166,59 +149,100 @@ setInterval(() => { pal = 1 - pal; setPalette(LIGHT[pal]); }, 45000);
 </script>
 <script>
 // The lineage is whatever the loop has stored. Nothing is shown that a run did not produce.
-let selected = null, lastJson = '', follow = true, sortBy = 'latest', layer = 'tree';
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function draw(data) {
-  const kept = [], byParent = {};
-  data.versions.forEach(v => (byParent[v.parent] ??= []).push(v));
-  for (let v = data.versions.find(v => !v.parent); v; v = (byParent[v.id] || []).find(c => c.kept)) kept.push(v);
-  window.__kept = kept; renderUI(data, kept);
-}
-
-const pct = x => Math.round(x*100) + '%';
-function renderUI(data, kept) {
-  const vs = data.versions, best = kept[kept.length-1];
-  $('s-note').textContent = vs.length ? `${kept.length - 1} kept · ${vs.length - kept.length} pruned · best ${pct(best.score)} held-out` : 'no run yet';
-  if (!vs.length) {
-    $('rows').innerHTML = '<tr><td colspan="3" class="none">No versions yet. Press Grow and the first one appears when the seed has been scored.</td></tr>';
-    $('sel-name').textContent = ''; $('sel-stats').innerHTML = '';
-    ['diff','signal','harness'].forEach(n => $('layer-' + n).innerHTML = '<pre>Nothing has been stored yet.</pre>'); return;
-  }
-  const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
-  $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
-  const v = vs.find(v => v.id === selected), par = vs.find(p => p.id === v.parent);
-  const verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'pruned';
-  $('sel-name').textContent = `${v.id} · ${verdict}`;
-  $('layer-diff').innerHTML = v.diff ? `<pre>${esc(v.diff).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n')}</pre>` : '<pre>The seed has no parent to differ from.</pre>';
-  $('layer-signal').innerHTML = `<div class="lede">${esc(v.signal || 'No signal: this is where the tree starts.')}</div><dl>
-    <dt>change tried</dt><dd>${esc(v.change)}</dd><dt>shed</dt><dd>${esc(v.shed || 'n/a')}</dd>
-    <dt>verdict</dt><dd>${verdict}${par ? `: held-out ${pct(par.score)} → ${pct(v.score)}` : ''}</dd>
-    <dt>Raindrop trace</dt><dd>${esc(v.trace_id || 'none recorded')}</dd></dl>`;
-  $('layer-harness').innerHTML = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
-  $('sel-stats').innerHTML = `<span class="${v.kept ? '' : 'cut'}">verdict <b>${verdict}</b></span><span>held-out <b>${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}</b></span><span>parent <b>${esc(par ? par.id : 'none')}</b></span><span>rules <b>${v.tokens ? '~' + v.tokens + ' tokens' : 'n/a'}</b></span><span>shed <b>${esc(v.shed || 'n/a')}</b></span>`;
-}
+let opened = null, lastJson = '', sortBy = 'latest', tab = 'story', game = null;
 const $ = id => document.getElementById(id);
-function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
-function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1)?.id; draw(window.__d); } }
-function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
-function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness','activity'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = x => Math.round(x * 100) + '%';
+const short = t => String(t).split('/').pop().replace(/^game-/, '');
 
+function keptChain(vs) {
+  const by = {}, kept = []; vs.forEach(v => (by[v.parent] ??= []).push(v));
+  for (let v = vs.find(v => !v.parent); v; v = (by[v.id] || []).find(c => c.kept)) kept.push(v);
+  return kept;
+}
+function renderLedger() {
+  const vs = window.__d.versions, kept = keptChain(vs), best = kept.at(-1);
+  $('s-num').textContent = vs.length ? pct(best.score) : '--';
+  $('s-note').innerHTML = vs.length ? `from ${pct(kept[0].score)}<br>${kept.length - 1} kept · ${vs.length - kept.length} cut` : 'no run yet';
+  if (!vs.length) { $('ledger').innerHTML = '<div class="empty">No versions yet. Press Grow; the first one appears when the seed has been scored.</div>'; return; }
+  const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
+  $('ledger').innerHTML = order.map(v => {
+    const sub = !v.parent ? 'the seed harness' : v.kept ? `shed: ${v.shed || 'nothing'}${v.signal ? ' · signal: ' + v.signal : ''}` : `cut: ${v.signal || 'no gain'}`;
+    return `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}" data-id="${esc(v.id)}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change)}</span><span class="sub">${esc(sub)}</span></span><span class="n">${pct(v.score)}</span></div>`;
+  }).join('');
+}
+$('ledger').addEventListener('click', e => { const r = e.target.closest('.entry'); if (r) openVersion(r.dataset.id); });
+function openVersion(id) { opened = id; tab = 'story'; game = null; document.body.classList.toggle('open', !!id); renderVersion(); }
+function setTab(t) { tab = t; renderVersion(); }
+
+function renderVersion() {
+  if (!opened) return;
+  const vs = window.__d.versions, v = vs.find(x => x.id === opened); if (!v) return openVersion(null);
+  const par = vs.find(p => p.id === v.parent), verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'cut';
+  const head = `<button onclick="openVersion(null)">← all versions</button>
+    <h2>${esc(v.id)}<small class="${verdict === 'cut' ? 'cut-t' : 'kept'}">${verdict}</small></h2>
+    <div class="faint">${par ? `parent ${esc(par.id)} · ${pct(par.score)} → ${pct(v.score)} held-out` : `held-out ${pct(v.score)}`}${v.tokens ? ` · ~${v.tokens} tokens of rules` : ''}</div>
+    <div class="tabs">${['story', 'proof', 'diff', 'harness', 'activity'].map(t => `<button class="${t === tab ? 'on' : ''}" onclick="setTab('${t}')">${t}</button>`).join('')}</div>`;
+  let body = '';
+  if (tab === 'story') body = `<div class="story">
+      <div class="k">what failed</div><div class="big">${esc(v.signal || (v.parent ? 'not recorded' : 'nothing yet: this is where the tree starts'))}</div>
+      <div class="k">what it changed</div><div class="big">${esc(v.change)}</div>
+      <div class="k">what it shed</div><div>${esc(v.shed || (v.parent ? 'nothing' : 'n/a'))}</div>
+      <div class="k">verdict</div><div>${verdict === 'seed' ? 'the starting point' : verdict === 'kept' ? `kept: held-out went up${par ? ` from ${pct(par.score)} to ${pct(v.score)}` : ''}` : `cut: ${v.signal === 'cheat caught' ? 'it edited the tests' : `held-out ${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}, not higher`}`}</div>
+      <div class="k">raindrop trace</div><div>${esc(v.trace_id || 'none recorded')}</div></div>`;
+  else if (tab === 'proof') body = proof(v, par);
+  else if (tab === 'diff') body = v.diff ? `<pre>${esc(v.diff).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n')}</pre>` : '<pre>The seed has no parent to differ from.</pre>';
+  else if (tab === 'harness') body = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
+  else body = app?.log?.length ? [...app.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts * 1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
+  $('version').innerHTML = head + body;
+  if (tab === 'proof') loadBoards(v, par);
+}
+
+// Proof: the same held-out problems, parent against this version. Chess also shows both final positions.
+function proof(v, par) {
+  if (!v.results) return '<div class="empty">This version was stored before the loop recorded results per problem. Runs from now on have them.</div>';
+  const before = Object.fromEntries((par?.results || []).map(r => [r.task, r]));
+  const mark = r => !r ? '<span class="faint">·</span>' : r.cheat ? '<span class="lost">✕</span>' : r.passed ? '<span class="won">●</span>' : '<span class="lost">○</span>';
+  const won = v.results.filter(r => r.passed && before[r.task] && !before[r.task].passed).length, lost = v.results.filter(r => !r.passed && before[r.task]?.passed).length;
+  const chess = v.results.some(r => r.task.startsWith('chess/'));
+  if (chess) game ??= short(v.results[0].task);
+  return `<div class="faint" style="margin-bottom:8px">${par ? `${won} newly passed, ${lost} newly failed against ${esc(par.id)} · ● passed ○ failed ✕ edited tests` : 'the seed on every held-out problem'}</div>
+    <div class="grid"><div class="h">held-out problem</div><div class="h m">${esc(par?.id || '')}</div><div class="h m">${esc(v.id)}</div>
+    ${v.results.map(r => `<div>${chess ? `<a href="#" class="${short(r.task) === game ? 'on' : ''}" onclick="pickGame('${esc(short(r.task))}');return false">${esc(short(r.task))}</a>` : esc(short(r.task))}</div><div class="m">${mark(before[r.task])}</div><div class="m">${mark(r)}</div>`).join('')}</div>
+    ${chess ? `<div class="lbl" style="margin-top:16px">final position · ${esc(game)}</div><div class="boards" id="boards"></div>` : ''}`;
+}
+function pickGame(g) { game = g; renderVersion(); }
+const GLYPH = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
+function board(fen) {
+  let h = '', i = 0;
+  for (const row of fen.split(' ')[0].split('/')) for (const c of row) {
+    if (/\d/.test(c)) for (let k = 0; k < +c; k++, i++) h += `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''}"></i>`;
+    else { h += `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''}">${GLYPH[c] || ''}</i>`; i++; }
+  }
+  return `<div class="board">${h}</div>`;
+}
+async function loadBoards(v, par) {
+  const el = $('boards'); if (!el || !game) return;
+  const get = async id => { try { const r = await fetch(`replays/chess/${id}/game-${game}.json`); return r.ok ? r.json() : null; } catch { return null; } };
+  const [a, b] = await Promise.all([par ? get(par.id) : null, get(v.id)]);
+  const side = (id, g) => `<div><div class="px" style="font-size:14px">${esc(id)}</div>${g ? board(g.final_fen) + `<div class="faint">${g.san.length} moves${g.forfeit ? ' · forfeit: ' + esc(g.forfeit) : ''}</div>` : '<div class="empty">no saved game</div>'}</div>`;
+  if ($('boards') === el) el.innerHTML = (par ? side(par.id, a) : '') + side(v.id, b);
+}
+
+function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderLedger(); }
 async function load() {
   let data = {versions:[]};
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; if (follow || !data.versions.some(v => v.id === selected)) selected = data.versions.at(-1)?.id;
-  draw(data);
+  window.__d = data; renderLedger(); renderVersion();
 }
-$('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
-let agentView = 'live', app = null, growErr = null, setsSig = '', wantSet = null;
-// How many problems to use: all of them, or a smaller even number for a quicker run.
+let agentView = 'live', app = null, growErr = null, setsSig = '', wantSet = null, stopping = false;
 function fillCount() {
   const n = (app?.sets.find(x => x.key === $('set').value) || {}).count || 0;
   const opts = [...new Set([4, 8, 12, 20, 40, n].filter(k => k >= 4 && k <= n))].sort((x, y) => x - y);
-  $('count').innerHTML = opts.map(k => `<option value="${k}" ${k === n ? 'selected' : ''}>${k === n ? 'all ' + k : k}</option>`).join('');
+  $('count').innerHTML = opts.map(k => `<option value="${k}" ${k === n ? 'selected' : ''}>${k === n ? 'all ' + k : k} problems</option>`).join('');
 }
 function toggleNew() { const f = $('newset'); f.hidden = !f.hidden; $('new-btn').classList.toggle('on', !f.hidden); if (!f.hidden) $('ns-name').focus(); }
 function parseItems(text) {
@@ -240,14 +264,14 @@ async function createSet(e) {
   note.className = ''; note.textContent = `Connected with ${j.count} questions. It is selected: press Grow.`;
   wantSet = j.key; $('ns-items').value = ''; $('ns-name').value = ''; await poll(); toggleNew();
 }
-const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2, '0');
+const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s / 60) + 'm' + String(Math.round(s % 60)).padStart(2, '0');
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
 function renderRun() {
   const a = app; if (!a) return;
   const job = a.job, running = job && job.status === 'running';
   const sig = JSON.stringify(a.sets.map(x => [x.key, x.ready, x.count]));
   if (sig !== setsSig) { setsSig = sig; const keep = wantSet || $('set').value; wantSet = null; const groups = [...new Set(a.sets.map(x => x.group))];
-    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
+    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
     if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
   $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow'; if (!running) stopping = false; $('halt').textContent = stopping ? 'Stopping…' : 'Stop';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
@@ -259,13 +283,13 @@ function renderRun() {
   if (growErr && Date.now() < growErr.until) { ph.className = 'err'; ph.innerHTML = `<span class="dot"></span><b>${esc(growErr.text)}</b>`; }
   const all = a.agents, live = all.filter(x => x.status === 'working' || x.status === 'queued');
   const done = all.filter(x => x.ended).sort((x, y) => y.ended - x.ended);
-  const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 6)] : [...all].reverse();
-  $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${live.filter(x => x.status === 'queued').length} queued · ${done.length} done` : '';
+  const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 4)] : [...all].reverse();
+  $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${done.length} done` : '';
   $('agents').innerHTML = show.length ? show.map(x => {
-    const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status + (x.turns ? ` · ${x.turns} turns` : '');
-    return `<div class="ag ${esc(x.status)}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="role">${esc(x.role)}</span><span class="what">${esc(x.task)} <i>${esc(x.version)} · ${esc(x.split)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
-  }).join('') : `<div class="empty">No agents yet. A run starts solver agents (one per problem, on the model being improved) and a proposer agent that reads their failures and rewrites the harness.</div>`;
-  $('layer-activity').innerHTML = a.log.length ? [...a.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts*1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
+    const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status;
+    return `<div class="ag ${esc(x.status)}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
+  }).join('') : `<div class="empty">None yet. A run starts one solver per problem, on the model being improved, and a proposer that reads their failures and rewrites the harness.</div>`;
+  if (opened && tab === 'activity') renderVersion();
 }
 async function poll() {
   try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
@@ -278,10 +302,9 @@ async function post(path, body) {
 async function grow(e) {
   e.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
   const ok = await post('api/grow', {set:$('set').value, generations:+$('gens').value, count:+$('count').value});
-  if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
+  if (ok) { lastJson = ''; openVersion(null); }
   poll(); load();
 }
-let stopping = false;
 async function stopRun() { stopping = true; await post('api/stop', {}); poll(); }
 load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
 </script>

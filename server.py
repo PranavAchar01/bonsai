@@ -10,6 +10,7 @@ Everything else is served from web/. Binds to 127.0.0.1 only.
 
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -274,7 +275,13 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path.split("?")[0] != "/api/state":
+        path = self.path.split("?")[0]
+        # Saved games, read-only: /replays/<set>/<version>/<game>.json from tasks/<set>/_replays/.
+        m = re.fullmatch(r"/replays/([\w-]+)/([\w-]+)/([\w-]+)\.json", path)
+        if m:
+            f = runner.TASKS / m[1] / "_replays" / m[2] / f"{m[3]}.json"
+            return self.send_json(200, json.loads(f.read_text())) if f.exists() else self.send_json(404, {"error": "no replay"})
+        if path != "/api/state":
             return super().do_GET()
         with lock:
             agents = [
