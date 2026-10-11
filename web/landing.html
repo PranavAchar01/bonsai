@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai · agents that prune themselves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#030818; --cream:#f3ecde; --cream-2:rgba(243,236,222,.84); --cream-3:rgba(243,236,222,.62);
+    --mute:#aab3cf; --mute-2:#7f89b0; --lime:#d8f24b; --lime-ink:#13200a; --cut:#ff7a6a;
+    --line:rgba(255,255,255,.14); --tile:rgba(255,255,255,.04); --gutter:clamp(16px,4.4vw,28px);
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--cream); font:400 16px/1.6 Inter, system-ui, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; }
+  .serif { font-family:"Hedvig Letters Serif", Georgia, Cambria, "Times New Roman", serif; font-weight:400; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 var(--gutter); }
+  .eyebrow { font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--mute); margin:0 0 14px; }
+  .pill { display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:12px 22px; font-weight:600; font-size:16px; letter-spacing:-.01em; text-decoration:none; transition:transform .15s, background-color .15s; }
+  .pill:hover { transform:translateY(-1px); }
+  .pill.lime { background:var(--lime); color:var(--lime-ink); }
+  .pill.ghost { background:rgba(3,8,24,.62); color:var(--cream); box-shadow:inset 0 0 0 1px var(--line); }
+  .pill.small { padding:7px 14px; font-size:13px; }
+  .pill.cream { background:var(--cream); color:#071238; }
+
+  /* nav */
+  nav { position:sticky; top:0; z-index:10; backdrop-filter:blur(10px); background:rgba(3,8,24,.72); border-bottom:1px solid rgba(255,255,255,.06); }
+  nav .wrap { display:flex; align-items:center; gap:22px; height:56px; }
+  nav .brand { font-size:20px; text-decoration:none; display:flex; gap:10px; align-items:center; }
+  nav .brand b { font-weight:400; color:var(--mute); font-size:15px; }
+  nav .links { display:flex; gap:20px; margin-left:auto; font-size:13px; }
+  nav .links a { text-decoration:none; color:var(--cream-2); } nav .links a:hover { color:var(--cream); }
+
+  /* hero */
+  .hero { position:relative; overflow:hidden; }
+  .hero::before { content:""; position:absolute; inset:-20% -10% auto auto; width:70vw; height:70vw; background:radial-gradient(closest-side, rgba(216,242,75,.10), transparent 70%); pointer-events:none; }
+  .hero .wrap { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:24px; align-items:center; min-height:min(760px, calc(100vh - 56px)); padding-top:40px; padding-bottom:40px; }
+  .hero h1 { font-size:clamp(38px, 5.4vw, 64px); line-height:1.05; letter-spacing:-.022em; margin:0 0 20px; }
+  .hero h1 em { font-style:normal; color:var(--lime); }
+  .hero p.lede { font-size:18px; color:var(--cream-2); max-width:540px; margin:0 0 30px; }
+  .hero .ctas { display:flex; flex-wrap:wrap; gap:12px; }
+  .hero .note { margin-top:18px; font-size:13px; color:var(--mute-2); }
+  .stage { position:relative; height:min(620px, 70vh); }
+  .stage iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .stage .tag { position:absolute; right:10px; bottom:10px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--mute-2); }
+
+  section { padding:96px 0; border-top:1px solid rgba(255,255,255,.06); }
+  h2 { font-size:clamp(30px, 3.6vw, 44px); line-height:1.12; letter-spacing:-.02em; margin:0 0 16px; }
+  .sub { color:var(--cream-3); max-width:640px; font-size:16px; margin:0 0 44px; }
+
+  /* steps */
+  .steps { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; counter-reset:s; }
+  .step { background:var(--tile); border:1px solid var(--line); border-radius:20px; padding:22px; counter-increment:s; }
+  .step::before { content:counter(s); display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--cream); color:#071238; font-weight:600; font-size:13px; margin-bottom:18px; }
+  .step h3 { font-size:22px; margin:0 0 8px; letter-spacing:-.01em; }
+  .step p { margin:0; color:var(--cream-3); font-size:14.5px; }
+  .step.kept::before { background:var(--lime); color:var(--lime-ink); }
+
+  /* honest */
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start; }
+  .rules { list-style:none; margin:0; padding:0; }
+  .rules li { display:grid; grid-template-columns:28px 1fr; gap:12px; padding:18px 0; border-bottom:1px solid var(--line); color:var(--cream-2); }
+  .rules li::before { content:"✓"; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:rgba(216,242,75,.14); color:var(--lime); font-size:12px; margin-top:2px; }
+  .rules b { color:var(--cream); font-weight:600; }
+  .legend { display:grid; gap:14px; margin-top:6px; }
+  .legend div { display:flex; gap:14px; align-items:center; color:var(--cream-2); }
+  .legend i { width:34px; height:4px; border-radius:2px; flex:none; }
+
+  /* sets */
+  .sets { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; }
+  .set { background:var(--tile); border:1px solid var(--line); border-radius:20px; padding:24px; display:flex; flex-direction:column; gap:8px; }
+  .set .k { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--mute-2); }
+  .set h3 { font-size:24px; margin:0; letter-spacing:-.01em; }
+  .set p { margin:0; color:var(--cream-3); font-size:14.5px; }
+  .set .chip { align-self:flex-start; margin-top:auto; font-size:12px; padding:4px 10px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--line); color:var(--mute); }
+  .set .chip.on { color:var(--lime-ink); background:var(--lime); box-shadow:none; }
+
+  /* watch */
+  .watch { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .feature { border-radius:20px; padding:28px; background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border:1px solid var(--line); }
+  .feature h3 { font-size:26px; margin:0 0 10px; }
+  .feature p { color:var(--cream-3); margin:0; }
+  .log { margin-top:22px; font:13px/1.9 ui-monospace, "SF Mono", Menlo, monospace; color:var(--cream-2); }
+  .log span { color:var(--mute-2); display:inline-block; width:70px; } .log .ok { color:var(--lime); } .log .no { color:var(--cut); }
+
+  /* cta */
+  .final { text-align:center; padding:120px 0; }
+  .final h2 { font-size:clamp(34px, 4.4vw, 56px); }
+  .final .ctas { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:30px; }
+
+  footer { border-top:1px solid rgba(255,255,255,.06); padding:40px 0 60px; color:var(--mute-2); font-size:13px; }
+  footer .wrap { display:flex; flex-wrap:wrap; gap:16px 40px; justify-content:space-between; }
+  footer a { color:var(--mute); }
+
+  @media (max-width:900px) {
+    nav .links a:not(.keep) { display:none; }
+    .hero .wrap { grid-template-columns:1fr; min-height:0; }
+    .stage { height:420px; order:-1; }
+    .steps, .sets { grid-template-columns:1fr 1fr; }
+    .split, .watch { grid-template-columns:1fr; gap:32px; }
+    section { padding:72px 0; }
+  }
+  @media (max-width:560px) { .steps, .sets { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a class="brand serif" href="#">盆栽 Bonsai</a>
+  <div class="links"><a href="#how">How it works</a><a href="#honest">Honest by design</a><a href="#sets">Benchmarks</a><a href="https://github.com/PranavAchar01/bonsai">GitHub</a></div>
+  <a class="pill lime small" href="index.html">Open the app</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div>
+    <p class="eyebrow">Self-improving agents</p>
+    <h1 class="serif">An agent that rewrites itself, and keeps <em>only what works.</em></h1>
+    <p class="lede">Bonsai lets an AI agent improve its own instructions. Every change it tries is a branch. A branch stays only if the agent then scores higher on problems it has never seen. Everything else is cut, and the cuts stay on the record.</p>
+    <div class="ctas"><a class="pill lime" href="index.html">Grow an agent</a><a class="pill ghost" href="#how">See how it works</a></div>
+    <p class="note">Runs locally. Built in one day at the MongoDB Harness Engineering hackathon, San Francisco.</p>
+  </div>
+  <div class="stage">
+    <iframe src="tree.html?embed=1&bare=1&stress=14&p=midnight&form=moyogi&foliage=pine" title="A bonsai growing" loading="lazy"></iframe>
+    <div class="tag">Simulated growth</div>
+  </div>
+</div></header>
+
+<section id="how"><div class="wrap">
+  <p class="eyebrow">How it works</p>
+  <h2 class="serif">One round, four steps, no human in the loop.</h2>
+  <p class="sub">A harness is a small file: the agent's rules, its tools, its turn limit and its model. The model never changes. Everything else is open to revision.</p>
+  <div class="steps">
+    <div class="step"><h3 class="serif">Run</h3><p>The current best version works through practice problems. Every attempt is traced, pass or fail.</p></div>
+    <div class="step"><h3 class="serif">Propose</h3><p>A second agent reads the failures and writes exactly one change. Whatever it adds, it must remove something of about the same size.</p></div>
+    <div class="step"><h3 class="serif">Score</h3><p>The changed version is tested on held-out problems. The proposer only ever sees that score, never the failures behind it.</p></div>
+    <div class="step kept"><h3 class="serif">Keep or cut</h3><p>Higher held-out score and no tampering: it becomes the new best. Anything else is cut, and the cut is recorded.</p></div>
+  </div>
+</div></section>
+
+<section id="honest"><div class="wrap split">
+  <div>
+    <p class="eyebrow">Honest by design</p>
+    <h2 class="serif">Growth has to be earned.</h2>
+    <p class="sub">A self-improving agent will happily improve its score instead of its skill. Bonsai is built so that the only way up is to actually get better.</p>
+    <div class="legend">
+      <div><i style="background:var(--lime)"></i>A kept change grows a branch.</div>
+      <div><i style="background:var(--cut)"></i>A cut change leaves a stump, and the stump stays.</div>
+      <div><i style="background:var(--mute-2)"></i>A pale shoot is a change still being tested.</div>
+    </div>
+  </div>
+  <ul class="rules">
+    <li><span><b>The tests are always the originals.</b> Test files are hashed before the agent starts and restored before grading. A changed hash prunes that version.</span></li>
+    <li><span><b>Answers never enter the agent's folder.</b> Expected results stay hidden from the agent that is being graded.</span></li>
+    <li><span><b>Practice and held-out never mix.</b> A change is judged on held-out problems alone.</span></li>
+    <li><span><b>New problems start a new tree.</b> Scores on different held-out sets cannot be compared, so they are never drawn as one.</span></li>
+  </ul>
+</div></section>
+
+<section id="sets"><div class="wrap">
+  <p class="eyebrow">What it can improve on</p>
+  <h2 class="serif">Point it at anything that can be graded.</h2>
+  <p class="sub">Each benchmark is a folder with a grader. Drop in your own, or describe one in a sentence on the page and Bonsai sets it up.</p>
+  <div class="sets">
+    <div class="set"><span class="k">Games</span><h3 class="serif">Chess vs Stockfish</h3><p>Twenty games from ten openings, one model call per move. A game passes if the agent holds its own through move 18.</p><span class="chip on">Ready</span></div>
+    <div class="set"><span class="k">Databases</span><h3 class="serif">Nursery questions</h3><p>Sixteen questions about a plant nursery's orders, each answered with one MongoDB aggregation pipeline and checked exactly.</p><span class="chip on">Ready</span></div>
+    <div class="set"><span class="k">Code</span><h3 class="serif">Aider Polyglot</h3><p>Exercism practice problems in C++ and Python, graded by each problem's own tests.</p><span class="chip on">Ready</span></div>
+    <div class="set"><span class="k">Domains</span><h3 class="serif">Legal, health, finance</h3><p>Question sets from LegalBench, MedQA and FinQA, graded on exact answers or numbers within 1%.</p><span class="chip">In progress</span></div>
+    <div class="set"><span class="k">Your own</span><h3 class="serif">Bring your agent</h3><p>A set can ship its own agent command in place of Claude, so you can grow any agent you can run from a shell.</p><span class="chip">set.json</span></div>
+    <div class="set"><span class="k">From a sentence</span><h3 class="serif">Describe it</h3><p>Type what the agent should get better at. A model writes the task set and its grader, and the tree starts growing.</p><span class="chip">On the home page</span></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <p class="eyebrow">See it think</p>
+  <h2 class="serif">Watch every agent, live.</h2>
+  <p class="sub">Each run starts one player per problem and one writer that studies their mistakes. Click any of them to follow it step by step.</p>
+  <div class="watch">
+    <div class="feature"><h3 class="serif">Every step, as it happens</h3><p>Tool calls, what came back, what the agent said, and the grade at the end. For chess, the board moves with it.</p>
+      <div class="log"><span style="width:auto;letter-spacing:.14em;font-size:11px">EXAMPLE</span><br><span>move 9</span>read the hanging list<br><span>move 9</span>played O-O<br><span>reply</span>Stockfish: Nf6<br><span>graded</span><b class="ok">passed</b></div></div>
+    <div class="feature"><h3 class="serif">Every change, explained</h3><p>Open any version to see what failed, what it changed, what it removed, and which problems it newly passed or lost against its parent.</p>
+      <div class="log"><span style="width:auto;letter-spacing:.14em;font-size:11px">EXAMPLE</span><br><span>g3b</span><b class="ok">kept</b> · 39% → 48% held-out<br><span>g3a</span><b class="no">cut</b> · tokens up, score down<br><span>g2a</span><b class="no">cut</b> · edited the tests</div></div>
+  </div>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2 class="serif">Plant one. Watch it grow.</h2>
+  <p class="sub" style="margin:0 auto">Pick a benchmark, press Grow, and the tree records every change the agent makes to itself.</p>
+  <div class="ctas"><a class="pill lime" href="index.html">Open Bonsai</a><a class="pill ghost" href="https://github.com/PranavAchar01/bonsai">Read the code</a></div>
+</div></section>
+
+<footer><div class="wrap">
+  <span class="serif" style="color:var(--cream);font-size:16px">盆栽 Bonsai</span>
+  <span>Built on 11 October 2026 at the MongoDB Harness Engineering hackathon in San Francisco.</span>
+  <span>Layout after <a href="https://github.com/MaxRobinsonTheGreat/fractalsearch">fractalsearch</a> · problems from <a href="https://github.com/Aider-AI/polyglot-benchmark">Aider Polyglot</a> · traces on <a href="https://raindrop.ai">Raindrop</a></span>
+</div></footer>
+
+</body>
+</html>

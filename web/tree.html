@@ -118,6 +118,8 @@ for (let i = 0; i < 10; i++) {
 }
 const sunS = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, transparent:true, opacity:.45, depthWrite:false, fog:false}));
 sunS.position.set(12, 12, -26); sunS.scale.set(7, 7, 1); scene.add(sunS);
+// On another page's background (?bare=1) the far hills and sun would read as haze, so they go.
+if (q.get('bare')) { hills.forEach(h => h.visible = false); sunS.visible = false; }
 
 // ---------- palette crossfade ----------
 function setPalette(P) {
