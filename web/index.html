@@ -176,7 +176,7 @@ async function load() {
 $('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
-let agentView = 'live', app = null;
+let agentView = 'live', app = null, growErr = null;
 const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2, '0');
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
 function renderRun() {
@@ -184,12 +184,14 @@ function renderRun() {
   const job = a.job, running = job && job.status === 'running';
   if (!$('set').options.length) { const groups = [...new Set(a.sets.map(x => x.group))];
     $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join(''); }
-  $('go').disabled = running; $('halt').disabled = !running;
+  $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
   ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
     : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
     : job.status === 'error' ? `<b>run failed</b> · ${esc(job.error)}`
     : `<b>${esc(job.status)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · took ${secs(job.ended - job.started)}`);
+  // A refused Grow stays on screen long enough to read, instead of being wiped by the next poll.
+  if (growErr && Date.now() < growErr.until) { ph.className = 'err'; ph.innerHTML = `<span class="dot"></span><b>${esc(growErr.text)}</b>`; }
   const all = a.agents, live = all.filter(x => x.status === 'working' || x.status === 'queued');
   const done = all.filter(x => x.ended).sort((x, y) => y.ended - x.ended);
   const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 6)] : [...all].reverse();
@@ -206,10 +208,10 @@ async function poll() {
 }
 async function post(path, body) {
   const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const j = await r.json().catch(() => ({})); if (!r.ok) { $('phase').className = 'err'; $('phase').innerHTML = `<span class="dot"></span><b>${esc(j.error || 'request failed')}</b>`; } return r.ok;
+  const j = await r.json().catch(() => ({})); growErr = r.ok ? null : {text: j.error || 'request failed', until: Date.now() + 8000}; return r.ok;
 }
 async function grow(e) {
-  e.preventDefault(); $('go').disabled = true;
+  e.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
   const ok = await post('api/grow', {set:$('set').value});
   if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
   poll(); load();
