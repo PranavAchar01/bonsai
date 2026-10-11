@@ -1,0 +1,397 @@
+{
+ "scale": "Bonsai ladder Elo (Stockfish-anchored, sf1320 = 1320; not lichess/chess.com)",
+ "calibration": "Elo, anchored {'sf1320': 1320.0} (Stockfish UCI_Elo calibration: CCRL 40/4, TC 60s+0.6s)",
+ "stockfish_version": "Stockfish 19",
+ "n_games": 1508,
+ "start": "E100",
+ "start_target": 100,
+ "climb": [
+  "random",
+  "E100",
+  "T8",
+  "T5.7",
+  "T4",
+  "T2.8",
+  "T2",
+  "T1.6",
+  "T1.25",
+  "T1",
+  "T0.75",
+  "T0.5",
+  "T0.25",
+  "d1",
+  "sf2100",
+  "sf2500",
+  "sf2900"
+ ],
+ "rungs": [
+  {
+   "name": "random",
+   "spec": {
+    "kind": "random"
+   },
+   "elo": 32,
+   "lo": -176,
+   "hi": 202,
+   "sd": 94,
+   "reproducible": true
+  },
+  {
+   "name": "E100",
+   "spec": {
+    "kind": "policy",
+    "temp": 8,
+    "eps": 0.556,
+    "depth": 1
+   },
+   "elo": 93,
+   "lo": -93,
+   "hi": 279,
+   "sd": 95,
+   "reproducible": true,
+   "note": "interpolated (rung_for_elo(100)); measured 93 from 80 games vs random and T8 (interp.jsonl); sd includes ~40 interpolation error"
+  },
+  {
+   "name": "T8",
+   "spec": {
+    "kind": "policy",
+    "temp": 8,
+    "depth": 1
+   },
+   "elo": 185,
+   "lo": -17,
+   "hi": 330,
+   "sd": 89,
+   "reproducible": true
+  },
+  {
+   "name": "T5.7",
+   "spec": {
+    "kind": "policy",
+    "temp": 5.7,
+    "depth": 1
+   },
+   "elo": 282,
+   "lo": 83,
+   "hi": 428,
+   "sd": 85,
+   "reproducible": true
+  },
+  {
+   "name": "eps0.8",
+   "spec": {
+    "kind": "policy",
+    "eps": 0.8,
+    "depth": 1
+   },
+   "elo": 311,
+   "lo": 78,
+   "hi": 494,
+   "sd": 101,
+   "reproducible": true
+  },
+  {
+   "name": "T4",
+   "spec": {
+    "kind": "policy",
+    "temp": 4,
+    "depth": 1
+   },
+   "elo": 395,
+   "lo": 230,
+   "hi": 530,
+   "sd": 83,
+   "reproducible": true
+  },
+  {
+   "name": "T2.8",
+   "spec": {
+    "kind": "policy",
+    "temp": 2.8,
+    "depth": 1
+   },
+   "elo": 512,
+   "lo": 350,
+   "hi": 658,
+   "sd": 79,
+   "reproducible": true
+  },
+  {
+   "name": "eps0.6",
+   "spec": {
+    "kind": "policy",
+    "eps": 0.6,
+    "depth": 1
+   },
+   "elo": 545,
+   "lo": 359,
+   "hi": 690,
+   "sd": 85,
+   "reproducible": true
+  },
+  {
+   "name": "T2",
+   "spec": {
+    "kind": "policy",
+    "temp": 2,
+    "depth": 1
+   },
+   "elo": 709,
+   "lo": 565,
+   "hi": 835,
+   "sd": 72,
+   "reproducible": true
+  },
+  {
+   "name": "T1.6",
+   "spec": {
+    "kind": "policy",
+    "temp": 1.6,
+    "depth": 1
+   },
+   "elo": 829,
+   "lo": 691,
+   "hi": 960,
+   "sd": 71,
+   "reproducible": true
+  },
+  {
+   "name": "eps0.4",
+   "spec": {
+    "kind": "policy",
+    "eps": 0.4,
+    "depth": 1
+   },
+   "elo": 838,
+   "lo": 648,
+   "hi": 986,
+   "sd": 85,
+   "reproducible": true
+  },
+  {
+   "name": "T1.25",
+   "spec": {
+    "kind": "policy",
+    "temp": 1.25,
+    "depth": 1
+   },
+   "elo": 963,
+   "lo": 834,
+   "hi": 1082,
+   "sd": 66,
+   "reproducible": true
+  },
+  {
+   "name": "T1",
+   "spec": {
+    "kind": "policy",
+    "temp": 1,
+    "depth": 1
+   },
+   "elo": 1127,
+   "lo": 1005,
+   "hi": 1231,
+   "sd": 58,
+   "reproducible": true
+  },
+  {
+   "name": "eps0.2",
+   "spec": {
+    "kind": "policy",
+    "eps": 0.2,
+    "depth": 1
+   },
+   "elo": 1165,
+   "lo": 1011,
+   "hi": 1291,
+   "sd": 72,
+   "reproducible": true
+  },
+  {
+   "name": "T0.75",
+   "spec": {
+    "kind": "policy",
+    "temp": 0.75,
+    "depth": 1
+   },
+   "elo": 1300,
+   "lo": 1198,
+   "hi": 1388,
+   "sd": 50,
+   "reproducible": true
+  },
+  {
+   "name": "sf1320",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 1320
+   },
+   "elo": 1320,
+   "lo": 1320,
+   "hi": 1320,
+   "sd": 0,
+   "reproducible": false
+  },
+  {
+   "name": "sf1500",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 1500
+   },
+   "elo": 1453,
+   "lo": 1382,
+   "hi": 1538,
+   "sd": 39,
+   "reproducible": false
+  },
+  {
+   "name": "T0.5",
+   "spec": {
+    "kind": "policy",
+    "temp": 0.5,
+    "depth": 1
+   },
+   "elo": 1458,
+   "lo": 1388,
+   "hi": 1521,
+   "sd": 35,
+   "reproducible": true
+  },
+  {
+   "name": "eps0.1",
+   "spec": {
+    "kind": "policy",
+    "eps": 0.1,
+    "depth": 1
+   },
+   "elo": 1459,
+   "lo": 1331,
+   "hi": 1586,
+   "sd": 66,
+   "reproducible": true
+  },
+  {
+   "name": "T0.35",
+   "spec": {
+    "kind": "policy",
+    "temp": 0.35,
+    "depth": 1
+   },
+   "elo": 1541,
+   "lo": 1471,
+   "hi": 1609,
+   "sd": 36,
+   "reproducible": true
+  },
+  {
+   "name": "T0.15",
+   "spec": {
+    "kind": "policy",
+    "temp": 0.15,
+    "depth": 1
+   },
+   "elo": 1606,
+   "lo": 1538,
+   "hi": 1675,
+   "sd": 37,
+   "reproducible": true
+  },
+  {
+   "name": "T0.25",
+   "spec": {
+    "kind": "policy",
+    "temp": 0.25,
+    "depth": 1
+   },
+   "elo": 1613,
+   "lo": 1551,
+   "hi": 1684,
+   "sd": 34,
+   "reproducible": true
+  },
+  {
+   "name": "sf1800",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 1800
+   },
+   "elo": 1700,
+   "lo": 1614,
+   "hi": 1810,
+   "sd": 50,
+   "reproducible": false
+  },
+  {
+   "name": "d1",
+   "spec": {
+    "kind": "policy",
+    "depth": 1
+   },
+   "elo": 1706,
+   "lo": 1648,
+   "hi": 1772,
+   "sd": 34,
+   "reproducible": true
+  },
+  {
+   "name": "sf2100",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 2100
+   },
+   "elo": 1830,
+   "lo": 1715,
+   "hi": 1971,
+   "sd": 66,
+   "reproducible": false
+  },
+  {
+   "name": "d3",
+   "spec": {
+    "kind": "policy",
+    "depth": 3
+   },
+   "elo": 2000,
+   "lo": 1877,
+   "hi": 2165,
+   "sd": 78,
+   "reproducible": true
+  },
+  {
+   "name": "sf2500",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 2500
+   },
+   "elo": 2094,
+   "lo": 1953,
+   "hi": 2273,
+   "sd": 88,
+   "reproducible": false
+  },
+  {
+   "name": "d5",
+   "spec": {
+    "kind": "policy",
+    "depth": 5
+   },
+   "elo": 2253,
+   "lo": 2108,
+   "hi": 2458,
+   "sd": 93,
+   "reproducible": true
+  },
+  {
+   "name": "sf2900",
+   "spec": {
+    "kind": "sf_elo",
+    "elo": 2900
+   },
+   "elo": 2442,
+   "lo": 2259,
+   "hi": 2712,
+   "sd": 122,
+   "reproducible": false
+  }
+ ]
+}
