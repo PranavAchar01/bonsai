@@ -203,7 +203,7 @@
       <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
       <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
       <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
-      <nav id="views"><button type="button" id="v-home" onclick="setView('home')" title="Make an agent, or open one">home</button><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The same chess game played by two versions, side by side">replay</button></nav>
+      <nav id="views"><button type="button" id="v-home" onclick="setView('home')" title="Make an agent, or open one">home</button><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The saved chess games, move by move">replay</button></nav>
       <div id="tools"><button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button><button type="button" onclick="toggleAgent(true)">+ new agent</button><button type="button" id="term-btn" onclick="toggleTerm()">terminal</button></div>
       <div id="opts" hidden>
         <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
@@ -725,11 +725,8 @@ function doneTarget() {
   return {task: tasks[viewI % tasks.length], version: kept.at(-1).id, status: 'completed', model: 'haiku', split: 'heldout', role: 'solver'};
 }
 function openSet(key) { $('set').value = key; fillCount(); fillTools(); openAgent(null); }
-// Replay compares the seed with the best kept version of the chess tree when there is one.
-function replaySrc() {
-  const V = window.__d?.versions || [], best = V.filter(x => x.kept && x.generation > 0).sort((a, b) => b.score - a.score)[0];
-  return `replay.html?a=g0&b=${encodeURIComponent(best ? best.id : 'g0')}&game=game-caro-kann-white`;
-}
+// Replay shows the saved chess games in the live view's own board and move table.
+function replaySrc() { return 'chess-games.html'; }
 function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
 // Esc closes whatever is open, innermost first.
 addEventListener('keydown', e => {
