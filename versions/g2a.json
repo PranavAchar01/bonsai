@@ -1,0 +1,11 @@
+{
+ "rules": "You are a coding agent. Read .docs/instructions.md, then implement the solution file. Run the tests and fix failures. Never edit the test file.",
+ "tools": [
+  "Read",
+  "Edit",
+  "Bash"
+ ],
+ "max_turns": 12,
+ "model": "haiku",
+ "id": "g2a"
+}

@@ -22,11 +22,30 @@ MOVE = re.compile(r"\b([a-h][1-8][a-h][1-8][qrbn]?)\b")
 mine = chess.WHITE if cfg["color"] == "white" else chess.BLACK
 
 
+def sight(board: chess.Board) -> str:
+    """Extra things the player is shown, one block per tool the harness has switched on."""
+    tools, out = harness.get("tools") or [], []
+    if "legal_moves" in tools:
+        out.append("Legal moves: " + " ".join(m.uci() for m in board.legal_moves))
+    if "hanging" in tools:
+        loose = [f"{board.piece_at(s).symbol()} on {chess.square_name(s)}" for s, p in board.piece_map().items()
+                 if p.color == mine and board.is_attacked_by(not mine, s) and not board.is_attacked_by(mine, s)]  # fmt: skip
+        free = [m.uci() for m in board.legal_moves
+                if board.is_capture(m) and not board.is_attacked_by(not mine, m.to_square)]
+        out.append(f"Your pieces attacked and undefended: {', '.join(loose) or 'none'}")
+        out.append(f"Captures on squares the opponent does not defend: {' '.join(free) or 'none'}")
+    if "checks" in tools:
+        out.append(f"Your king is in check: {'yes' if board.is_check() else 'no'}")
+        out.append("Moves that give check: " + (" ".join(m.uci() for m in board.legal_moves if board.gives_check(m)) or "none"))
+    return "\n".join(out) + "\n" if out else ""
+
+
 def ask(board: chess.Board, history: list[str], rejected: list[str]) -> str:
     prompt = (
         f"You are playing {cfg['color']} against a chess engine. It is your move.\n\n"
         f"Moves so far: {' '.join(history) or '(none)'}\nFEN: {board.fen()}\n\n{board}\n\n"
         "Uppercase is White, lowercase is Black, rank 8 is the top row, file a is the left column.\n"
+        + sight(board)
         + (f"These moves were rejected as illegal, do not repeat them: {', '.join(rejected)}\n" if rejected else "")
         + "End your reply with your move in UCI form on its own line, for example e2e4 or e7e8q."
     )

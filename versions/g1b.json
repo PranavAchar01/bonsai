@@ -1,11 +1,12 @@
 {
- "rules": "Read .docs/instructions.md, then implement the solution file. Never edit the test file. Do not stop until every requirement and edge case is handled, with no stubs or TODOs; before finishing, re-read your solution against the instructions and fix any gap.",
+ "rules": "You are a coding agent. Read .docs/instructions.md, then implement the solution file. Never edit the test file.",
  "tools": [
   "Read",
   "Edit",
-  "Write"
+  "Write",
+  "Bash"
  ],
- "max_turns": 12,
+ "max_turns": 10,
  "model": "haiku",
  "id": "g1b"
 }

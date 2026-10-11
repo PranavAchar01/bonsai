@@ -30,6 +30,7 @@ MAX_TURNS_CAP = 30
 
 PROPOSER = """You improve an agent by editing its harness. The harness is JSON:
 {{"rules": system prompt, "tools": subset of {tools}, "max_turns": int up to {cap}, "model": fixed}}
+{tool_notes}
 
 Current harness:
 {harness}
@@ -89,15 +90,19 @@ def score(harness: dict, tasks: list[str], scratch: Path, workers: int, on_task=
     }
 
 
-def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str = "") -> dict:
+def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str = "", spec: dict | None = None) -> dict:
     fails = [r for r in result["rows"] if not r["passed"] or r["edited_tests"]]
     digest = "\n".join(
         f"- {r['task']} (turns {r['turns']}, edited tests: {r['edited_tests']})\n"
         f"  agent said: {r['agent_said'][-300:]!r}\n  tests said: {r['test_tail'][-300:]!r}"
         for r in fails
     )
+    # A connected set may bring its own tools ("tools" in set.json, name -> what it does).
+    own = (spec or {}).get("tools")
+    allowed = list(own) if own else ALLOWED_TOOLS
     prompt = PROPOSER.format(
-        tools=ALLOWED_TOOLS,
+        tools=allowed,
+        tool_notes="\n".join(f"Tool {k}: {v}" for k, v in own.items()) if own else "",
         cap=MAX_TURNS_CAP,
         harness=json.dumps(
             {k: parent[k] for k in ("rules", "tools", "max_turns", "model")}, indent=1
@@ -117,7 +122,7 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str
     reply = json.loads(text[text.index("{") : text.rindex("}") + 1])
     child = reply["harness"]
     child["model"] = parent["model"]
-    child["tools"] = [t for t in child["tools"] if t in ALLOWED_TOOLS]
+    child["tools"] = [t for t in child["tools"] if t in allowed]
     child["max_turns"] = min(int(child["max_turns"]), MAX_TURNS_CAP)
     trace = None
     if runner.RAINDROP:  # the proposer is an agent too: its proposal is traced, and later marked kept or pruned
@@ -153,12 +158,12 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
     def tasks_cb(vid: str, split: str):
         return lambda state, task, row: emit("task", version=vid, split=split, task=task, state=state, row=row)
 
+    spec = runner.task_set(heldout[0].rpartition("/")[0]) or {}
     if parent:
         best = {**parent["harness"], "id": parent["id"]}
         best_score, first = parent["score"], parent["generation"] + 1
     else:
         # A connected set may bring its own starting harness ("seed" in set.json).
-        spec = runner.task_set(heldout[0].rpartition("/")[0]) or {}
         seed = {**runner.BASE_HARNESS, **spec.get("seed", {})}
         best, first = {**seed, "id": "g0"}, 1
         emit("phase", text="scoring the seed on held-out problems", version="g0")
@@ -184,7 +189,7 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
             vid = f"g{gen}{'abcdef'[i]}"
             emit("phase", text=f"proposer is reading the failures and writing {vid}", version=vid)
             emit("task", version=vid, split="propose", task="one change, one thing shed", state="start", row=None)
-            p = propose(best, practice_run, pruned, proposer, goal)
+            p = propose(best, practice_run, pruned, proposer, goal, spec)
             emit("task", version=vid, split="propose", task="one change, one thing shed", state="end",
                  row={"passed": True, "edited_tests": False, "said": p["change"], "trace_id": p["trace_id"]})  # fmt: skip
             child = {**p["harness"], "id": vid}

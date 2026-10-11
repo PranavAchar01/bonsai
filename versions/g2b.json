@@ -1,0 +1,11 @@
+{
+ "rules": "You are a coding agent. Read .docs/instructions.md and the test file first, then implement the solution file so every behavior and edge case the tests check is covered. Never edit the test file.",
+ "tools": [
+  "Read",
+  "Edit",
+  "Write"
+ ],
+ "max_turns": 10,
+ "model": "haiku",
+ "id": "g2b"
+}

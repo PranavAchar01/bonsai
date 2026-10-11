@@ -40,6 +40,8 @@
   .toggle { position:fixed; right:20px; top:20px; font:inherit; font-size:12px; color:var(--ink); background:var(--bg); border:1px solid color-mix(in srgb, var(--ink) 35%, transparent); padding:4px 10px; cursor:pointer; z-index:2; }
   .panel { top:52px; background:color-mix(in srgb, var(--bg) 82%, transparent); padding:10px; }
   .panel.closed { display:none; }
+  .embed .title, .embed .toggle, .embed .panel, .embed .seal { display:none; }
+  .embed .bar { left:16px; bottom:12px; }
   @media (max-width:700px) { .title h1 { font-size:30px; } .title .num { font-size:40px; } .panel { width:200px; } }
 </style>
 <script type="importmap">{ "imports": {
@@ -60,8 +62,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PALETTES, isDark } from './palettes.js';
 
-// Sample lineage. Same shape as runs/versions.jsonl rows the page will read later.
-const VERSIONS = [
+// Sample lineage, shown until a run has written lineage.json. Same shape as its rows.
+let VERSIONS = [
   {id:"g0", parent:null, kept:true,  score:.40, signal:"seed"},
   {id:"g1a",parent:"g0", kept:false, score:.37, signal:"no gain"},
   {id:"g1b",parent:"g0", kept:true,  score:.47, signal:"claimed pass, never ran"},
@@ -75,7 +77,7 @@ const VERSIONS = [
 // ---------- options ----------
 
 const q = new URLSearchParams(location.search);
-const S = { form:q.get('form') || 'moyogi', foliage:q.get('foliage') || 'pine', palette:PALETTES[q.get('p')] ? q.get('p') : 'garden', wind:q.get('wind') || 'breeze', speed:+(q.get('speed') || 1) };
+const S = { form:q.get('form') || 'moyogi', foliage:q.get('foliage') || 'pine', palette:PALETTES[q.get('p')] ? q.get('p') : (q.get('embed') ? 'paper' : 'garden'), wind:q.get('wind') || 'breeze', speed:+(q.get('speed') || 1) };
 
 // ---------- utilities ----------
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -356,7 +358,7 @@ function build() {
   }
   kept.forEach((v, i) => {
     (vs[v.id] || []).forEach((c, k) => {
-      const [a0, a1] = F.range, tA = Math.min(.97, a0 + (a1 - a0) * i / (kept.length - 1) + k * .05);
+      const [a0, a1] = F.range, tA = Math.min(.97, a0 + (a1 - a0) * i / Math.max(1, kept.length - 1) + k * .05);
       const start = trunkAt(tA).clone(), ang = i * 2.35 + k * 2.6 + .4;
       const out = V(Math.cos(ang), 0, Math.sin(ang));
       if (F.bias) out.lerp(F.bias, .7).normalize();
@@ -572,6 +574,25 @@ if (innerWidth < 1100 && !q.get('open')) pn.classList.add('closed');
 document.getElementById('toggle').onclick = () => pn.classList.toggle('closed');
 U.uWind.value = WIND[S.wind];
 t = +(q.get('t') || 0);   // jump to a moment, handy for screenshots
+
+// Inside the main page (?embed=1) the tree is the whole frame and the page around it carries the words.
+if (q.get('embed')) document.body.classList.add('embed');
+// Live lineage: redraw when the loop stores a new version, and replay only the newest growth.
+let seen = '';
+async function live() {
+  try {
+    const r = await fetch('lineage.json', {cache:'no-store'});
+    if (r.ok) {
+      const vs = (await r.json()).versions || [], key = vs.map(v => v.id + v.kept).join();
+      if (vs.length && key !== seen) {
+        const first = !seen; seen = key; VERSIONS = vs; build(); applyPalette();
+        t = first ? 0 : Math.max(0, (kept.length - 1) * SEG - .4);
+      }
+    }
+  } catch {}
+  setTimeout(live, 3000);
+}
+live();
 
 const tmp = V();
 renderer.setAnimationLoop(now => {
