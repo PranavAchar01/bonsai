@@ -636,7 +636,7 @@ function setView(v) {
 
 // Home: one sentence makes an agent. Tiles are the agents that exist: the one growing now, and every finished
 // run that beat where it started. A finished tile opens the whole run, replayed from the seed.
-let viewing = null, runStats = {}, statsAt = 0, statsDone = false, madeSeen = null;
+let viewing = null, runStats = {}, statsAt = 0, statsDone = false, madeSeen = null, ladder = null;
 // the last tiles are remembered, so the agents are on the page before the server has answered
 try { const h = localStorage.getItem('bonsai-tiles'); if (h) $('tiles').innerHTML = h; } catch {}
 const TREE_SRC = 'tree.html?embed=1&bare=1';
@@ -651,6 +651,10 @@ async function pullStats() {
     const kept = keptChain(vs);
     runStats[set.key] = {file, seed: vs[0].score, best: kept.at(-1).score, kept: vs.filter(v => v.kept && v.parent).length, cut: vs.filter(v => !v.kept).length};
   }));
+  // the chess Elo ladder (rsi/) writes its own log: runs/chess-ladder.jsonl is a copy of runs/rsi/<RUN_ID>/versions.jsonl
+  const lad = await fetch('runs/chess-ladder.jsonl', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+  const lv = lad.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id && v.elo != null);
+  ladder = lv.length ? {seed: lv[0], best: keptChain(lv).at(-1) || lv[0], kept: lv.filter(v => v.kept && v.parent).length, cut: lv.filter(v => !v.kept).length} : null;
   statsDone = true;
   renderHome();
 }
@@ -663,7 +667,12 @@ function renderHome() {
   const live = running && app.sets.find(x => x.name === job.set);
   if (live) tiles.push(`<button class="tile" onclick="openAgent(null)"><span class="t-st live">● growing now</span><span class="t-name">${esc(live.name)}</span><span class="t-sc">${app.agents.filter(a => a.status === 'working').length}<small> agents working</small></span><span class="t-ft">${esc(plain(job.phase || ''))}</span></button>`);
   // chess leads: the Elo ladder (rsi/) has no finished run stored here yet, so its tile opens the replayed games
-  if (!(live && live.key === 'chess') && !runStats.chess && app.sets.some(x => x.key === 'chess')) tiles.unshift(`<button class="tile" onclick="setView('replay')"><span class="t-st">chess · elo ladder</span><span class="t-name">Chess: games against Stockfish</span><span class="t-sc"><small>Haiku, one call per move</small></span><span class="t-ft">Opponents follow its rating upward · open the replayed games</span></button>`);
+  if (!(live && live.key === 'chess') && !runStats.chess && app.sets.some(x => x.key === 'chess')) {
+    const e = v => Math.round(v.elo), L = ladder;
+    const sc = L ? `<small>est. Elo</small> ${L.best.id === L.seed.id ? e(L.seed) : `${e(L.seed)} <small>→</small> ${e(L.best)}`}` : '<small>Haiku, one call per move</small>';
+    const ft = L ? `${L.best.elo_lo != null ? `range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)} · ` : ''}${L.kept} kept · ${L.cut} cut · Stockfish-anchored ladder` : 'Opponents follow its rating upward · open the replayed games';
+    tiles.unshift(`<button class="tile" onclick="setView('replay')"><span class="t-st${L ? ' done' : ''}">chess · elo ladder</span><span class="t-name">Chess: games against Stockfish</span><span class="t-sc">${sc}</span><span class="t-ft">${ft}</span></button>`);
+  }
   for (const set of app.sets) {
     const st = runStats[set.key], mine = (app.hosted || []).find(h => h.key === set.key);
     if (live && live.key === set.key) continue;
