@@ -198,8 +198,9 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
             store(doc)
             emit("version", doc=doc)
             if p["trace_id"]:
-                runner.raindrop.track_signal(event_id=p["trace_id"], name="kept" if kept else "pruned",
-                                             sentiment="POSITIVE" if kept else "NEGATIVE")  # fmt: skip
+                runner.raindrop.track_signal(event_id=p["trace_id"], name="task_outcome", signal_type="feedback",
+                                             sentiment="POSITIVE" if kept else "NEGATIVE",
+                                             comment=f"{'kept' if kept else 'pruned'} at {res['score']:.0%} held-out")  # fmt: skip
             (VERSIONS / f"{vid}.json").write_text(json.dumps(child, indent=1))
             print(f"{vid} {'KEPT' if kept else 'PRUNED'} {res['score']:.2f} (best {best_score:.2f}) "
                   f"{'CHEAT ' if res['cheated'] else ''}{p['change']}", flush=True)  # fmt: skip

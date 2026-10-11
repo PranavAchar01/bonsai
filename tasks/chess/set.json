@@ -1,0 +1,7 @@
+{
+  "name": "Chess: mate in one",
+  "prompt": "Solve the chess puzzle in .docs/instructions.md and write your move to answer.txt.",
+  "solution": ["answer.txt"],
+  "hidden": [],
+  "grade": "uv run -q --no-project --with chess python {root}/tasks/chess/_grade.py answer.txt {task}/position.fen"
+}

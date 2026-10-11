@@ -156,7 +156,7 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
         version = harness.get("id", "seed")
         event_id = raindrop.track_ai(
             user_id=f"harness-{version}",
-            event="polyglot_task",
+            event=f"{lang}_task" if spec else "polyglot_task",
             model=harness["model"],
             input=prompt,
             output=out.get("result") or "(no final message)",
@@ -173,13 +173,14 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
             },
         )
         row["trace_id"] = event_id
+        # The free Raindrop plan allows one custom signal, so pass or fail lives in its sentiment.
         raindrop.track_signal(
             event_id=event_id,
-            name="tests_passed" if passed else "tests_failed",
-            sentiment="POSITIVE" if passed else "NEGATIVE",
+            name="task_outcome",
+            signal_type="feedback",
+            sentiment="POSITIVE" if passed and not edited_tests else "NEGATIVE",
+            comment=("edited the tests. " if edited_tests else "") + tail[-300:],
         )
-        if edited_tests:
-            raindrop.track_signal(event_id=event_id, name="edited_tests", sentiment="NEGATIVE")
     return row
 
 

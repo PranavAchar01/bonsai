@@ -10,10 +10,10 @@ Built on 11 October 2026 at the MongoDB Harness Engineering hackathon in San Fra
 
 A harness is a small JSON file holding the rules (the system prompt), the tools the agent may use, the turn limit and the model. The model never changes. The rest is open to revision.
 
-1. Run. The current best harness attempts the practice problems. Every attempt goes to Raindrop as a trace with a `tests_passed` or `tests_failed` signal, plus `edited_tests` if the agent touched a test file.
+1. Run. The current best harness attempts the practice problems. Every attempt goes to Raindrop as a trace with one `task_outcome` signal, positive for a pass and negative for a fail or for touching a test file.
 2. Propose. A second model reads the failures and writes exactly one change to the harness. Whatever it adds, it must remove something of about the same size, such as a rule, a tool or some turns. The proposal is traced to Raindrop too.
 3. Score. The new harness runs on held-out problems. The proposer sees that score and never the failures behind it.
-4. Keep or prune. A child with a higher held-out score and no tampering is kept and becomes the new best. Any other child is pruned. The proposal's Raindrop trace is marked `kept` or `pruned`.
+4. Keep or prune. A child with a higher held-out score and no tampering is kept and becomes the new best. Any other child is pruned. The proposal's Raindrop trace gets the same signal, positive when kept and negative when pruned.
 5. Record. Every version, kept or pruned, is one document: id, parent, the change, what was shed, the failure pattern, score, the harness itself and the diff. They go to `runs/versions.jsonl`, and to the MongoDB collection `bonsai.versions` when `MONGODB_URI` is set.
 
 ## Run it

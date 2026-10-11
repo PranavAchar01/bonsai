@@ -16,8 +16,8 @@ agent. Run this loop until told to stop.
 
 1. Run. Score the current best version on the practice problems:
    `uv run --no-project --with raindrop-ai --with python-dotenv python -m harness.evaluate --harness versions/<best>.json --tasks <practice> --scratch <dir> --out runs/<best>-practice.json`
-   Every problem is traced to Raindrop as a `polyglot_task` event with a `tests_passed`,
-   `tests_failed` or `edited_tests` signal.
+   Every problem is traced to Raindrop as a `polyglot_task` event with one `task_outcome`
+   signal: positive for a pass, negative for a fail or for edited tests.
 2. Read the signals. Ask Raindrop (MCP) what the failing traces for this version have in
    common. Name the pattern in a few words, for example "stops before the hard cases" or
    "claims success without checking". Work from the pattern across problems, since one problem
@@ -26,7 +26,7 @@ agent. Run this loop until told to stop.
    parent aimed at that pattern. Never mention a specific problem in the rules.
 4. Score on held-out. Same command with the held-out problems.
 5. Keep or prune. Keep the child only if its held-out score is strictly higher than the
-   parent's and no `edited_tests` signal fired. Otherwise it is pruned. A pruned branch is never
+   parent's and no test file was edited. Otherwise it is pruned. A pruned branch is never
    deleted: it stays in the record with the reason.
 6. Record. Insert one document into MongoDB `bonsai.versions`:
    `{id, parent, generation, change, shed, signal, kept, score, tokens, harness, diff, trace_id, ts}`.
