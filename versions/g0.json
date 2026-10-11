@@ -1,11 +1,7 @@
 {
- "rules": "You are a coding agent. Read .docs/instructions.md, then implement the solution file. Never edit the test file.",
- "tools": [
-  "Read",
-  "Edit",
-  "Write"
- ],
- "max_turns": 12,
+ "rules": "You are a chess player. Look at the position and choose a good legal move.",
+ "tools": [],
+ "max_turns": 1,
  "model": "haiku",
  "id": "g0"
 }
