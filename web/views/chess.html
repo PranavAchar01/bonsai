@@ -17,11 +17,18 @@
   #board i { display:grid; place-items:center; font-style:normal; font-size:min(4.4vh, 22px); line-height:1; transition:background-color .5s; }
   #board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); } #board i.hot { background:color-mix(in srgb, var(--seal) 38%, var(--paper)); }
   #side { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
-  #moves { flex:1; overflow-y:auto; font-size:11px; } #moves b { font:400 13px "DotGothic16"; } #moves span { display:inline-block; margin-right:7px; }
+  #turn { font-size:15px; min-height:22px; margin-bottom:2px; }
+  #moves { flex:1; overflow-y:auto; display:grid; grid-template-columns:24px 1fr 1fr; gap:3px 8px; align-content:start; font-size:11px; padding-right:4px; }
+  #moves .n { color:var(--faint); text-align:right; font-variant-numeric:tabular-nums; } #moves b { font:400 13.5px/1.35 "DotGothic16"; white-space:nowrap; } #moves b.sf { color:var(--faint); }
+  #moves b.at { background:color-mix(in srgb, var(--seal) 30%, var(--paper)); box-shadow:0 0 0 2px color-mix(in srgb, var(--seal) 30%, var(--paper)); }
+  #bad { color:var(--seal); font-size:10.5px; margin-top:4px; } #end { margin-top:2px; }
+  #sim { display:none; align-items:center; gap:8px; font-size:10px; color:var(--faint); } #sim.on { display:flex; }
+  #sim button { font:11px "DotGothic16"; background:none; border:1px solid var(--line); color:var(--ink); padding:0 8px; cursor:pointer; } #sim input { flex:1; accent-color:var(--seal); min-width:0; }
   #said { max-height:42px; overflow:hidden; font-size:10.5px; color:var(--faint); }
 </style></head><body>
 <div class="k" id="who"></div>
-<div id="wrap"><div id="board"></div><div id="side"><div class="px" id="turn" style="font-size:15px"></div><div id="moves"></div><div id="end"></div></div></div>
+<div id="wrap"><div id="board"></div><div id="side"><div class="px" id="turn"></div><div id="moves"></div><div id="bad"></div><div id="end"></div></div></div>
+<div id="sim"><button id="play" onclick="toggle()">pause</button><input id="scrub" type="range" min="0" max="0" value="0" oninput="seek(+this.value)"><span id="pos"></span></div>
 <div id="said"></div>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -33,17 +40,50 @@ addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.
 
 const G = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
 const cells = fen => { const a = []; for (const c of fen.split(' ')[0].replace(/\//g, '')) /\d/.test(c) ? a.push(...Array(+c).fill('')) : a.push(c); return a; };
+const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+// While the game is on, the board follows the newest position. Once it is graded the view turns into a
+// simulation: the finished game replays move by move in a loop, with pause and a scrubber.
+let D = null, frame = 0, playing = true, simKey = '', hold = 0;
 function render(d) {
-  const black = /black$/.test(d.agent.task), fens = d.lines.filter(l => l.fen).map(l => l.fen), moves = d.lines.filter(l => l.kind === 'move');
-  const now = cells(fens.at(-1) || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'), was = fens.length > 1 ? cells(fens.at(-2)) : now;
+  D = d;
+  const done = d.lines.some(l => l.kind === 'verdict'), n = d.lines.filter(l => l.fen).length;
+  const key = done ? d.agent.task + '|' + d.agent.version + '|' + n : '';
+  if (key !== simKey) { simKey = key; frame = done ? 0 : n; playing = true; hold = 0; }
+  if (!done) frame = n;
+  draw();
+}
+function draw() {
+  const d = D; if (!d) return;
+  const black = /black$/.test(d.agent.task), pos = d.lines.filter(l => l.fen), moves = d.lines.filter(l => l.kind === 'move');
+  const verdict = d.lines.find(l => l.kind === 'verdict'), f = Math.min(frame, pos.length);
+  const now = cells(f ? pos[f - 1].fen : pos.length && !verdict ? pos.at(-1).fen : START), was = f > 1 ? cells(pos[f - 2].fen) : now;
   const order = [...Array(64).keys()]; if (black) order.reverse();
   $('board').innerHTML = order.map(i => `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''} ${now[i] !== was[i] ? 'hot' : ''}">${G[now[i]] || ''}</i>`).join('');
-  const last = moves.at(-1), verdict = d.lines.find(l => l.kind === 'verdict'), bad = d.lines.filter(l => l.kind === 'illegal').length;
-  $('who').textContent = `${d.agent.model || 'agent'} plays ${black ? 'black' : 'white'} · Stockfish replies`;
-  $('turn').innerHTML = verdict ? '' : d.agent.status === 'working' ? (!last || last.by !== 'agent' ? 'thinking <span class="cur"></span>' : 'Stockfish to reply') : esc(d.agent.status || '');
-  $('moves').innerHTML = moves.map(m => `<span class="${m.by === 'agent' ? '' : 'faint'}">${m.by === 'agent' ? m.n + '.' : ''}<b>${esc(m.san)}</b></span>`).join('') + (bad ? `<div class="bad">${bad} illegal ${bad === 1 ? 'try' : 'tries'}</div>` : '');
-  $('moves').scrollTop = 1e6;
+  const last = moves.at(-1), bad = d.lines.filter(l => l.kind === 'illegal').length, cur = f ? pos[f - 1] : null;
+  $('who').textContent = `${d.agent.model || 'agent'} plays ${black ? 'black' : 'white'} · Stockfish replies${verdict ? ' · simulation of the finished game' : ''}`;
+  $('turn').innerHTML = verdict ? `ply ${f} of ${pos.length}` : d.agent.status === 'working' ? (!last || last.by !== 'agent' ? 'thinking <span class="cur"></span>' : 'Stockfish to reply') : esc(d.agent.status || '');
+  // One row per full move: number, white's move, black's move. The agent's moves are dark, Stockfish's are faint.
+  const rows = [];   // the live log gives the full-move counter after each move: white's own number, black's plus one
+  for (const m of moves) {
+    const white = / b /.test(m.fen || '') || (!m.fen && (m.by === 'agent') !== black), n = white ? m.n : m.n - 1;
+    if (!rows.length || rows.at(-1).n !== n) rows.push({n, w: null, b: null});
+    rows.at(-1)[white ? 'w' : 'b'] = m;
+  }
+  const cell = m => m ? `<b class="${m.by === 'agent' ? '' : 'sf'} ${verdict && m === cur ? 'at' : ''}">${esc(m.san)}</b>` : '<b></b>';
+  $('moves').innerHTML = rows.map(r => `<span class="n">${r.n}.</span>${cell(r.w)}${cell(r.b)}`).join('');
+  const at = $('moves').querySelector('.at'); if (at) at.scrollIntoView({block:'nearest'}); else $('moves').scrollTop = 1e6;
+  $('bad').textContent = bad ? `${bad} illegal ${bad === 1 ? 'try' : 'tries'}` : '';
   $('end').innerHTML = verdict ? `<span class="stamp ${verdict.passed ? 'ok' : 'bad'}">${verdict.passed ? 'held' : 'lost'}</span><div class="faint" style="font-size:10px;margin-top:3px">${esc((verdict.text || '').slice(-90))}</div>` : '';
-  const said = [...d.lines].reverse().find(l => l.said)?.said; $('said').textContent = said ? '“' + said.slice(-170) + '”' : '';
+  const said = (verdict ? cur?.said : null) || [...d.lines].reverse().find(l => l.said)?.said; $('said').textContent = said ? '\u201c' + said.slice(-170) + '\u201d' : '';
+  $('sim').classList.toggle('on', !!verdict && pos.length > 0);
+  $('scrub').max = pos.length; $('scrub').value = f; $('pos').textContent = `${f}/${pos.length}`; $('play').textContent = playing ? 'pause' : 'play';
 }
+function toggle() { playing = !playing; draw(); }
+function seek(v) { frame = v; playing = false; draw(); }
+setInterval(() => {
+  if (!D || !playing || !simKey) return;
+  const n = D.lines.filter(l => l.fen).length; if (!n) return;
+  if (frame >= n) { if (++hold < 4) return; hold = 0; frame = 0; } else frame++;   // rest on the final position, then start over
+  draw();
+}, 650);
 </script></body></html>
