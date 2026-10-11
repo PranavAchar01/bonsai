@@ -16,7 +16,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 PRACTICE = ROOT / "bench/python/exercises/practice"
 CLAUDE = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 
