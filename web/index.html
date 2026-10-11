@@ -11,14 +11,14 @@
   html, body { height:100%; }
   body { margin:0; background:var(--paper); color:var(--ink); font-family:"Chakra Petch",sans-serif; display:flex; flex-direction:column; overflow:hidden; }
   .mono, table, button, select, input, .stat, pre, dl { font-family:"JetBrains Mono",monospace; }
-  .ask { display:flex; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
+  .ask { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
   .ask label { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
   .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"Chakra Petch",sans-serif; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
   .ask input::placeholder { color:var(--faint); }
   .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"Chakra Petch",sans-serif; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
   .rd { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
   .ag .what u { text-decoration:none; color:var(--moss); }
-  .ask button { font-size:12px; padding:6px 16px; }
+  .ask button { font-size:12px; padding:6px 16px; white-space:nowrap; }
   .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
   .ask button.halt { color:var(--seal); border-color:var(--seal); }
   .ask button:disabled { opacity:.35; cursor:default; }
@@ -73,6 +73,15 @@
   #chart { flex:1; min-height:0; width:100%; display:block; }
   .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); }
   @media (max-width:860px){ body{overflow:auto} .wrap{display:block} .viewer{height:70vh} #panel-board{border-right:0} #chart{height:180px} }
+  #newset { padding:10px 22px 12px; border-bottom:1px solid var(--line); background:rgba(22,22,30,.72); }
+  #newset[hidden] { display:none; }
+  #newset .row { display:flex; align-items:center; gap:10px; margin:5px 0; } #newset .row.top { align-items:flex-start; }
+  #newset label { width:110px; font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  #newset input, #newset textarea { flex:1; background:var(--deep); border:1px solid var(--line); color:var(--ink); font-family:"JetBrains Mono",monospace; font-size:12px; padding:6px 8px; outline:none; resize:vertical; }
+  #newset input:focus, #newset textarea:focus { border-color:var(--cyan); }
+  #newset button { font-size:12px; padding:6px 16px; } #newset button.go { background:var(--violet); border-color:var(--violet); color:var(--deep); font-weight:600; }
+  #ns-note { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); } #ns-note.err { color:var(--seal); }
+  .ask select { background:var(--deep); color:var(--ink); border:1px solid var(--line); }
   /* Tokyo Night: neon on indigo. */
   body { background:radial-gradient(ellipse at 70% 0%, rgba(187,154,247,.10), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(125,207,255,.07), transparent 50%), var(--paper); }
   header h1 { color:var(--cyan); text-shadow:0 0 8px rgba(125,207,255,.55), 0 0 26px rgba(187,154,247,.35); }
@@ -96,9 +105,18 @@
   <span class="stat" style="margin-left:auto" id="s-note"></span>
 </header>
 <form class="ask" id="ask" onsubmit="grow(event)">
-  <label for="set">Improve it on</label><select id="set" class="big"></select>
+  <label for="set">Improve it on</label><select id="set" class="big" onchange="fillCount()"></select>
+  <button type="button" id="new-btn" onclick="toggleNew()">+ New benchmark</button>
   <span style="flex:1"></span>
+  <label for="gens">Generations</label><select id="gens"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+  <label for="count">Problems</label><select id="count"></select>
   <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
+</form>
+<form id="newset" onsubmit="createSet(event)" hidden>
+  <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
+  <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
+  <div class="row top"><label for="ns-items">Questions</label><textarea id="ns-items" rows="7" placeholder="One per line, question then answer, separated by =>&#10;Is a signed NDA with no end date enforceable in California? Answer yes or no. => yes&#10;&#10;Or paste JSON lines: {&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}"></textarea></div>
+  <div class="row"><span id="ns-note">At least 4 questions. Half are held out and never shown to the proposer. Answers match exactly, or within 1% for numbers.</span><span style="flex:1"></span><button type="button" onclick="toggleNew()">Cancel</button><button class="go" id="ns-go" type="submit">Connect</button></div>
 </form>
 <div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
 <div class="wrap">
@@ -176,14 +194,42 @@ async function load() {
 $('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
-let agentView = 'live', app = null, growErr = null;
+let agentView = 'live', app = null, growErr = null, setsSig = '', wantSet = null;
+// How many problems to use: all of them, or a smaller even number for a quicker run.
+function fillCount() {
+  const n = (app?.sets.find(x => x.key === $('set').value) || {}).count || 0;
+  const opts = [...new Set([4, 8, 12, 20, 40, n].filter(k => k >= 4 && k <= n))].sort((x, y) => x - y);
+  $('count').innerHTML = opts.map(k => `<option value="${k}" ${k === n ? 'selected' : ''}>${k === n ? 'all ' + k : k}</option>`).join('');
+}
+function toggleNew() { const f = $('newset'); f.hidden = !f.hidden; $('new-btn').classList.toggle('on', !f.hidden); if (!f.hidden) $('ns-name').focus(); }
+function parseItems(text) {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    if (l.startsWith('{')) { try { const o = JSON.parse(l); return {q: o.question ?? o.q, a: String(o.answer ?? o.a ?? '')}; } catch { return null; } }
+    const i = l.lastIndexOf('=>'); return i < 0 ? null : {q: l.slice(0, i).trim(), a: l.slice(i + 2).trim()};
+  });
+}
+async function createSet(e) {
+  e.preventDefault(); const note = $('ns-note'), items = parseItems($('ns-items').value), bad = items.findIndex(x => !x || !x.q || !x.a);
+  const fail = t => { note.className = 'err'; note.textContent = t; };
+  if (!$('ns-name').value.trim()) return fail('Give it a name.');
+  if (bad >= 0) return fail(`Line ${bad + 1} has no "=>" answer, or is not valid JSON.`);
+  if (items.length < 4) return fail('It needs at least 4 questions.');
+  $('ns-go').disabled = true;
+  const r = await fetch('api/sets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:$('ns-name').value, rules:$('ns-rules').value, items})});
+  const j = await r.json().catch(() => ({})); $('ns-go').disabled = false;
+  if (!r.ok) return fail(j.error || 'could not create it');
+  note.className = ''; note.textContent = `Connected with ${j.count} questions. It is selected: press Grow.`;
+  wantSet = j.key; $('ns-items').value = ''; $('ns-name').value = ''; await poll(); toggleNew();
+}
 const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2, '0');
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
 function renderRun() {
   const a = app; if (!a) return;
   const job = a.job, running = job && job.status === 'running';
-  if (!$('set').options.length) { const groups = [...new Set(a.sets.map(x => x.group))];
-    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join(''); }
+  const sig = JSON.stringify(a.sets.map(x => [x.key, x.ready, x.count]));
+  if (sig !== setsSig) { setsSig = sig; const keep = wantSet || $('set').value; wantSet = null; const groups = [...new Set(a.sets.map(x => x.group))];
+    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
+    if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
   $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
   ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
@@ -212,7 +258,7 @@ async function post(path, body) {
 }
 async function grow(e) {
   e.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
-  const ok = await post('api/grow', {set:$('set').value});
+  const ok = await post('api/grow', {set:$('set').value, generations:+$('gens').value, count:+$('count').value});
   if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
   poll(); load();
 }

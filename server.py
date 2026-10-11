@@ -2,6 +2,7 @@
 
   GET  /api/state  what is running now: the job, every agent, the activity log
   POST /api/grow   {set, goal, generations}  start growing
+  POST /api/sets   {name, rules, items: [{q, a}]}  connect a question-and-answer benchmark made on the page
   POST /api/stop   finish the current step, then stop
 
 Everything else is served from web/. Binds to 127.0.0.1 only.
@@ -57,25 +58,54 @@ def connected() -> list[tuple]:
     return rows
 
 
-def sets() -> list[dict]:
-    """What the dropdown offers. A set is only selectable if this machine can grade it."""
-    poly, later = "Aider Polyglot (Exercism practice problems)", "Not wired in yet"
+def sets_rows() -> list[tuple]:
+    poly = "Aider Polyglot (Exercism practice problems)"
     have = lambda tool: shutil.which(tool) is not None  # noqa: E731
-    rows = [
+    return [
         *connected(),
         ("cpp", "Aider Polyglot: C++", poly, have("c++"), "needs a C++ compiler"),
         ("python", "Aider Polyglot: Python", poly, True, ""),
-        ("javascript", "Aider Polyglot: JavaScript", poly, False, "grader not written"),
-        ("java", "Aider Polyglot: Java", poly, False, "grader not written"),
-        ("go", "Aider Polyglot: Go", poly, False, "needs the Go toolchain"),
-        ("rust", "Aider Polyglot: Rust", poly, False, "needs the Rust toolchain"),
-        ("swe", "SWE-bench Verified", later, False, "needs Docker images"),
-        ("tb", "Terminal-Bench 2.0", later, False, "needs its sandbox"),
-        ("he", "HumanEval", later, False, "not downloaded"),
-        ("mbpp", "MBPP", later, False, "not downloaded"),
     ]
-    return [{"key": k, "name": n, "group": g, "ready": r, "why": w, "count": len(problems(k)) if g != later else 0}
-            for k, n, g, r, w in rows]  # fmt: skip
+
+
+def sets() -> list[dict]:
+    """What the dropdown offers. A set is only selectable if this machine can grade it."""
+    return [{"key": k, "name": n, "group": g, "ready": r, "why": w, "count": len(problems(k))}
+            for k, n, g, r, w in sets_rows()]  # fmt: skip
+
+
+def create_set(body: dict) -> tuple[int, dict]:
+    """A benchmark made on the page: questions with one right answer each, graded by harness/grade_exact.py."""
+    import re
+
+    name = " ".join(str(body.get("name") or "").split())[:60]
+    items = [
+        (str(i.get("q") or "").strip(), " ".join(str(i.get("a") or "").split()))
+        for i in (body.get("items") or [])
+        if isinstance(i, dict)
+    ]
+    items = [(q[:4000], a[:200]) for q, a in items if q and a][:200]
+    if not name:
+        return 400, {"error": "give the benchmark a name"}
+    if len(items) < 4:
+        return 400, {"error": "a benchmark needs at least 4 questions, each with an answer"}
+    key = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:30] or "set"
+    if key in {k for k, *_ in sets_rows()} or (runner.TASKS / key).exists():
+        key = f"{key}-{int(time.time()) % 100000}"
+    rules = " ".join(str(body.get("rules") or "").split())[:1000] or "Answer the question in .docs/instructions.md."
+    base = runner.TASKS / key
+    for n, (q, a) in enumerate(items, 1):
+        d = base / f"q{n:03d}"
+        (d / ".docs").mkdir(parents=True)
+        (d / ".docs" / "instructions.md").write_text(q + "\n\nWrite only your final answer to answer.txt, nothing else.\n")
+        (d / "expected.json").write_text(json.dumps({"answer": a}))
+    spec = {"name": name, "prompt": "Answer the question in .docs/instructions.md and write only the answer to answer.txt.",
+            "solution": ["answer.txt"], "hidden": ["expected.json"],
+            "grade": "python3 {root}/harness/grade_exact.py answer.txt {task}/expected.json",
+            "seed": {"rules": rules, "tools": ["Read", "Write"], "max_turns": 4}}  # fmt: skip
+    (base / "set.json").write_text(json.dumps(spec, indent=1))
+    say(f"new benchmark connected: {name}, {len(items)} questions")
+    return 200, {"ok": True, "key": key, "count": len(items)}
 
 
 def say(text: str) -> None:
@@ -267,7 +297,7 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(415, {"error": "json only"})
         try:
             body = json.loads(
-                self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 4096))
+                self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 2_000_000 if self.path == "/api/sets" else 4096))
                 or b"{}"
             )
         except ValueError:
@@ -277,6 +307,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(*grow(body))
             except (TypeError, ValueError):
                 return self.send_json(400, {"error": "bad request"})
+        if self.path == "/api/sets":
+            try:
+                return self.send_json(*create_set(body))
+            except (TypeError, ValueError, OSError) as e:
+                return self.send_json(400, {"error": f"could not create it: {e}"[:200]})
         if self.path == "/api/stop":
             stop.set()
             say("stop asked: finishing the current step")
