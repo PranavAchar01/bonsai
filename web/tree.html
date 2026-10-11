@@ -169,7 +169,7 @@ startFeed(e => {
     else { stats.pruned++; stats.ticker.push({text:`${v.id} ${v.signal || 'pruned'}`, cut:true}); }
     hud();
   }
-}, {demo:q.get('demo') || q.get('stress'), stress:q.get('stress'), liveOnly:!!q.get('embed') || !!q.get('live')});
+}, {demo:q.get('demo') || q.get('stress'), stress:q.get('stress'), liveOnly:!!q.get('embed') || !!q.get('live'), src:/^runs\/[\w-]+\.jsonl$/.test(q.get('src') || '') ? q.get('src') : null});
 
 // ---------- run ----------
 function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }

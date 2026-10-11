@@ -28,6 +28,19 @@
   /* one page: the stage shows the tree, the score charts or the chess replay */
   #pane { position:absolute; left:0; right:0; top:104px; bottom:0; width:100%; height:calc(100% - 104px); border:0; border-top:1px solid var(--line); background:var(--paper); z-index:1; display:none; }
   body.pane #pane { display:block; } body.pane #guide, body.pane .legend, body.pane .seal, body.pane #steps, body.pane #phase { display:none !important; }
+  /* home: say what the agent should get better at, and the agents that exist */
+  #home { position:absolute; left:0; right:0; top:104px; bottom:0; overflow-y:auto; background:var(--paper); border-top:1px solid var(--line); z-index:2; display:none; padding:44px 48px 60px; }
+  body.home #home { display:block; } body.home #guide, body.home .legend, body.home .seal, body.home #steps, body.home #phase { display:none !important; }
+  #home .h-in { max-width:860px; margin:0 auto; } #home .h-title { font-size:30px; margin-bottom:16px; }
+  #h-prompt { width:100%; height:96px; resize:none; background:none; border:1px solid var(--ink); padding:14px 16px; font:15px/1.5 "IBM Plex Mono", monospace; color:var(--ink); outline:none; }
+  #home .h-row { display:flex; align-items:center; gap:18px; margin-top:12px; } #home .h-row span { flex:1; font-size:12px; color:var(--faint); line-height:1.5; }
+  #h-flow { display:flex; gap:10px; margin:22px 0 40px; font-size:11.5px; color:var(--faint); } #h-flow div { flex:1; border-top:1px solid var(--line); padding-top:8px; } #h-flow b { display:block; color:var(--ink); font-weight:500; margin-bottom:2px; }
+  #home .h-k { font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:12px; }
+  #tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:16px; }
+  .tile { border:1px solid var(--line); padding:16px 18px 14px; cursor:pointer; text-align:left; background:none; color:var(--ink); font:inherit; display:flex; flex-direction:column; gap:6px; min-height:150px; } .tile:hover { border-color:var(--ink); }
+  .tile .t-st { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); } .tile .t-st.done { color:var(--moss, #4f6e3f); } .tile .t-st.live { color:var(--seal); }
+  .tile .t-name { font-size:16px; } .tile .t-sc { font:30px "DotGothic16", monospace; margin-top:auto; } .tile .t-sc small { font-size:14px; color:var(--faint); } .tile .t-ft { font-size:11px; color:var(--faint); }
+  #back { display:none; } body.agent-view #back { display:inline; }
   #views { display:flex; gap:14px; margin-left:auto; } #views button { border:0; padding:4px 0; color:var(--faint); font-size:13px; } #views button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
   #tools { flex-basis:100%; display:flex; gap:14px; align-items:baseline; } #tools button { border:0; padding:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
@@ -179,7 +192,7 @@
       <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
       <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
       <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
-      <nav id="views"><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The same chess game played by two versions, side by side">replay</button></nav>
+      <nav id="views"><button type="button" id="v-home" onclick="setView('home')" title="Make an agent, or open one">home</button><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The same chess game played by two versions, side by side">replay</button></nav>
       <div id="tools"><button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button><button type="button" onclick="toggleAgent(true)">+ new agent</button><button type="button" id="term-btn" onclick="toggleTerm()">terminal</button></div>
       <div id="opts" hidden>
         <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
@@ -207,6 +220,20 @@
   </form>
   </div>
   <iframe id="pane" title="Scores and replay"></iframe>
+  <div id="home"><div class="h-in">
+    <div class="px h-title">What should your agent get better at?</div>
+    <form onsubmit="makeAgent(event)">
+      <textarea id="h-prompt" placeholder="For example: answer questions about lease clauses with one label" maxlength="600"></textarea>
+      <div class="h-row"><span id="h-note"></span><button class="go big" id="h-go" type="submit">Create agent</button></div>
+    </form>
+    <div id="h-flow">
+      <div><b>1 · Task set</b>The writer model turns the sentence into graded problems, half kept back.</div>
+      <div><b>2 · Container</b>The agent gets a document in MongoDB Atlas (bonsai.agents). Every version it tries lands in bonsai.versions.</div>
+      <div><b>3 · Self-improvement</b>It rewrites its own rules, tools and turn budget. Raindrop traces every attempt and marks each change kept or cut.</div>
+    </div>
+    <div class="h-k">Agents</div>
+    <div id="tiles"></div>
+  </div></div>
   <div id="guide" hidden>
     <div class="px g-title">Grow a better agent</div>
     <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
@@ -372,7 +399,10 @@ function renderTerm() {
 function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderLedger(); }
 async function load() {
   let data = {versions:[]};
-  try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
+  try {
+    if (viewing) { const t = await fetch(viewing.file, {cache:'no-store'}).then(r => r.ok ? r.text() : ''); data = {versions: t.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id)}; }
+    else { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); }
+  } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
   if (window.__d && data.versions.length > window.__d.versions.length) lastStoredAt = Date.now();
   window.__d = data; renderLedger(); renderVersion(); renderGuide(); renderTerm();
@@ -524,7 +554,7 @@ async function genView() { if (!liveSet) return; const hint = prompt('What shoul
 setInterval(pullLive, 1000);
 
 async function poll() {
-  try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
+  try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); renderHome(); pullStats(); }
   catch { $('phase').innerHTML = '<span class="dot"></span><b>view only</b> · start the app with python server.py to run it from here'; $('go').disabled = true; }
 }
 async function post(path, body) {
@@ -574,10 +604,62 @@ function renderGuide() {
 }
 function setView(v) {
   const src = v === 'scores' ? 'benchmarks.html?embed=1' : v === 'replay' ? replaySrc() : '';
-  document.body.classList.toggle('pane', !!src);
+  document.body.classList.toggle('pane', !!src); document.body.classList.toggle('home', v === 'home');
   if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
-  for (const k of ['tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
+  for (const k of ['home', 'tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
+  if (v === 'home') { if (viewing) openAgent(null, true); renderHome(); }
 }
+
+// Home: one sentence makes an agent. Tiles are the agents that exist: the one growing now, and every finished
+// run that beat where it started. A finished tile opens the whole run, replayed from the seed.
+let viewing = null, runStats = {}, statsAt = 0, madeSeen = null;
+const TREE_SRC = 'tree.html?embed=1&bare=1';
+async function pullStats() {
+  if (!app || Date.now() - statsAt < 20000) return; statsAt = Date.now();
+  for (const set of app.sets) {
+    if (runStats[set.key] === null && !(app.hosted || []).some(h => h.key === set.key)) continue;   // looked before, nothing there
+    const file = `runs/${set.key}-versions.jsonl`;
+    const text = await fetch(file, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+    const vs = text.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id);
+    if (!vs.length) { runStats[set.key] = null; continue; }
+    const kept = keptChain(vs);
+    runStats[set.key] = {file, seed: vs[0].score, best: kept.at(-1).score, kept: vs.filter(v => v.kept && v.parent).length, cut: vs.filter(v => !v.kept).length};
+  }
+  renderHome();
+}
+function renderHome() {
+  if (!app || !document.body.classList.contains('home')) return;
+  const pct = x => Math.round(x * 100), job = app.job, running = job?.status === 'running', mk = app.making || {};
+  $('h-note').textContent = mk.busy || (mk.text && Date.now() < noteUntil) ? mk.text : growErr && Date.now() < growErr.until ? growErr.text : 'One sentence is enough. The agent that solves the problems is Claude Haiku and never changes; only its harness does.';
+  $('h-go').disabled = !!mk.busy; $('h-go').textContent = mk.busy ? 'Making…' : 'Create agent';
+  const tiles = [];
+  const live = running && app.sets.find(x => x.name === job.set);
+  if (live) tiles.push(`<button class="tile" onclick="openAgent(null)"><span class="t-st live">● growing now</span><span class="t-name">${esc(live.name)}</span><span class="t-sc">${app.agents.filter(a => a.status === 'working').length}<small> agents working</small></span><span class="t-ft">${esc(plain(job.phase || ''))}</span></button>`);
+  for (const set of app.sets) {
+    const st = runStats[set.key], mine = (app.hosted || []).find(h => h.key === set.key);
+    if (live && live.key === set.key) continue;
+    if (st && st.best > st.seed) tiles.push(`<button class="tile" onclick="openAgent('${esc(set.key)}')"><span class="t-st done">✓ completed · improved</span><span class="t-name">${esc(set.name)}</span><span class="t-sc"><small>${pct(st.seed)}% →</small> ${pct(st.best)}%</span><span class="t-ft">${st.kept} kept · ${st.cut} cut · open to replay the whole run</span></button>`);
+    else if (mine) tiles.push(`<button class="tile" onclick="openSet('${esc(set.key)}')"><span class="t-st">${st ? 'completed · no gain yet' : 'ready to grow'}</span><span class="t-name">${esc(set.name)}</span><span class="t-sc">${st ? pct(st.best) + '%' : '<small>' + set.count + ' problems</small>'}</span><span class="t-ft">${esc((mine.prompt || '').slice(0, 90))} · ${mine.atlas ? 'in bonsai.agents' : 'local only'}</span></button>`);
+  }
+  const html = tiles.join('') || '<div class="faint" style="font-size:12px">No agent yet. Type a sentence above.</div>';
+  if ($('tiles').dataset.h !== html) { $('tiles').innerHTML = html; $('tiles').dataset.h = html; }
+}
+let noteUntil = 0;
+async function makeAgent(e) {
+  e.preventDefault(); const text = $('h-prompt').value.trim(); if (!text) return $('h-prompt').focus();
+  $('h-go').disabled = true; noteUntil = Date.now() + 600000;
+  if (await post('api/prompt', {prompt:text})) $('h-prompt').value = '';
+  await poll(); renderHome();
+}
+// A finished agent: the tree, the history and the score all read its stored run instead of the live one.
+function openAgent(key, stay) {
+  const st = key ? runStats[key] : null; viewing = st ? {key, file: st.file} : null;
+  const src = viewing ? `${TREE_SRC}&src=${viewing.file}` : TREE_SRC;
+  if ($('tree3d').dataset.src !== src) { $('tree3d').src = src; $('tree3d').dataset.src = src; }
+  document.body.classList.toggle('agent-view', !!viewing);
+  lastJson = ''; opened = null; load(); if (!stay) setView('tree');
+}
+function openSet(key) { $('set').value = key; fillCount(); fillTools(); openAgent(null); }
 // Replay compares the seed with the best kept version of the chess tree when there is one.
 function replaySrc() {
   const V = window.__d?.versions || [], best = V.filter(x => x.kept && x.generation > 0).sort((a, b) => b.score - a.score)[0];
@@ -598,6 +680,7 @@ async function stopRun() { stopping = true; await post('api/stop', {}); poll(); 
 let termOn = innerWidth > 1300; try { if (localStorage.term === '0') termOn = false; } catch {}
 if (termOn) toggleTerm(true);
 load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
+setView('home');
 </script>
 </body>
 </html>

@@ -5,6 +5,7 @@
   POST /api/sets   {name, rules, items: [{q, a}]}  connect a question-and-answer benchmark made on the page
   POST /api/agents {name, model, rules, tools, max_turns}  save an agent made on the page; Grow can start from it
   GET  /api/watch?version=&task=  what one agent is doing right now, step by step (runs/live/)
+  POST /api/prompt {prompt}  make an agent from one sentence: a task set, a document in MongoDB, then grow it
   POST /api/stop   finish the current step, then stop
 
 Everything else is served from web/. Binds to 127.0.0.1 only.
@@ -252,6 +253,82 @@ def create_set(body: dict) -> tuple[int, dict]:
     return 200, {"ok": True, "key": key, "count": len(items)}
 
 
+# An agent made from one sentence on the home page. The proposer model writes a small task set for it, the
+# server records the agent as one document in MongoDB (bonsai.agents: the prompt, the seed harness, where its
+# versions and Raindrop events live), and the loop starts growing it.
+HOSTED = ROOT / "agents" / "hosted"
+making: dict = {"text": "", "busy": False, "key": None}
+
+
+def hosted() -> list[dict]:
+    return [json.loads(f.read_text()) for f in sorted(HOSTED.glob("*.json"))] if HOSTED.exists() else []
+
+
+def host(doc: dict) -> dict:
+    uri = os.getenv("MONGODB_URI")
+    doc["atlas"] = False
+    if uri:
+        try:
+            from pymongo import MongoClient
+
+            MongoClient(uri, serverSelectionTimeoutMS=15000)["bonsai"]["agents"].replace_one({"key": doc["key"]}, {k: v for k, v in doc.items() if k != "atlas"}, upsert=True)
+            doc["atlas"] = True
+        except Exception as e:  # the local copy below still records the agent
+            say(f"atlas: agent not stored: {type(e).__name__}: {str(e)[-200:]}")
+    HOSTED.mkdir(parents=True, exist_ok=True)
+    (HOSTED / f"{doc['key']}.json").write_text(json.dumps(doc, indent=1))
+    return doc
+
+
+def make_agent(text: str) -> None:
+    def step(t: str) -> None:
+        making["text"] = t
+        say(t)
+
+    try:
+        step("writing a task set for: " + text[:120])
+        ask = f"""Someone wants an AI agent that gets better at this: "{text}"
+
+Write a small benchmark that measures it. Reply with JSON only:
+{{"name": "a short name, at most 5 words", "rules": "one plain sentence of starting instructions for the agent",
+ "items": [{{"q": "...", "a": "..."}}]}}
+
+Exactly 16 items. Each q is a self-contained problem that a small model gets wrong about half the time without care.
+Each a is the single correct answer, checked by you twice: one word, one label, one letter or one number, with no
+units and no sentence. Say in q exactly what form the answer takes. Vary the problems; do not repeat a pattern."""
+        out = subprocess.run([runner.CLAUDE, "-p", ask, "--model", "claude-opus-5-5", "--output-format", "json", "--max-turns", "1"],
+                             capture_output=True, text=True, timeout=420)  # fmt: skip
+        reply = json.loads(out.stdout)["result"]
+        spec = json.loads(reply[reply.index("{") : reply.rindex("}") + 1])
+        code, made = create_set({"name": spec.get("name"), "rules": spec.get("rules"), "items": spec.get("items")})
+        if code != 200:
+            raise ValueError(made.get("error", "the task set was not usable"))
+        key = making["key"] = made["key"]
+        seed = (runner.task_set(key) or {}).get("seed", {})
+        doc = host({"key": key, "name": spec.get("name"), "prompt": text, "created": time.time(), "status": "growing",
+                    "seed": {**seed, "model": "haiku"}, "problems": made["count"],
+                    "store": {"db": "bonsai", "agent": "agents", "versions": "versions"},
+                    "raindrop": {"traced": bool(runner.RAINDROP), "signal": "task_outcome"}})  # fmt: skip
+        step(f"container ready: {'MongoDB bonsai.agents' if doc['atlas'] else 'local copy only (no Atlas connection)'} holds {key}")
+        code, res = grow({"set": key, "generations": 2})
+        step(f"growing {spec.get('name')}" if code == 200 else f"{spec.get('name')} is ready. Another run is going: press Grow on it when that ends.")
+    except Exception as e:
+        step(f"could not make the agent: {type(e).__name__}: {str(e)[-160:]}")
+    finally:
+        making["busy"] = False
+
+
+def prompt_agent(body: dict) -> tuple[int, dict]:
+    text = " ".join(str(body.get("prompt") or "").split())[:600]
+    if len(text) < 8:
+        return 400, {"error": "say what the agent should get better at"}
+    if making["busy"]:
+        return 409, {"error": "an agent is already being made"}
+    making.update(busy=True, key=None, text="starting")
+    threading.Thread(target=make_agent, args=(text,), daemon=True).start()
+    return 200, {"ok": True}
+
+
 def say(text: str) -> None:
     with lock:
         state["log"].append({"ts": time.time(), "text": text})
@@ -330,6 +407,12 @@ def job(cfg: dict) -> None:
                 ended=time.time(),
             )
         say("stopped" if stop.is_set() else "run finished")
+        # Each set keeps the record of its own run, so the home page can replay it as a finished agent.
+        own, card = ROOT / "runs" / f"{cfg['lang']}-versions.jsonl", HOSTED / f"{cfg['lang']}.json"
+        if held_lock and loop.LOG.exists() and (card.exists() or not own.exists()):
+            shutil.copyfile(loop.LOG, own)
+        if card.exists():
+            host({**json.loads(card.read_text()), "status": "done", "ended": time.time()})
         if held_lock and loop.report(state["job"].get("set", "")):
             say("context file and change list written: web/out/latest/context.md, CHANGES.md")
     except (
@@ -455,7 +538,7 @@ class Handler(SimpleHTTPRequestHandler):
                 {k: v for k, v in a.items() if k != "key"} for a in state["agents"]
             ]
             body = {"job": state["job"], "agents": agents, "log": state["log"][-80:], "now": time.time(),
-                    "sets": sets(), "studio": saved_agents(), "viewgen": sorted(viewgen),
+                    "sets": sets(), "studio": saved_agents(), "viewgen": sorted(viewgen), "hosted": hosted(), "making": dict(making),
                     "raindrop": runner.RAINDROP}  # fmt: skip
         self.send_json(200, body)
 
@@ -486,6 +569,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_json(*create_set(body))
             except (TypeError, ValueError, OSError) as e:
                 return self.send_json(400, {"error": f"could not create it: {e}"[:200]})
+        if self.path == "/api/prompt":
+            return self.send_json(*prompt_agent(body))
         if self.path == "/api/views":
             return self.send_json(*generate_view(body))
         if self.path == "/api/agents":

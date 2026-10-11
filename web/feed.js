@@ -21,6 +21,13 @@ export function startFeed(emit, opts = {}) {
 
   async function poll() {
     if (opts.demo) return startDemo();
+    if (opts.src) {   // a finished run kept in runs/: grow it from the seed, one version at a time
+      const text = await fetch(opts.src, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+      setMode('record');
+      for (const line of text.split('\n')) { let v; try { v = JSON.parse(line); } catch { continue; }
+        if (v?.id && !seen.has(v.id)) { seen.add(v.id); queue.push({type:'verdict', v}); } }
+      return emit({type:'phase', text:'a finished run, replayed'});
+    }
     const [lin, st] = await Promise.all([getJSON('lineage.json'), getJSON('api/state')]);
     const versions = lin?.versions || [], running = st?.job?.status === 'running';
     if (!versions.length && !running) { if (opts.liveOnly) { setMode('empty'); emit({type:'phase', text:'nothing grown yet: start a run'}); return; } return startDemo(); }
