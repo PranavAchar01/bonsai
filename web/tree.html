@@ -6,43 +6,36 @@
 <title>Bonsai Tree</title>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#1a1b26; --ink:#7dcfff; --faint:#565f89; --accent:#f7768e; --grain:.14; --blend:overlay; --glow:none; }
+  :root { --bg:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --accent:#b5332a; }
   html, body { margin:0; height:100%; overflow:hidden; }
   body {
     background:
-      radial-gradient(ellipse at 50% 40%, rgba(255,250,238,.10), rgba(0,0,0,0) 60%),
-      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,.22) 100%),
+      radial-gradient(ellipse at 50% 38%, rgba(255,252,244,.5), rgba(0,0,0,0) 60%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 58%, rgba(60,48,30,.16) 100%),
       var(--bg);
-    color:var(--ink); font-family:"DotGothic16", monospace; transition:background-color .6s, color .6s;
+    color:var(--ink); font-family:"DotGothic16", monospace; transition:background-color 6s, color 6s;
   }
-  body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:var(--grain); mix-blend-mode:var(--blend);
+  .dark::after { opacity:.12 !important; mix-blend-mode:overlay !important; }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.26; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
   canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
-  .title { position:fixed; left:28px; top:22px; pointer-events:none; }
-  .title h1 { margin:0; font-weight:400; font-size:48px; letter-spacing:.06em; line-height:1; }
-  .title div { font-size:13px; color:var(--faint); margin-top:8px; }
-  .title .num { font-size:72px; color:var(--ink); margin-top:18px; line-height:1; }
-  .lbl { position:fixed; font-size:12px; white-space:nowrap; pointer-events:none; transform:translate(-50%, -50%); transition:opacity .6s; opacity:0; color:var(--ink); }
+  .hud { position:fixed; left:28px; top:22px; pointer-events:none; }
+  .hud h1 { margin:0; font-weight:400; font-size:44px; letter-spacing:.06em; line-height:1; }
+  .hud .sub { font-size:13px; color:var(--faint); margin-top:8px; }
+  .hud .num { font-size:76px; line-height:1; margin-top:20px; }
+  .hud .meta { font-size:13px; color:var(--faint); margin-top:4px; }
+  .tag { display:inline-block; font-size:11px; padding:1px 6px; margin-left:8px; border:1px solid currentColor; vertical-align:middle; letter-spacing:.1em; }
+  .tag.live { color:var(--accent); }
+  .ticker { position:fixed; right:28px; top:24px; width:280px; font-size:12px; text-align:right; pointer-events:none; }
+  .ticker div { padding:3px 0; opacity:.85; }
+  .ticker .cut { color:var(--accent); text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--accent) 50%, transparent); }
+  .phase { position:fixed; left:28px; bottom:22px; right:100px; font-size:13px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lbl { position:fixed; font-size:12px; white-space:nowrap; pointer-events:none; transform:translate(-50%, -50%); color:var(--ink); }
   .lbl.cut { color:var(--accent); }
-  .lbl.on { opacity:.85; }
-  .panel { position:fixed; right:20px; top:20px; width:230px; font-size:12px; display:flex; flex-direction:column; gap:12px; }
-  .panel .grp > div:first-child { color:var(--faint); margin-bottom:4px; letter-spacing:.08em; }
-  .chips { display:flex; flex-wrap:wrap; gap:4px; }
-  .chips button { font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid color-mix(in srgb, var(--ink) 30%, transparent); padding:3px 7px; cursor:pointer; }
-  .chips button.on { background:var(--ink); color:var(--bg); }
-  .chips button.sw { width:26px; padding:3px 0; border-width:2px; }
-  .chips button.sw.on { outline:2px solid var(--ink); outline-offset:1px; }
-  .title, .bar, .lbl, .panel { text-shadow:var(--glow); }
-  .chips button:hover:not(.on) { background:color-mix(in srgb, var(--ink) 10%, transparent); }
-  .bar { position:fixed; left:28px; bottom:22px; display:flex; gap:12px; align-items:center; font-size:13px; color:var(--faint); }
-  .bar button { font:inherit; color:var(--ink); background:transparent; border:1px solid color-mix(in srgb, var(--ink) 35%, transparent); padding:5px 12px; cursor:pointer; }
-  .seal { position:fixed; right:28px; bottom:22px; width:44px; height:44px; background:var(--accent); color:var(--bg); display:grid; place-items:center; font-size:26px; }
-  .toggle { position:fixed; right:20px; top:20px; font:inherit; font-size:12px; color:var(--ink); background:var(--bg); border:1px solid color-mix(in srgb, var(--ink) 35%, transparent); padding:4px 10px; cursor:pointer; z-index:2; }
-  .panel { top:52px; background:color-mix(in srgb, var(--bg) 82%, transparent); padding:10px; }
-  .panel.closed { display:none; }
-  .embed .title, .embed .toggle, .embed .panel, .embed .seal { display:none; }
-  .embed .bar { left:16px; bottom:12px; } .embed #replay { display:none; }
-  @media (max-width:700px) { .title h1 { font-size:30px; } .title .num { font-size:40px; } .panel { width:200px; } }
+  .seal { position:fixed; right:28px; bottom:22px; width:44px; height:44px; background:var(--accent); color:var(--bg); display:grid; place-items:center; font-size:26px; transition:background-color 6s; }
+  .embed .hud, .embed .ticker, .embed .seal { display:none; }
+  .embed .phase { left:16px; bottom:12px; }
+  @media (max-width:700px) { .hud h1 { font-size:28px; } .hud .num { font-size:44px; } .ticker { display:none; } }
 </style>
 <script type="importmap">{ "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -50,574 +43,157 @@
 } }</script>
 </head>
 <body>
-<div class="title"><h1>盆栽 BONSAI</h1><div>a harness that prunes itself</div><div class="num" id="num">--</div><div id="from"></div></div>
+<div class="hud">
+  <h1>盆栽 BONSAI<span class="tag" id="mode"></span></h1>
+  <div class="sub">a harness that prunes itself</div>
+  <div class="num" id="num">--</div>
+  <div class="meta" id="from"></div>
+  <div class="meta" id="counts"></div>
+</div>
+<div class="ticker" id="ticker"></div>
 <div id="labels"></div>
-<button class="toggle" id="toggle">options</button>
-<div class="panel" id="panel"></div>
-<div class="bar"><button id="replay">replay</button><span id="clock"></span></div>
+<div class="phase" id="phase"></div>
 <div class="seal">盆</div>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PALETTES, isDark } from './palettes.js';
-
-// The lineage comes from lineage.json, which the loop rewrites every time it stores a version.
-// Until a run has stored one there is only the pot: nothing is drawn that has not been earned.
-const SEEDLING = [{id:"seed", parent:null, kept:true, score:0, signal:"seed"}];
-let VERSIONS = SEEDLING, EMPTY = true, grown = .5, built = false;
-
-// ---------- options ----------
+import { createBonsai } from './bonsai3d.js';
+import { startFeed } from './feed.js';
 
 const q = new URLSearchParams(location.search);
-const S = { form:q.get('form') || 'moyogi', foliage:q.get('foliage') || 'pine', palette:PALETTES[q.get('p')] ? q.get('p') : 'tokyo', wind:q.get('wind') || 'breeze', speed:+(q.get('speed') || 1) };
+// Inside the main page (?embed=1) the tree is the whole frame and the page around it carries the words.
+if (q.get('embed')) document.body.classList.add('embed');
 
-// ---------- utilities ----------
-const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const UP = V(0, 1, 0);
-let seed = 11;
-const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-const rr = (a, b) => a + rnd() * (b - a);
-function hash(x, y, z) { const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return h - Math.floor(h); }
-function noise3(x, y, z) {
-  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
-  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf), L = (a, b, t) => a + (b - a) * t, c = (i, j, k) => hash(xi + i, yi + j, zi + k);
-  return L(L(L(c(0,0,0), c(1,0,0), u), L(c(0,1,0), c(1,1,0), u), v), L(L(c(0,0,1), c(1,0,1), u), L(c(0,1,1), c(1,1,1), u), v), w) * 2 - 1;
-}
-const fbm = (x, y, z) => noise3(x, y, z) * .6 + noise3(x * 2.1, y * 2.1, z * 2.1) * .3 + noise3(x * 4.3, y * 4.3, z * 4.3) * .1;
-function randDir() { const u = rnd() * 2 - 1, a = rnd() * Math.PI * 2, s = Math.sqrt(1 - u * u); return V(s * Math.cos(a), u, s * Math.sin(a)); }
-const taper = (n, r0, r1, k = .8) => Array.from({length:n}, (_, i) => r0 + (r1 - r0) * Math.pow(i / (n - 1), k));
-const ramp = (n, b0, b1) => Array.from({length:n}, (_, i) => b0 + (b1 - b0) * i / (n - 1));
-const lin = hex => new THREE.Color(hex);
+// The main look alternates: each new tree takes the next form and foliage, and the paper slowly changes between the two light palettes.
+const COMBOS = [['moyogi', 'pine'], ['windswept', 'blossom'], ['moyogi', 'blossom'], ['windswept', 'pine']];
+let comboN = 0; try { comboN = +(localStorage.getItem('bonsai-combo') || 0); localStorage.setItem('bonsai-combo', comboN + 1); } catch {}
+const form = q.get('form') || COMBOS[comboN % 4][0], foliage = q.get('foliage') || COMBOS[comboN % 4][1];
+// ?p=<palette> pins one palette (the main page passes its own theme); otherwise the two light ones alternate.
+const PIN = PALETTES[q.get('p')], LIGHT = PIN ? [PIN, PIN] : [PALETTES.paper, PALETTES.matcha];
+const DARK = isDark(LIGHT[0].bg);
 
-// ---------- shared shader pieces ----------
-// Every tree material shares growth, wind sway, and the rigid fall of a cut-off branch.
-const U = { uTime:{value:0}, uWind:{value:1}, uGround:{value:-.7}, uCandle:{value:lin(0xc8d67a)}, uYoung:{value:lin(0x9cc25a)}, uMature:{value:4} };
-const PARS = `
-  uniform float uTime; uniform float uWind; uniform float uGround; uniform vec3 uCandle; uniform vec3 uYoung; uniform float uMature;
-  attribute float aBirth; attribute float aDeath; attribute vec3 aPivot; attribute vec3 aAxis;
-  float fallFade = 1.;
-  vec3 rotAx(vec3 v, vec3 a, float ang) { float c = cos(ang), s = sin(ang); return v * c + cross(a, v) * s + a * dot(a, v) * (1. - c); }
-  vec3 windOff(vec3 p) {
-    float h = max(p.y + .1, 0.), r = length(p.xz);
-    float gust = .55 + .45 * sin(uTime * .31) * sin(uTime * .17 + 1.3) + .25 * sin(uTime * 2.1 + p.x);
-    float k = uWind * gust * (.0035 * h * h + .012 * r * r);
-    return vec3(sin(uTime * 1.25 + p.y * .5 + p.z * .3) * k + uWind * .004 * h * h, 0., cos(uTime * .93 + p.x * .4) * k * .6);
-  }
-  vec3 place(vec3 p) {
-    if (aDeath > 0. && uTime > aDeath) {
-      float d = uTime - aDeath;
-      vec3 pv = aPivot - vec3(0., min(2.4 * d * d, max(aPivot.y - uGround - .05, 0.)), 0.);   // pivot drops and lands
-      vec3 o = rotAx(p - aPivot, aAxis, min(d * d * 3.2, 1.35));                              // tips over as it falls
-      float s = 1. - clamp((d - 1.6) / .9, 0., 1.);                                         // then dissolves
-      fallFade = s;
-      return pv + o * s;
-    }
-    return p + windOff(p);
-  }`;
-const PROJECT = `
-  vec4 wp = vec4(transformed, 1.);
-  #ifdef USE_INSTANCING
-    wp = instanceMatrix * wp;
-  #endif
-  wp.xyz = place(wp.xyz);
-  vec4 mvPosition = modelViewMatrix * wp;
-  gl_Position = projectionMatrix * mvPosition;`;
-function patch(mat, begin, after = '', extra = '') {
-  mat.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, U);
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\n' + PARS + extra)
-      .replace('#include <begin_vertex>', begin)
-      .replace('#include <project_vertex>', PROJECT + after);
-  };
-  mat.customProgramCacheKey = () => begin + after + extra;
-  return mat;
-}
-const WOOD_BEGIN = `
-  float g = clamp((uTime - aBirth) / .55, 0., 1.); g = g * g * (3. - 2. * g);
-  float th = .55 + .45 * clamp((uTime - aBirth) / 6., 0., 1.);
-  vec3 transformed = aCenter + (position - aCenter) * g * th;`;
-const NEEDLE_BEGIN = `
-  float g = clamp((uTime - aBirth) / .8, 0., 1.); g = 1. - pow(1. - g, 3.);
-  vec3 transformed = aBase + (position - aBase) * g;
-  float tip = step(.0001, distance(position, aBase));
-  transformed += tip * uWind * .008 * vec3(sin(uTime * 6.3 + aBirth * 41.), 0., cos(uTime * 5.1 + aBirth * 29.));`;
-const NEEDLE_AFTER = `
-  #ifdef USE_COLOR_ALPHA
-    vColor.rgb = mix(vColor.rgb, uCandle, (1. - clamp((uTime - aBirth) / 3.5, 0., 1.)) * .6);
-    vColor.a *= step(.001, g) * fallFade;
-  #endif`;
-const LEAF_BEGIN = `
-  float x = clamp((uTime - aBirth) / .9, 0., 1.);
-  float g = 1. + 2.7 * pow(x - 1., 3.) + 1.7 * pow(x - 1., 2.);
-  vec3 transformed = position * g;
-  transformed.y += sin(uTime * 4.7 + aBirth * 33.) * .012 * uWind * g;`;
-const LEAF_AFTER = `
-  #ifdef USE_INSTANCING_COLOR
-    vColor.rgb = mix(uYoung, vColor.rgb, clamp((uTime - aBirth - .4) / uMature, 0., 1.));
-  #endif`;
-
-// ---------- foliage looks ----------
-const LOOKS = {
-  pine:    {bark:0x6a5d52, barkNoise:.18, needle:true, len:[.11, .17], count:[34, 52], up:1.1, light:0x7d9867, mid:0x3f5a45, dark:0x18211b, candle:0xc8d67a, wash:0x5f7d5c, drift:'needle'},
-  juniper: {bark:0x7a5240, barkNoise:.22, needle:true, len:[.05, .085], count:[60, 85], up:.5, light:0x86b39a, mid:0x3e6b5c, dark:0x142520, candle:0xb7dcb0, wash:0x4f7d70, drift:'needle', shari:true},
-  maple:   {bark:0x77716a, barkNoise:.06, leaf:'maple', colors:[0xb8322a, 0xd4552b, 0xe38b2c, 0x8f1f2a, 0xc9402e], young:0x9cc25a, size:[.08, .13], wash:0xb05a3a, drift:'leaf'},
-  blossom: {bark:0x3e322d, barkNoise:.24, leaf:'flower', colors:[0xf7d6de, 0xf2b5c4, 0xfff3f5, 0xeaa0b4], young:0xc2386a, size:[.045, .07], wash:0xe7a3b6, drift:'petal'},
-};
-
-function shapeGeo(kind) {
-  const s = new THREE.Shape(), N = 60;
-  for (let i = 0; i <= N; i++) {
-    const a = i / N * Math.PI * 2;
-    const r = kind === 'maple' ? .45 + .55 * Math.pow(Math.abs(Math.cos(a * 2.5)), .5) * (a > 4.2 && a < 5.2 ? .4 : 1)
-                               : .55 + .45 * Math.pow(Math.abs(Math.cos(a * 2.5)), .35);
-    i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-  }
-  const g = new THREE.ShapeGeometry(s); g.rotateX(-Math.PI / 2);
-  const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); p.setY(i, (x * x + z * z) * .18); }
-  g.computeVertexNormals();
-  return g;
-}
-
-// ---------- scene, lights, backdrop ----------
-const scene = new THREE.Scene();
+// ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setClearColor(0, 0);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 document.body.prepend(renderer.domElement);
-scene.fog = new THREE.Fog(0x1a1b26, 11, 34);
-const cam = new THREE.PerspectiveCamera(30, 1, .1, 200);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xefe7d6, 14, 40);
+const cam = new THREE.PerspectiveCamera(30, 1, .1, 400);
+cam.position.set(2, 3.4, 15);
 const controls = new OrbitControls(cam, renderer.domElement);
-controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = .35;
-controls.enableZoom = false; controls.enableRotate = false;   // the view turns by itself; scrolling and dragging do nothing
-controls.minDistance = 5; controls.maxDistance = 22; controls.maxPolarAngle = Math.PI * .58; controls.enablePan = false;
-const hemi = new THREE.HemisphereLight(0xfff8ec, 0x6f6455, 2.2); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff3e0, 1.3);
-sun.position.set(-6, 10, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 14; sun.shadow.blurSamples = 20; sun.shadow.bias = -.0005;
-Object.assign(sun.shadow.camera, {left:-7, right:7, top:9, bottom:-5, near:1, far:30}); scene.add(sun);
-const rim = new THREE.DirectionalLight(0xffffff, 0); rim.position.set(4, 5, -9); scene.add(rim);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({color:0x3a2e20, opacity:.09}));
-floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+controls.enableDamping = true; controls.autoRotate = true; controls.autoRotateSpeed = .3; controls.enablePan = false;
+controls.maxPolarAngle = Math.PI * .56; controls.minDistance = 4; controls.maxDistance = 120;
+controls.target.set(0, 1.6, 0);
+if (q.get('embed')) { controls.enableZoom = false; controls.enableRotate = false; }   // in the main page the view turns by itself
+const hemi = new THREE.HemisphereLight(0xfff8ec, 0x6f6455, 1.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.1);
+sun.position.set(-6, 11, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 14; sun.shadow.blurSamples = 20; sun.shadow.bias = -.0004;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xdfe8ff, .5); fill.position.set(6, 3, -6); scene.add(fill);
+if (DARK) { hemi.intensity = .9; sun.intensity = 1.5; fill.color.set(LIGHT[0].ink); fill.intensity = 1.4; document.body.classList.add('dark'); }
 
+// distant ink hills and a pale sun, as soft washes
 function washTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
   for (let i = 0; i < 40; i++) {
-    const px = 128 + rr(-50, 50), py = 128 + rr(-30, 30), r = rr(30, 90), g = x.createRadialGradient(px, py, r * .2, px, py, r);
+    const px = 128 + (Math.random() - .5) * 100, py = 128 + (Math.random() - .5) * 60, r = 30 + Math.random() * 60, g = x.createRadialGradient(px, py, r * .2, px, py, r);
     g.addColorStop(0, 'rgba(255,255,255,.05)'); g.addColorStop(.8, 'rgba(255,255,255,.09)'); g.addColorStop(1, 'rgba(255,255,255,0)');
     x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-const WASH = washTexture();
-const hills = [];
-for (let i = 0; i < 9; i++) {
-  const a = i / 9 * Math.PI * 2, s = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, transparent:true, opacity:.55, depthWrite:false}));
-  s.position.set(Math.cos(a) * 20, rr(.5, 1.6), Math.sin(a) * 20); s.scale.set(rr(12, 18), rr(4, 6), 1); scene.add(s); hills.push(s);
+const WASH = washTexture(), hills = [], HILL = new THREE.Color(0x5c6a7c);
+for (let i = 0; i < 10; i++) {
+  const a = i / 10 * Math.PI * 2, s = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, transparent:true, opacity:.5, depthWrite:false}));
+  s.position.set(Math.cos(a) * 30, 1 + Math.random(), Math.sin(a) * 30); s.scale.set(18 + Math.random() * 10, 6 + Math.random() * 3, 1); scene.add(s); hills.push(s);
 }
-const sunS = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, transparent:true, opacity:.5, depthWrite:false, fog:false}));
-sunS.position.set(9, 9, -16); sunS.scale.set(5, 5, 1); scene.add(sunS);
+const sunS = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, transparent:true, opacity:.45, depthWrite:false, fog:false}));
+sunS.position.set(12, 12, -26); sunS.scale.set(7, 7, 1); scene.add(sunS);
 
-// ---------- build ----------
-let G = null, END = 0, labels = [], pads = [], cuts = [], padObjs = [], cutObjs = [], driftSys = null, kept = [], FLOOR = -.73;
-const SEG = 1.7;
-const ink = c => new THREE.MeshLambertMaterial({color:c});
-
-function build() {
-  if (G) { G.traverse(o => { o.geometry?.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m?.dispose()); }); scene.remove(G); }
-  document.getElementById('labels').innerHTML = '';
-  G = new THREE.Group(); scene.add(G);
-  seed = 11; labels = []; pads = []; cuts = [];
-  const look = LOOKS[S.foliage];
-  const W = { pos:[], nor:[], cen:[], bir:[], dea:[], piv:[], axi:[], col:[], idx:[] };
-  const N = { pos:[], base:[], bir:[], dea:[], piv:[], axi:[], col:[] };
-  const L = [];
-  const barkC = lin(look.bark), boneC = lin(0xd9d2c3);
-  let fall = null;                 // {death, pivot, axis} while building parts of a pruned branch
-  const fA = () => fall ? [fall.death, ...fall.pivot.toArray(), ...fall.axis.toArray()] : [-1, 0, 0, 0, 1, 0, 0];
-
-  function addTube(pts, rad, bir, opt = {}) {
-    const radial = opt.radial || 10, bark = opt.bark ?? look.barkNoise * .6, n = pts.length, base = W.pos.length / 3;
-    const T = V(), Nm = V(), B = V(), t0 = pts[1].clone().sub(pts[0]).normalize();
-    Nm.copy(Math.abs(t0.y) < .9 ? UP : V(1, 0, 0)).cross(t0).normalize();
-    let s = 0;
-    for (let i = 0; i < n; i++) {
-      T.copy(pts[Math.min(i + 1, n - 1)]).sub(pts[Math.max(i - 1, 0)]).normalize();
-      Nm.sub(T.clone().multiplyScalar(Nm.dot(T))).normalize(); B.crossVectors(T, Nm);
-      if (i) s += pts[i].distanceTo(pts[i - 1]);
-      const [dd, px, py, pz, ax, ay, az] = (opt.cutAt != null && i >= opt.cutAt) ? fA() : [-1, 0, 0, 0, 1, 0, 0];
-      for (let k = 0; k < radial; k++) {
-        const a = k / radial * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
-        const dir = Nm.clone().multiplyScalar(ca).addScaledVector(B, sa);
-        const nz = fbm(ca * 1.7 + (opt.seed || 0), sa * 1.7, s * .9), fis = noise3(ca * 6 + (opt.seed || 0), sa * 6, s * 1.4);
-        let r = rad[i] * (1 + bark * nz);
-        if (opt.flare && i < n * .15) {
-          const fl = Math.max(0, 1 - (pts[i].y + .12) / .55);
-          r *= 1 + .55 * fl * fl * fl + .45 * fl * fl * Math.pow(Math.max(0, Math.sin(a * 3 + .7)), 2);
-        }
-        const shade = .45 + .9 * Math.pow(nz * .5 + .5, 1.3) + .3 * Math.max(0, fis) - .25 * Math.max(0, -fis) + (opt.light || 0);
-        const c = barkC.clone().multiplyScalar(shade);
-        if (opt.shari && s > .2 && s < opt.shariEnd && Math.cos(a - 1.9 - s * .9) > .82) {   // juniper deadwood: bleached, carved stripe
-          r *= .9; c.copy(boneC).multiplyScalar(.75 + .35 * (fis * .5 + .5));
-        }
-        const p = pts[i].clone().addScaledVector(dir, r);
-        W.pos.push(p.x, p.y, p.z); W.nor.push(dir.x, dir.y, dir.z); W.cen.push(pts[i].x, pts[i].y, pts[i].z);
-        W.bir.push(bir[i]); W.dea.push(dd); W.piv.push(px, py, pz); W.axi.push(ax, ay, az); W.col.push(c.r, c.g, c.b);
-      }
-    }
-    for (let i = 0; i < n - 1; i++) for (let k = 0; k < radial; k++) {
-      if (opt.cutAt > 0 && i === opt.cutAt - 1) continue;          // leave a gap so the falling piece separates cleanly
-      const a = base + i * radial + k, b = base + i * radial + (k + 1) % radial, c = a + radial, d = b + radial;
-      W.idx.push(a, b, c, b, d, c);
-    }
-  }
-  function walk(start, dir, len, o = {}) {
-    const steps = Math.max(4, Math.round(len / (o.step || .05)));
-    const pts = [start.clone()], d = dir.clone().normalize(), p = start.clone(), sd = rnd() * 50, f = o.freq || 1.6;
-    for (let i = 1; i <= steps; i++) {
-      d.add(V(noise3(p.x * f + sd, p.y * f, p.z * f), noise3(p.x * f, p.y * f + sd, p.z * f), noise3(p.x * f, p.y * f, p.z * f + sd)).multiplyScalar(o.gnarl ?? .25));
-      if (o.pull) d.addScaledVector(o.pull, o.pullK ?? .08);
-      d.normalize(); p.addScaledVector(d, len / steps);
-      if (o.floor != null && p.y < o.floor) p.y = o.floor;
-      pts.push(p.clone());
-    }
-    return pts;
-  }
-  const lightC = look.needle && lin(look.light), midC = look.needle && lin(look.mid), darkC = look.needle && lin(look.dark);
-  function tuft(P, birth, size, count) {
-    const [dd, px, py, pz, ax, ay, az] = fA();
-    for (let j = 0; j < count; j++) {
-      const d = randDir(); d.y = Math.abs(d.y) * look.up + .15; d.normalize();
-      const Ln = size * rr(.55, 1.15), b = P.clone().add(randDir().multiplyScalar(size * .12)), t = b.clone().addScaledVector(d, Ln);
-      const up = d.y, c = up > .55 ? midC.clone().lerp(lightC, (up - .55) / .45 * rr(.4, 1)) : darkC.clone().lerp(midC, up / .55 * rr(.6, 1));
-      const a = rr(.55, .9), bt = birth + rr(0, .7);
-      for (const v of [b, t]) {
-        N.pos.push(v.x, v.y, v.z); N.base.push(b.x, b.y, b.z); N.bir.push(bt); N.dea.push(dd);
-        N.piv.push(px, py, pz); N.axi.push(ax, ay, az); N.col.push(c.r, c.g, c.b, a);
-      }
-    }
-  }
-  function leafCluster(P, birth, count) {
-    for (let j = 0; j < count; j++) {
-      const p = P.clone().add(randDir().multiplyScalar(rr(.02, .1))); p.y += rr(0, .05);
-      L.push({p, q:new THREE.Quaternion().setFromEuler(new THREE.Euler(rr(-.6, .6), rr(0, 6.28), rr(-.6, .6))), s:rr(...look.size), birth:birth + rr(0, .8), f:fall, c:look.colors[Math.floor(rnd() * look.colors.length)]});
-    }
-  }
-  function foliageAt(P, birth, density) {
-    if (look.needle) tuft(P, birth, rr(...look.len), Math.round(rr(...look.count) * density));
-    else leafCluster(P, birth, Math.round((look.leaf === 'flower' ? 3 : 4) * density + rnd() * 2));
-  }
-  function pad(at, dir, size, birth, density = 1) {
-    const flat = V(dir.x, 0, dir.z).normalize(), twigs = Math.round(9 + size * 8);
-    const center = at.clone().addScaledVector(flat, size * .35).add(V(0, size * .12, 0));
-    const forks = look.leaf ? 3 : 2;
-    for (let i = 0; i < twigs; i++) {
-      const td = flat.clone().applyAxisAngle(UP, rr(-1.5, 1.5)).add(V(0, rr(-.05, .25), 0));
-      const len = size * rr(.45, 1.0), tb = birth + rr(0, .5);
-      const pts = walk(at, td, len, {gnarl:.35, step:.04, pull:UP, pullK:.03});
-      addTube(pts, taper(pts.length, .035, .006), ramp(pts.length, tb, tb + .5), {radial:5, bark:.05, seed:i, cutAt:0, light:.1});
-      for (let k = Math.floor(pts.length * .25); k < pts.length; k += 2) {
-        const p = pts[k].clone(), dc = p.distanceTo(center) / size; p.y += size * .18 * Math.max(0, 1 - dc * dc);
-        foliageAt(p, tb + .3 + k / pts.length * .5, density);
-      }
-      for (let f = 0; f < forks; f++) {
-        const m = Math.floor(pts.length * rr(.35, .75)), fd = td.clone().applyAxisAngle(UP, (f % 2 ? 1 : -1) * rr(.5, .9));
-        const fp = walk(pts[m], fd, len * rr(.3, .5), {gnarl:.4, step:.04, pull:UP, pullK:.04}), fb = tb + .25;
-        addTube(fp, taper(fp.length, .014, .004), ramp(fp.length, fb, fb + .3), {radial:4, bark:0, seed:f, cutAt:0, light:.1});
-        for (let k = 1; k < fp.length; k += 2) foliageAt(fp[k].clone().add(V(0, size * .08, 0)), fb + .4, density * .75);
-      }
-    }
-    pads.push({center, size, birth, fall});
-  }
-
-  // --- form: trunk path, thickness, where branches go ---
-  const F = {
-    moyogi:   {path:t => V(Math.sin(t * 4 + .3) * .85 - t * .35, -.12 + t * 4.3, Math.cos(t * 3) * .4 - .4), r:t => .07 + .22 * Math.pow(1 - t, 1.3), range:[.2, .88], pot:'rect', target:[0, 1.9, 0], dist:15.5},
-    cascade:  {path:t => V(Math.pow(t, 1.4) * 2.3 + Math.sin(t * 6) * .12, -.12 + 1.6 * Math.sin(Math.min(t, .62) / .62 * Math.PI / 2) - (t > .62 ? Math.pow((t - .62) / .38, 1.6) * 3.0 : 0), Math.sin(t * 3) * .35),
-               r:t => .08 + .2 * Math.pow(1 - t, 1.2), range:[.25, .95], pot:'tall', target:[.9, .1, 0], dist:15},
-    literati: {path:t => V(Math.sin(t * 2.6) * .6 + t * .5, -.12 + t * 5.8, Math.sin(t * 3.3) * .3), r:t => .05 + .12 * Math.pow(1 - t, 1.2), range:[.62, .96], pot:'round', target:[.3, 2.7, 0], dist:17.5, padK:.7},
-    windswept:{path:t => V(t * 2.4 + Math.sin(t * 3) * .25, -.12 + t * 3.7 - t * t * .7, Math.sin(t * 2) * .2), r:t => .06 + .2 * Math.pow(1 - t, 1.3), range:[.22, .9], pot:'rect', target:[1.4, 1.5, 0], dist:18, bias:V(1, 0, 0)},
-  }[S.form];
-  const padK = F.padK || 1;
-  const vs = {}; VERSIONS.forEach(v => (vs[v.parent] ??= []).push(v));
-  kept = []; for (let v = VERSIONS.find(v => !v.parent); v; v = (vs[v.id] || []).find(c => c.kept)) kept.push(v);
-  const TRUNK_T = kept.length * SEG, TN = 160;
-  const trunkPts = []; for (let i = 0; i < TN; i++) { const t = i / (TN - 1); trunkPts.push(F.path(t).add(V(fbm(t * 3, 1, 0) * .12, 0, fbm(t * 3, 5, 0) * .12))); }
-  const trunkB = t => t * TRUNK_T;
-  addTube(trunkPts, trunkPts.map((_, i) => F.r(i / (TN - 1))), trunkPts.map((_, i) => trunkB(i / (TN - 1))), {radial:32, bark:look.barkNoise, flare:true, seed:3, shari:look.shari, shariEnd:3.2});
-  const trunkAt = t => trunkPts[Math.round(t * (TN - 1))];
-  for (let i = 0; i < 6; i++) {
-    const a = i / 6 * Math.PI * 2 + rr(-.3, .3), pts = walk(trunkPts[0].clone().setY(.02), V(Math.cos(a), -.35, Math.sin(a)), rr(.5, .95), {gnarl:.2, pull:V(0, -1, 0), pullK:.05, floor:-.13});
-    addTube(pts, taper(pts.length, .14, .02, .6), ramp(pts.length, 0, .9), {radial:10, bark:.1, seed:i + 9});
-  }
-  kept.forEach((v, i) => {
-    (vs[v.id] || []).forEach((c, k) => {
-      const [a0, a1] = F.range, tA = Math.min(.97, a0 + (a1 - a0) * i / Math.max(1, kept.length - 1) + k * .05);
-      const start = trunkAt(tA).clone(), ang = i * 2.35 + k * 2.6 + .4;
-      const out = V(Math.cos(ang), 0, Math.sin(ang));
-      if (F.bias) out.lerp(F.bias, .7).normalize();
-      const b0 = trunkB(tA) + .2, len = (c.kept ? 1.1 + c.score * 1.5 : .95) * padK;
-      const pts = walk(start, out.clone().add(V(0, .25, 0)), len, {gnarl:.22, pull:V(0, -1, 0).addScaledVector(out, .5), pullK:.035});
-      const b1 = b0 + len * .9, cutI = Math.floor(pts.length * .3);
-      if (!c.kept) {
-        const pivot = pts[cutI].clone(), axis = UP.clone().cross(out).normalize();
-        fall = {death:b1 + 1.8, pivot, axis};
-        cuts.push({at:pivot, dir:pts[cutI + 1].clone().sub(pivot).normalize(), r:F.r(tA) * .5, t:fall.death});
-        labels.push({text:`${c.id}  ${c.signal}`, cls:'cut', at:pivot.clone().addScaledVector(out, .35).add(V(0, .3, 0)), t:fall.death + .2});
-      }
-      addTube(pts, taper(pts.length, F.r(tA) * .55, .035, .7), ramp(pts.length, b0, b1), {radial:14, bark:.1, seed:i * 3 + k, cutAt:c.kept ? null : cutI});
-      pad(pts.at(-1), out, (c.kept ? .65 + c.score * .9 : .5) * padK, b1 - .2, c.kept ? 1 : .7);
-      if (c.kept) {
-        const m = pts[Math.floor(pts.length * .55)], sd = out.clone().applyAxisAngle(UP, k % 2 ? .9 : -.9);
-        const sp = walk(m, sd.add(V(0, .2, 0)), len * .45, {gnarl:.3, pull:V(0, -1, 0), pullK:.03}), sb = b0 + len * .5;
-        addTube(sp, taper(sp.length, F.r(tA) * .25, .02), ramp(sp.length, sb, sb + .6), {radial:8, bark:.08, seed:i + k + 20});
-        pad(sp.at(-1), sd, .45 * padK, sb + .4, .9);
-        labels.push({text:`${c.id}  ${Math.round(c.score * 100)}%`, at:pts.at(-1).clone().add(V(0, -.4, 0)), t:b1 + .8});
-      }
-      fall = null;
-    });
-  });
-  const top = trunkPts.at(-1);
-  for (let i = 0; i < 4; i++) {
-    const d = V(Math.cos(i * 1.7), S.form === 'cascade' ? -.2 : .5, Math.sin(i * 1.7)), pts = walk(top, d, rr(.4, .7), {gnarl:.3, pull:UP, pullK:.02});
-    addTube(pts, taper(pts.length, .09, .02), ramp(pts.length, TRUNK_T - .3, TRUNK_T + .4), {radial:8, seed:40 + i});
-    pad(pts.at(-1), d, .55 * padK, TRUNK_T);
-  }
-  labels.push({text:`${kept.at(-1).id}  best`, at:top.clone().add(V(0, 1.0, 0)), t:TRUNK_T + 1.2});
-  END = Math.max(TRUNK_T + 2.5, ...cuts.map(c => c.t + 2.6));
-
-  // --- meshes ---
-  const f32 = (a, k) => new THREE.Float32BufferAttribute(a, k);
-  const wg = new THREE.BufferGeometry();
-  wg.setAttribute('position', f32(W.pos, 3)); wg.setAttribute('normal', f32(W.nor, 3)); wg.setAttribute('color', f32(W.col, 3));
-  wg.setAttribute('aCenter', f32(W.cen, 3)); wg.setAttribute('aBirth', f32(W.bir, 1)); wg.setAttribute('aDeath', f32(W.dea, 1));
-  wg.setAttribute('aPivot', f32(W.piv, 3)); wg.setAttribute('aAxis', f32(W.axi, 3)); wg.setIndex(W.idx);
-  const wood = new THREE.Mesh(wg, patch(new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide}), WOOD_BEGIN, '', 'attribute vec3 aCenter;'));
-  wood.castShadow = true; wood.frustumCulled = false;
-  wood.customDepthMaterial = patch(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}), WOOD_BEGIN, '', 'attribute vec3 aCenter;');
-  G.add(wood);
-
-  if (N.pos.length) {
-    const ng = new THREE.BufferGeometry();
-    ng.setAttribute('position', f32(N.pos, 3)); ng.setAttribute('aBase', f32(N.base, 3)); ng.setAttribute('aBirth', f32(N.bir, 1));
-    ng.setAttribute('aDeath', f32(N.dea, 1)); ng.setAttribute('aPivot', f32(N.piv, 3)); ng.setAttribute('aAxis', f32(N.axi, 3)); ng.setAttribute('color', f32(N.col, 4));
-    const ln = new THREE.LineSegments(ng, patch(new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false}), NEEDLE_BEGIN, NEEDLE_AFTER, 'attribute vec3 aBase;'));
-    ln.frustumCulled = false; G.add(ln);
-    U.uCandle.value = lin(look.candle);
-  }
-  if (L.length) {
-    const geo = shapeGeo(look.leaf), n = L.length;
-    const att = (k, fn) => { const arr = new Float32Array(n * k); L.forEach((l, i) => { const v = fn(l); typeof v === 'number' ? arr[i] = v : arr.set(v, i * k); }); return new THREE.InstancedBufferAttribute(arr, k); };
-    geo.setAttribute('aBirth', att(1, l => l.birth)); geo.setAttribute('aDeath', att(1, l => l.f ? l.f.death : -1));
-    geo.setAttribute('aPivot', att(3, l => l.f ? l.f.pivot.toArray() : [0, 0, 0])); geo.setAttribute('aAxis', att(3, l => l.f ? l.f.axis.toArray() : [1, 0, 0]));
-    const im = new THREE.InstancedMesh(geo, patch(new THREE.MeshLambertMaterial({side:THREE.DoubleSide}), LEAF_BEGIN, LEAF_AFTER), n);
-    const M = new THREE.Matrix4(), c = new THREE.Color();
-    L.forEach((l, i) => { M.compose(l.p, l.q, V(l.s, l.s, l.s)); im.setMatrixAt(i, M); im.setColorAt(i, c.setHex(l.c)); });
-    im.castShadow = true; im.frustumCulled = false;
-    im.customDepthMaterial = patch(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}), LEAF_BEGIN);
-    G.add(im);
-    U.uYoung.value = lin(look.young); U.uMature.value = look.leaf === 'maple' ? 6 : 1.2;
-  }
-
-  const proxyMat = new THREE.MeshBasicMaterial({colorWrite:false, depthWrite:false});
-  padObjs = pads.map(p => {
-    const sprites = [0, 1, 2].map(j => {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({map:WASH, color:j === 2 ? 0x2f4a3e : look.wash, transparent:true, opacity:0, depthWrite:false}));
-      s.position.copy(p.center).add(V(rr(-.2, .2), j === 2 ? -.12 : rr(0, .15), rr(-.2, .2)));
-      s.userData.k = p.size * (j === 2 ? 1.7 : 2.1) * rr(.85, 1.1); s.renderOrder = -1; G.add(s); return s;
-    });
-    const proxy = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), proxyMat); proxy.position.copy(p.center); proxy.castShadow = true; G.add(proxy);
-    return {p, sprites, proxy, base:p.center.clone()};
-  });
-  cutObjs = cuts.map(c => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(c.r, c.r * 1.05, .03, 20), new THREE.MeshBasicMaterial({color:new THREE.Color(PALETTES[S.palette].accent)}));
-    m.position.copy(c.at); m.quaternion.setFromUnitVectors(UP, c.dir); G.add(m); return {c, m};
-  });
-
-  buildPot(F.pot);
-  driftSys = makeDrift(look);
-  labels.forEach(l => { const d = document.createElement('div'); d.className = 'lbl ' + (l.cls || ''); d.textContent = l.text; document.getElementById('labels').appendChild(d); l.el = d; });
-  if (!built) { controls.target.set(...F.target); cam.position.set(F.target[0] + 2, F.target[1] + 1.8, F.dist); built = true; }
-}
-
-// ---------- pot ----------
-function buildPot(kind) {
-  const add = m => { m.castShadow = true; G.add(m); return m; };
-  let footprint;
-  if (kind === 'round') {
-    const g = new THREE.CylinderGeometry(1.25, 1.05, .32, 64, 1); g.translate(0, -.26, 0);
-    add(new THREE.Mesh(g, ink(0x5a3a2c)));
-    for (let i = 0; i < 3; i++) { const f = add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .1, .1, 12), ink(0x40291f))); f.position.set(Math.cos(i * 2.09) * .85, -.46, Math.sin(i * 2.09) * .85); }
-    FLOOR = -.51; footprint = (x, z) => Math.hypot(x, z) < 1.15;
-  } else {
-    const tall = kind === 'tall', w = tall ? 1.05 : 1.75, d = tall ? 1.05 : 1.15, r = .2, depth = tall ? 1.7 : .5;
-    const shape = new THREE.Shape();
-    shape.moveTo(-w + r, -d); shape.lineTo(w - r, -d); shape.quadraticCurveTo(w, -d, w, -d + r); shape.lineTo(w, d - r); shape.quadraticCurveTo(w, d, w - r, d);
-    shape.lineTo(-w + r, d); shape.quadraticCurveTo(-w, d, -w, d - r); shape.lineTo(-w, -d + r); shape.quadraticCurveTo(-w, -d, -w + r, -d);
-    const g = new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled:true, bevelThickness:.04, bevelSize:.04, bevelSegments:3, curveSegments:8});
-    g.rotateX(-Math.PI / 2); g.translate(0, -.12 - depth, 0);
-    const pa = g.attributes.position, k0 = tall ? .9 : .86;
-    for (let i = 0; i < pa.count; i++) { const y = pa.getY(i), k = k0 + (1 - k0) * Math.min(1, Math.max(0, (y + .12 + depth) / depth)); pa.setX(i, pa.getX(i) * k); pa.setZ(i, pa.getZ(i) * k); }
-    g.computeVertexNormals();
-    add(new THREE.Mesh(g, ink(tall ? 0x2f3a44 : 0x37302b)));
-    const fx = w * .72, fz = d * .65;
-    for (const [x, z] of [[-fx, -fz], [fx, -fz], [-fx, fz], [fx, fz]]) { const f = add(new THREE.Mesh(new THREE.BoxGeometry(.3, .14, .22), ink(0x2a2420))); f.position.set(x, -.2 - depth, z); }
-    FLOOR = -.27 - depth; footprint = (x, z) => Math.abs(x) < w - .12 && Math.abs(z) < d - .12;
-  }
-  const soil = new THREE.Mesh(kind === 'round' ? new THREE.CircleGeometry(1.2, 48) : kind === 'tall' ? new THREE.PlaneGeometry(1.95, 1.95) : new THREE.PlaneGeometry(3.3, 2.1), ink(0x2e2720));
-  soil.rotation.x = -Math.PI / 2; soil.position.y = -.1; G.add(soil);
-  const mp = [], mc = [], green = [lin(0x56704a), lin(0x3c5236), lin(0x7d915e)];
-  for (let i = 0; i < 9000; i++) {
-    const x = rr(-1.7, 1.7), z = rr(-1.1, 1.1);
-    if (!footprint(x, z) || fbm(x * 1.4, z * 1.4, 4) < -.25) continue;
-    const h = Math.max(0, .14 - Math.hypot(x, z * 1.4) * .08) + fbm(x * 3, z * 3, 0) * .03;
-    mp.push(x, -.09 + h, z); const c = green[i % 3]; mc.push(c.r, c.g, c.b);
-  }
-  const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.Float32BufferAttribute(mp, 3)); mg.setAttribute('color', new THREE.Float32BufferAttribute(mc, 3));
-  G.add(new THREE.Points(mg, new THREE.PointsMaterial({size:.035, vertexColors:true})));
-  for (const [x, z, s] of [[.75, .35, .2], [.95, .1, .12], [-.8, -.4, .16]]) if (footprint(x, z)) {
-    const st = add(new THREE.Mesh(new THREE.DodecahedronGeometry(s, 1), ink(0x6d6760))); st.position.set(x, -.08, z); st.scale.y = .6; st.rotation.set(rnd(), rnd(), rnd());
-  }
-  floor.position.y = FLOOR; U.uGround.value = FLOOR;
-}
-
-// ---------- idle drift: a needle, leaf or petal lets go now and then ----------
-function makeDrift(look) {
-  const geo = look.drift === 'needle' ? new THREE.BoxGeometry(.005, .005, .14) : shapeGeo(look.leaf).scale(look.size[1], look.size[1], look.size[1]);
-  const n = 70, im = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({color:look.drift === 'needle' ? 0x8a7a4a : look.colors[0], side:THREE.DoubleSide}), n);
-  im.frustumCulled = false; G.add(im);
-  const P = Array.from({length:n}, () => ({on:false})), M = new THREE.Matrix4(), Z = new THREE.Matrix4().makeScale(0, 0, 0), Q = new THREE.Quaternion();
-  for (let i = 0; i < n; i++) im.setMatrixAt(i, Z);
-  const slow = look.drift !== 'needle';
-  return {
-    step(dt, t) {
-      if (t > END - 1 && rnd() < dt * (slow ? 2.2 : 1.6)) {
-        const live = padObjs.filter(o => !o.p.fall), o = live[Math.floor(rnd() * live.length)], p = P.find(p => !p.on);
-        if (o && p) Object.assign(p, {on:true, pos:o.base.clone().add(V(rr(-1, 1) * o.p.size * .7, rr(-.1, .1), rr(-1, 1) * o.p.size * .7)), vy:0, ph:rnd() * 6, rot:new THREE.Euler(rnd() * 6, rnd() * 6, rnd() * 6), life:0, landed:-1});
-      }
-      P.forEach((p, i) => {
-        if (!p.on) return;
-        p.life += dt;
-        if (p.landed < 0) {
-          p.vy = Math.max(p.vy - dt * (slow ? .9 : 2.5), slow ? -.45 : -1.1);
-          p.pos.y += p.vy * dt;
-          p.pos.x += (Math.sin(p.life * (slow ? 2.4 : 4) + p.ph) * (slow ? .55 : .2) + U.uWind.value * .25) * dt;
-          p.pos.z += Math.cos(p.life * 1.9 + p.ph) * (slow ? .35 : .1) * dt;
-          p.rot.x += dt * (slow ? 2.5 : 4); p.rot.z += dt * 1.7;
-          const ground = Math.abs(p.pos.x) < 1.6 && Math.abs(p.pos.z) < 1 && p.pos.y > -.15 ? -.08 : FLOOR + .01;
-          if (p.pos.y <= ground) { p.pos.y = ground; p.landed = p.life; p.rot.x = slow ? 0 : Math.PI / 2; }
-        }
-        const s = p.landed > 0 ? Math.max(0, 1 - (p.life - p.landed - 3) / 1.5) : 1;
-        if (s <= 0) { p.on = false; im.setMatrixAt(i, Z); return; }
-        M.compose(p.pos, Q.setFromEuler(p.rot), V(s, s, s)); im.setMatrixAt(i, M);
-      });
-      im.instanceMatrix.needsUpdate = true;
-    }
-  };
-}
-
-function applyPalette() {
-  const P = PALETTES[S.palette], r = document.documentElement.style;
-  P.dark = isDark(P.bg);
-  P.hills = new THREE.Color(P.bg).lerp(new THREE.Color(P.ink), P.dark ? .14 : .35).getHex(); P.sun = new THREE.Color(P.accent).getHex();
+// ---------- palette crossfade ----------
+function setPalette(P) {
+  const r = document.documentElement.style;
   r.setProperty('--bg', P.bg); r.setProperty('--ink', P.ink); r.setProperty('--faint', P.faint); r.setProperty('--accent', P.accent);
-  r.setProperty('--glow', P.glow ? `0 0 6px ${P.ink}88, 0 0 18px ${P.ink}33` : 'none');
-  r.setProperty('--grain', P.dark ? .14 : .28); r.setProperty('--blend', P.dark ? 'overlay' : 'multiply');
-  scene.fog.color.set(P.bg);
-  hills.forEach(h => h.material.color.setHex(P.hills)); sunS.material.color.setHex(P.sun);
-  hemi.intensity = P.dark ? 1.0 : 2.2; sun.intensity = P.dark ? .9 : 1.3;
-  rim.color.set(P.ink); rim.intensity = P.dark ? 1.6 : 0;
-  floor.material.color.set(P.dark ? 0x000000 : 0x3a2e20); floor.material.opacity = P.dark ? .35 : .09;
-  cutObjs.forEach(o => o.m.material.color.set(P.accent));
+}
+let palIdx = comboN % 2; setPalette(LIGHT[palIdx]);
+const fogFrom = new THREE.Color(LIGHT[palIdx].bg), fogTo = fogFrom.clone(); let palT = 1;
+setInterval(() => { palIdx = 1 - palIdx; setPalette(LIGHT[palIdx]); fogFrom.copy(scene.fog.color); fogTo.set(LIGHT[palIdx].bg); palT = 0; }, 45000);
+
+// ---------- tree + labels ----------
+const labelsEl = document.getElementById('labels'), labels = [];
+function onLabel({text, pos, cut}) {
+  const el = document.createElement('div'); el.className = 'lbl' + (cut ? ' cut' : ''); el.textContent = text; labelsEl.appendChild(el);
+  labels.push({el, pos:pos.clone(), born:performance.now()});
+}
+let tree = createBonsai({scene, form, foliage, accent:LIGHT[0].accent, onLabel});
+
+// ---------- HUD ----------
+const $ = id => document.getElementById(id);
+const stats = {first:null, best:null, kept:0, pruned:0, ticker:[]};
+function hud() {
+  $('num').textContent = stats.best == null ? '--' : Math.round(stats.best * 100) + '%';
+  $('from').textContent = stats.first == null ? '' : `from ${Math.round(stats.first * 100)}%  held-out`;
+  $('counts').textContent = stats.first == null ? '' : `${stats.kept} kept  ${stats.pruned} pruned`;
+  $('ticker').innerHTML = stats.ticker.slice(-6).map(x => `<div class="${x.cut ? 'cut' : ''}">${x.text}</div>`).join('');
 }
 
-// ---------- panel ----------
-const WIND = {still:0, breeze:1, gale:2.6};
-const GROUPS = [
-  ['form', ['moyogi', 'cascade', 'literati', 'windswept']],
-  ['foliage', ['pine', 'juniper', 'maple', 'blossom']],
-  ['palette', Object.keys(PALETTES)],
-  ['wind', Object.keys(WIND)],
-  ['speed', [1, 2, 4]],
-];
-function panel() {
-  document.getElementById('panel').innerHTML = GROUPS.map(([k, opts]) => `<div class="grp"><div>${k}${k === 'palette' ? ' · ' + PALETTES[S.palette].name : ''}</div><div class="chips">${
-    opts.map(o => k === 'palette'
-      ? `<button data-k="${k}" data-v="${o}" title="${PALETTES[o].name}" class="sw ${S[k] === o ? 'on' : ''}" style="background:${PALETTES[o].bg};color:${PALETTES[o].ink};border-color:${PALETTES[o].accent}">■</button>`
-      : `<button data-k="${k}" data-v="${o}" class="${String(S[k]) === String(o) ? 'on' : ''}">${k === 'speed' ? o + 'x' : o}</button>`).join('')}</div></div>`).join('');
-}
-document.getElementById('panel').onclick = e => {
-  const b = e.target.closest('button'); if (!b) return;
-  const k = b.dataset.k; S[k] = k === 'speed' ? +b.dataset.v : b.dataset.v; panel();
-  if (k === 'form' || k === 'foliage') { build(); applyPalette(); }
-  if (k === 'palette') applyPalette();
-  history.replaceState(null, '', '?' + new URLSearchParams({form:S.form, foliage:S.foliage, p:S.palette, wind:S.wind, speed:S.speed}));
-};
+startFeed(e => {
+  if (e.type === 'mode') { $('mode').textContent = {demo:'DEMO', live:'LIVE', record:'RECORD', empty:'EMPTY'}[e.mode]; $('mode').className = 'tag ' + e.mode; }
+  else if (e.type === 'phase') $('phase').textContent = e.text;
+  else if (e.type === 'reset') {
+    tree.dispose(); labels.forEach(l => l.el.remove()); labels.length = 0;
+    tree = createBonsai({scene, form, foliage, accent:LIGHT[0].accent, onLabel});
+    Object.assign(stats, {first:null, best:null, kept:0, pruned:0, ticker:[]}); hud();
+  }
+  else if (e.type === 'propose') tree.propose(e.id, e.parent);
+  else if (e.type === 'progress') tree.progress(e.id, e.done, e.total);
+  else if (e.type === 'practice') tree.shed(e.failed);
+  else if (e.type === 'verdict') {
+    const v = e.v; tree.verdict(v, e.instant);
+    if (!v.parent) stats.first = stats.best = v.score;
+    else if (v.kept) { stats.kept++; stats.best = v.score; stats.ticker.push({text:`${v.id} kept ${Math.round(v.score * 100)}%`}); }
+    else { stats.pruned++; stats.ticker.push({text:`${v.id} ${v.signal || 'pruned'}`, cut:true}); }
+    hud();
+  }
+}, {demo:q.get('demo') || q.get('stress'), stress:q.get('stress'), liveOnly:!!q.get('embed') || !!q.get('live')});
 
 // ---------- run ----------
-let t = 0, last = performance.now();
-document.getElementById('replay').onclick = () => { t = 0; };
-const clock = document.getElementById('clock'), num = document.getElementById('num'), from = document.getElementById('from');
-const sm = x => { x = Math.min(Math.max(x, 0), 1); return x * x * (3 - 2 * x); };
 function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
-panel(); build(); applyPalette();
-const pn = document.getElementById('panel');
-if (innerWidth < 1100 && !q.get('open')) pn.classList.add('closed');
-document.getElementById('toggle').onclick = () => pn.classList.toggle('closed');
-U.uWind.value = WIND[S.wind];
-t = +(q.get('t') || 0);   // jump to a moment, handy for screenshots
-
-// Inside the main page (?embed=1) the tree is the whole frame and the page around it carries the words.
-if (q.get('embed')) document.body.classList.add('embed');
-// Live lineage: redraw when the loop stores a new version, and replay only the newest growth.
-let seen = '';
-async function live() {
-  try {
-    const r = await fetch('lineage.json', {cache:'no-store'});
-    if (r.ok) {
-      const vs = (await r.json()).versions || [], key = vs.map(v => v.id + v.kept).join();
-      if (!vs.length && !EMPTY) { seen = ''; VERSIONS = SEEDLING; EMPTY = true; build(); applyPalette(); }
-      if (vs.length && key !== seen) {
-        // What is already stored is shown grown. Only a version stored while you watch plays its growth or its cut.
-        const first = !seen; seen = key; VERSIONS = vs; EMPTY = false; build(); applyPalette();
-        t = first ? END + 8 : Math.max(0, (kept.length - 1) * SEG - .4);
-      }
-    } else if (!EMPTY) { seen = ''; VERSIONS = SEEDLING; EMPTY = true; build(); applyPalette(); }
-  } catch {}
-  setTimeout(live, 3000);
-}
-live();
-
-const tmp = V();
+let last = performance.now(), t = 0;
+const tmp = new THREE.Vector3(), dirV = new THREE.Vector3();
 renderer.setAnimationLoop(now => {
-  const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now;
-  t += dt * S.speed; U.uTime.value = EMPTY ? 0 : t;
-  // The tree stands as tall as the run has earned: one kept change is a sapling, five is full height.
-  const want = EMPTY ? .5 : .5 + .5 * Math.min(1, (kept.length - 1) / 4);
-  grown += (want - grown) * Math.min(1, dt * 1.2); G.scale.setScalar(grown);
-  U.uWind.value += (WIND[S.wind] - U.uWind.value) * Math.min(1, dt * 1.5);
-  const gen = Math.max(0, Math.min(kept.length - 1, Math.floor(t / SEG)));
-  clock.textContent = EMPTY ? 'nothing grown yet' : `${kept.length - 1} kept · ${VERSIONS.length - kept.length} pruned · best ${Math.round(kept.at(-1).score * 100)}% held-out`;
-  num.textContent = Math.round(kept[gen].score * 100) + '%'; from.textContent = `from ${Math.round(kept[0].score * 100)}%  held-out`;
-  const gust = .55 + .45 * Math.sin(t * .31) * Math.sin(t * .17 + 1.3);
-  for (const {p, sprites, proxy, base} of padObjs) {
-    let g = EMPTY ? 0 : sm((t - p.birth - .4) / 1.6);
-    if (p.fall) g *= 1 - sm((t - p.fall.death) / .5);
-    const h = Math.max(base.y + .1, 0), k = U.uWind.value * gust * (.0035 * h * h + .012 * (base.x ** 2 + base.z ** 2));
-    const off = V(Math.sin(t * 1.25 + base.y * .5 + base.z * .3) * k + U.uWind.value * .004 * h * h, 0, Math.cos(t * .93 + base.x * .4) * k * .6);
-    sprites.forEach(s => { s.material.opacity = g * (PALETTES[S.palette].dark ? .3 : .6); s.scale.set(s.userData.k * (.6 + .4 * g), s.userData.k * .55 * (.6 + .4 * g), 1); });
-    proxy.position.copy(base).add(off);
-    proxy.scale.set(p.size * 1.05 * g + 1e-4, p.size * .38 * g + 1e-4, p.size * .9 * g + 1e-4);
-  }
-  for (const {c, m} of cutObjs) { const g = sm((t - c.t) / .25); m.scale.setScalar(g < .01 ? 1e-4 : g); }
-  driftSys.step(dt * S.speed, t);
+  const dt = Math.max(0, Math.min(.25, (now - last) / 1000)); last = now; t += dt;
+  const wind = 1 + .5 * Math.sin(t * .05) * Math.sin(t * .021);
+  tree.update(dt, t, wind);
+
+  // Frame the whole tree as it grows: the camera steps back the way you would from a big tree.
+  const b = tree.bounds(), h = b.top - b.bottom, cy = b.bottom + h * .5, tanH = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+  const want = Math.max(11, h * .62 / tanH, b.radius * 1.25 / (tanH * cam.aspect));
+  controls.target.y += (cy - controls.target.y) * Math.min(1, dt * .6);
+  dirV.copy(cam.position).sub(controls.target); const d = dirV.length();
+  cam.position.copy(controls.target).addScaledVector(dirV.normalize(), d + (want - d) * Math.min(1, dt * .5));
+  const s = Math.max(8, want * .9);
+  Object.assign(sun.shadow.camera, {left:-s * .6, right:s * .6, top:s * .8, bottom:-s * .4, near:.5, far:want * 3}); sun.shadow.camera.updateProjectionMatrix();
+  sun.position.set(-.4 * want, .75 * want, .3 * want);
+  scene.fog.near = want * .9; scene.fog.far = want * 2.8;
+  palT = Math.min(1, palT + dt / 6); scene.fog.color.copy(fogFrom).lerp(fogTo, palT);
+  hills.forEach(hs => hs.material.color.copy(scene.fog.color).lerp(DARK ? new THREE.Color(LIGHT[0].faint) : HILL, DARK ? .35 : .55));
+  sunS.material.color.set(LIGHT[palIdx].accent);
+
   controls.update();
   renderer.render(scene, cam);
-  for (const l of labels) {
-    tmp.copy(l.at).project(cam);
+
+  for (let i = labels.length - 1; i >= 0; i--) {
+    const l = labels[i], age = (now - l.born) / 1000;
+    if (age > 7) { l.el.remove(); labels.splice(i, 1); continue; }
+    tmp.copy(l.pos).project(cam);
     l.el.style.left = (tmp.x * .5 + .5) * innerWidth + 'px'; l.el.style.top = (-tmp.y * .5 + .5) * innerHeight + 'px';
-    l.el.classList.toggle('on', !EMPTY && t > l.t && tmp.z < 1);
+    l.el.style.opacity = tmp.z < 1 ? Math.min(1, age * 2, (7 - age) / 1.5) * .9 : 0;
   }
 });
 </script>
