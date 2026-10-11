@@ -35,6 +35,7 @@
   .lbl.cut { color:var(--accent); }
   .seal { position:fixed; right:28px; bottom:22px; width:44px; height:44px; background:var(--accent); color:var(--bg); display:grid; place-items:center; font-size:26px; transition:background-color 6s; }
   .embed .hud, .embed .ticker, .embed .seal { display:none; }
+  .nolabels #labels { display:none; }
   .bare { background:transparent !important; } .bare::after, .bare .phase { display:none; }
   .embed .phase { left:16px; bottom:12px; }
   @media (max-width:700px) { .hud h1 { font-size:28px; } .hud .num { font-size:44px; } .ticker { display:none; } }
@@ -45,7 +46,7 @@
 } }</script>
 </head>
 <body>
-<script>{ const q = new URLSearchParams(location.search); if (q.get('embed')) document.body.classList.add('embed'); if (q.get('bare')) document.body.classList.add('bare'); }</script>
+<script>{ const q = new URLSearchParams(location.search); if (q.get('embed')) document.body.classList.add('embed'); if (q.get('bare')) document.body.classList.add('bare'); if (q.get('nolabels')) document.body.classList.add('nolabels'); }</script>
 <div class="hud">
   <h1>盆栽 BONSAI<span class="tag" id="mode"></span></h1>
   <div class="sub">a harness that prunes itself</div>
