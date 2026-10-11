@@ -335,7 +335,7 @@ function renderElo() {
   const L = ladder, e = v => Math.round(v.elo);
   $('s-lbl').textContent = 'estimated elo · stockfish-anchored ladder';
   $('s-num').textContent = L ? e(L.best) : '--';
-  $('s-note').innerHTML = L ? `started at ${e(L.seed)}<br>${L.kept} kept · ${L.cut} cut` : 'no ladder run loaded yet';
+  $('s-note').innerHTML = L ? `started at ${e(L.seed)}<br>${L.kept} kept · ${L.cut} cut${L.best.elo_lo != null ? `<br>range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)}` : ''}${L.n ? ` · ${L.n} games` : ''}${L.run && !L.done ? '<br>run still playing' : ''}<br><a href="judge.html" target="_blank">open the ladder page</a>` : 'no ladder run loaded yet';
   $('ledger').innerHTML = L ? [...L.all].reverse().map(v => `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change || (v.parent ? '' : 'seed rating'))}</span><span class="sub">${v.elo_lo != null ? `range ${Math.round(v.elo_lo)} to ${Math.round(v.elo_hi)}` : ''}${v.games ? ` · ${v.games} games` : ''}</span></span><span class="n">${e(v)}</span></div>`).join('')
     : '<div class="empty">The ladder rates the agent in Elo against calibrated Stockfish opponents. Its log (runs/chess-ladder-versions.jsonl) is not on this machine yet.</div>';
 }
@@ -586,7 +586,7 @@ async function pullLive() {
     const r = await fetch(`api/watch?version=${encodeURIComponent(t.version)}&task=${encodeURIComponent(t.task)}`, {cache:'no-store'}), j = r.ok ? await r.json() : {lines:[]};
     const css = getComputedStyle(document.documentElement), colors = Object.fromEntries(['paper', 'ink', 'faint', 'seal', 'moss'].map(k => [k, css.getPropertyValue('--' + k).trim()]));
     if (viewing) { $('lv-kind').textContent = j.lines.length ? 'completed' : 'question only'; if (!j.lines.length && /chess/.test(set.view)) viewAt = 0; }
-    $('lv-frame').contentWindow?.postMessage({lines:j.lines, question:j.question || '', agent:{task:t.task, version:t.version, status:t.status, model:t.model, split:t.split}, set:{key:set.key, name:set.name}, colors}, '*');
+    $('lv-frame').contentWindow?.postMessage({lines:j.lines, question:j.question || '', agent:{task:t.task, version:t.version, status:t.status, model:t.model, split:t.split}, set:{key:set.key, name:set.name}, colors, autoplay: !viewing || replaying}, '*');
   } catch {} finally { liveBusy = false; }
 }
 async function genView() { if (!liveSet) return; const hint = prompt('What should this view show? Leave empty to let it decide.', ''); if (hint === null) return; await post('api/views', {set:liveSet.key, hint}); poll(); }
@@ -651,7 +651,7 @@ function setView(v) {
 
 // Home: one sentence makes an agent. Tiles are the agents that exist: the one growing now, and every finished
 // run that beat where it started. A finished tile opens the whole run, replayed from the seed.
-let viewing = null, runStats = {}, statsAt = 0, statsDone = false, madeSeen = null, ladder = null;
+let replaying = false, viewing = null, runStats = {}, statsAt = 0, statsDone = false, madeSeen = null, ladder = null;
 // the last tiles are remembered, so the agents are on the page before the server has answered
 try { const h = localStorage.getItem('bonsai-tiles'); if (h) $('tiles').innerHTML = h; } catch {}
 const TREE_SRC = 'tree.html?embed=1&bare=1';
@@ -670,6 +670,15 @@ async function pullStats() {
   const lad = await fetch('runs/chess-ladder-versions.jsonl', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
   const lv = lad.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id && v.elo != null);
   ladder = lv.length ? {all: lv, seed: lv[0], best: keptChain(lv).at(-1) || lv[0], kept: lv.filter(v => v.kept && v.parent).length, cut: lv.filter(v => !v.kept).length} : null;
+  // the ladder's own page (web/judge.html, written by rsi/judge.py) carries the run's estimates: prefer it
+  const jd = await fetch('judge.html', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+  try {
+    const d = JSON.parse(jd.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/)[1]), E = x => ({elo: x.elo, elo_lo: x.lo, elo_hi: x.hi});
+    if (d.cur_est?.elo != null) {
+      const all = d.versions.filter(v => v.est?.elo != null).map(v => ({id: v.id, parent: v.parent, kept: v.status !== 'cut' && v.status !== 'rejected', change: v.change, games: v.games, ...E(v.est)}));
+      ladder = {all, seed: {id: 'seed', ...E(d.start_est)}, best: {id: d.champion, ...E(d.cur_est)}, kept: all.filter(v => v.kept && v.parent).length, cut: all.filter(v => !v.kept).length, run: d.run, done: d.done, n: d.cur_est.n};
+    }
+  } catch {}
   statsDone = true;
   if (window.__d) renderLedger();
   renderHome();
@@ -685,7 +694,7 @@ function renderHome() {
   // chess leads: the Elo ladder (rsi/) has no finished run stored here yet, so its tile opens the replayed games
   if (!(live && live.key === 'chess') && !runStats.chess && app.sets.some(x => x.key === 'chess')) {
     const e = v => Math.round(v.elo), L = ladder;
-    const sc = L ? `<small>est. Elo</small> ${L.best.id === L.seed.id ? e(L.seed) : `${e(L.seed)} <small>→</small> ${e(L.best)}`}` : '<small>Haiku, one call per move</small>';
+    const sc = L ? `<small>est. Elo</small> ${e(L.best) === e(L.seed) ? e(L.best) : `${e(L.seed)} <small>→</small> ${e(L.best)}`}` : '<small>Haiku, one call per move</small>';
     const ft = L ? `${L.best.elo_lo != null ? `range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)} · ` : ''}${L.kept} kept · ${L.cut} cut · Stockfish-anchored ladder` : 'Opponents follow its rating upward · open the replayed games';
     tiles.unshift(`<button class="tile" onclick="setView('replay')"><span class="t-st${L ? ' done' : ''}">chess · elo ladder</span><span class="t-name">Chess: games against Stockfish</span><span class="t-sc">${sc}</span><span class="t-ft">${ft}</span></button>`);
   }
@@ -714,21 +723,21 @@ let viewTotal = 0, rewindN = null, rewindT = null, viewAt = 0, viewI = 0;
 const CHESS_GAMES = ['caro-kann', 'english', 'french', 'italian', 'kings-indian', 'london', 'queens-gambit', 'ruy-lopez', 'scandinavian', 'sicilian'].flatMap(o => [`chess/game-${o}-white`, `chess/game-${o}-black`]);
 function openAgent(key, stay) {
   const st = key ? runStats[key] : null; viewing = st ? {key, file: st.file} : null;
-  document.body.classList.toggle('agent-view', !!viewing); clearInterval(rewindT); rewindN = null; watchAgent(null); delete $('phase').dataset.h;
-  if (viewing) { viewI = 0; viewAt = 0; rewind(); }
+  document.body.classList.toggle('agent-view', !!viewing); clearInterval(rewindT); rewindN = null; replaying = false; watchAgent(null); delete $('phase').dataset.h;
+  if (viewing) { viewI = 0; viewAt = Date.now(); const src = `${TREE_SRC}&src=${viewing.file}`; $('tree3d').src = src; $('tree3d').dataset.src = src; opened = null; lastJson = ''; load(); }
   else { if ($('tree3d').dataset.src !== TREE_SRC) { $('tree3d').src = TREE_SRC; $('tree3d').dataset.src = TREE_SRC; } lastJson = ''; opened = null; load(); }
   if (!stay) setView('tree'); renderRun();
 }
 function rewind() {
   if (!viewing) return;
   const src = `${TREE_SRC}&src=${viewing.file}&r=${Date.now()}`; $('tree3d').src = src; $('tree3d').dataset.src = src;
-  clearInterval(rewindT); rewindN = 1; opened = null; lastJson = ''; load();
+  clearInterval(rewindT); rewindN = 1; replaying = true; viewAt = Date.now(); opened = null; lastJson = ''; load();
   rewindT = setInterval(() => { rewindN++; lastJson = ''; load(); if (rewindN >= viewTotal) { clearInterval(rewindT); rewindN = null; } }, 750);
 }
 function renderDone() {
   const st = runStats[viewing.key], set = app.sets.find(x => x.key === viewing.key), pc = x => Math.round(x * 100), ph = $('phase');
   $('go').disabled = true; $('halt').disabled = true; ph.className = '';
-  const html = `<span class="dot" style="background:var(--moss)"></span><b>✓ Completed</b> · ${esc(set?.name || viewing.key)} · ${pc(st.seed)}% → ${pc(st.best)}% · ${st.kept} kept · ${st.cut} cut<button type="button" onclick="rewind()" title="Play the whole growth again, sped up">⟲ rewind</button><button type="button" onclick="setView('home')">← all agents</button>`;
+  const html = `<span class="dot" style="background:var(--moss)"></span><b>✓ Completed</b> · ${esc(set?.name || viewing.key)} · ${pc(st.seed)}% → ${pc(st.best)}% · ${st.kept} kept · ${st.cut} cut<button type="button" onclick="rewind()" title="Play the whole growth and its problems again, sped up">▶ replay</button><button type="button" onclick="setView('home')">← all agents</button>`;
   if (ph.dataset.h !== html) { ph.innerHTML = html; ph.dataset.h = html; }
 }
 // Which of its problems the lower box shows: they rotate, in the newest version reached so far.
@@ -736,13 +745,13 @@ function doneTarget() {
   const set = app?.sets.find(x => x.key === viewing.key), V = window.__d?.versions || []; if (!set || !V.length) return null;
   const tasks = /chess/.test(set.view) ? CHESS_GAMES : /steps\.html/.test(set.view) ? [] : Array.from({length: set.count}, (_, i) => `${set.key}/q${String(i + 1).padStart(3, '0')}`);
   if (!tasks.length) return null;
-  if (Date.now() - viewAt > (/chess/.test(set.view) ? 30000 : 7000)) { viewAt = Date.now(); viewI++; }
+  if (replaying && Date.now() - viewAt > (/chess/.test(set.view) ? 30000 : 7000)) { viewAt = Date.now(); viewI++; }   // the problems only cycle once replay is pressed
   const kept = keptChain(V);
   return {task: tasks[viewI % tasks.length], version: kept.at(-1).id, status: 'completed', model: 'haiku', split: 'heldout', role: 'solver'};
 }
 function openSet(key) { $('set').value = key; fillCount(); fillTools(); openAgent(null); }
 // Replay shows the saved chess games in the live view's own board and move table.
-function replaySrc() { return 'chess-games.html'; }
+function replaySrc() { return 'chess-games.html?b=2'; }
 function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
 // Esc closes whatever is open, innermost first.
 addEventListener('keydown', e => {

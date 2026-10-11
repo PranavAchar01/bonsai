@@ -48,7 +48,8 @@ function render(d) {
   D = d;
   const done = d.lines.some(l => l.kind === 'verdict'), n = d.lines.filter(l => l.fen).length;
   const key = done ? d.agent.task + '|' + d.agent.version + '|' + n : '';
-  if (key !== simKey) { simKey = key; frame = done ? 0 : n; playing = true; hold = 0; }
+  // a finished game rests on its last position; it plays through only when the host asks (autoplay) or play is pressed
+  if (key !== simKey) { simKey = key; frame = d.autoplay && done ? 0 : n; playing = !done || !!d.autoplay; hold = 0; }
   if (!done) frame = n;
   draw();
 }
@@ -76,9 +77,9 @@ function draw() {
   $('end').innerHTML = verdict ? `<span class="stamp ${verdict.passed ? 'ok' : 'bad'}">${verdict.passed ? 'held' : 'lost'}</span><div class="faint" style="font-size:10px;margin-top:3px">${esc((verdict.text || '').slice(-90))}</div>` : '';
   const said = (verdict ? cur?.said : null) || [...d.lines].reverse().find(l => l.said)?.said; $('said').textContent = said ? '\u201c' + said.slice(-170) + '\u201d' : '';
   $('sim').classList.toggle('on', !!verdict && pos.length > 0);
-  $('scrub').max = pos.length; $('scrub').value = f; $('pos').textContent = `${f}/${pos.length}`; $('play').textContent = playing ? 'pause' : 'play';
+  $('scrub').max = pos.length; $('scrub').value = f; $('pos').textContent = `${f}/${pos.length}`; $('play').textContent = playing ? 'pause' : f >= pos.length ? 'replay' : 'play';
 }
-function toggle() { playing = !playing; draw(); }
+function toggle() { playing = !playing; if (playing && D && frame >= D.lines.filter(l => l.fen).length) frame = 0; draw(); }
 function seek(v) { frame = v; playing = false; draw(); }
 setInterval(() => {
   if (!D || !playing || !simKey) return;

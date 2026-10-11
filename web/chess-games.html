@@ -16,7 +16,7 @@
 <!-- The saved chess games in the same board-and-move-table view the live run uses (views/chess.html). -->
 <nav id="games"></nav>
 <div id="note"></div>
-<div id="stage"><iframe id="view" src="views/chess.html" title="Chess game"></iframe></div>
+<div id="stage"><iframe id="view" src="views/chess.html?b=2" title="Chess game"></iframe></div>
 <script>
 const $ = id => document.getElementById(id), q = new URLSearchParams(location.search), version = q.get('ver') || 'g0';
 const GAMES = ['caro-kann', 'english', 'french', 'italian', 'kings-indian', 'london', 'queens-gambit', 'ruy-lopez', 'scandinavian', 'sicilian'].flatMap(o => [`${o}-white`, `${o}-black`]);
