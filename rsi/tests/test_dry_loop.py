@@ -170,3 +170,29 @@ def test_real_mode_wiring_with_the_fake_cli(tmp_path):
     assert kids and st["proposer_resolved"]
     assert all(c["status"] in ("accepted", "pruned", "killed", "skipped", "inconclusive") for c in kids)
     assert {p["vid"] for p in st["pruned"]} == {c["vid"] for c in kids if c["status"] in ("pruned", "killed")}
+
+
+def test_usage_limit_mid_exam_pauses_and_persists_no_infra_answers(tmp_path):
+    from rsi.run import DryPlayer
+    dry = DryPlayer()
+
+    def choose(board, harness, ctx):
+        if ctx.get("purpose") in ("exam", "prescreen", "anchor"):
+            raise InfraAbort("usage_limit", "usage limit reached", reset_at=time.time() + 3600, retryable=True)
+        return dry(board, harness, ctx)
+    try:
+        r = Run("t", root=tmp_path / "runs", dry=True, games=6, workers=3, replays=tmp_path / "replays",
+                overrides=SMALL, choose=choose)
+        assert r.run(generations=1) == EXIT_RETRY
+    finally:
+        dry.close()
+    d = tmp_path / "runs" / "t"
+    pause = [e for e in events(d) if e["kind"] == "pause"][-1]
+    assert pause["reset_at"] and "usage limit" in pause["reason"]
+    for f in (d / "exam").glob("*.jsonl"):
+        assert not any(row["ans"].get("infra") for row in reliable.read_jsonl(f)), f
+    st = json.loads((d / "state.json").read_text())
+    assert not any("exam" in c for gs in st["gens"].values() for c in gs.get("children", []))
+    assert not any(p.get("stage") == "exam" for p in st["pruned"])  # a limit is never a verdict
+    # the same run resumes and finishes once the limit is gone
+    assert make(tmp_path).run(generations=1) == 0

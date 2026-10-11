@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai Chess Ladder</title>
+<style>
+:root{
+  --bg:#f6f5f1;--panel:#ffffff;--ink:#17181b;--muted:#6b6e76;--line:#e3e1da;--soft:#efede6;
+  --accent:#2f6f4f;--win:#2e9b5d;--draw:#9aa0a6;--loss:#d24b4b;--live:#d99a1e;
+  --sq-light:#ebe4d3;--sq-dark:#a98c66;--hl:rgba(255,214,64,.55);--band:rgba(47,111,79,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111315;--panel:#1a1d20;--ink:#eceae4;--muted:#9a9ea6;--line:#2b2f34;--soft:#22262a;
+  --accent:#6cc497;--win:#4cc27e;--draw:#8b9198;--loss:#ec6a6a;--live:#f0b440;
+  --sq-light:#c9bfa8;--sq-dark:#7d6446;--hl:rgba(255,214,64,.5);--band:rgba(108,196,151,.18);
+  --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#111315;--panel:#1a1d20;--ink:#eceae4;--muted:#9a9ea6;--line:#2b2f34;--soft:#22262a;
+  --accent:#6cc497;--win:#4cc27e;--draw:#8b9198;--loss:#ec6a6a;--live:#f0b440;
+  --sq-light:#c9bfa8;--sq-dark:#7d6446;--hl:rgba(255,214,64,.5);--band:rgba(108,196,151,.18);--shadow:none;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 24px 48px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.muted{color:var(--muted)}
+header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap}
+h1{font-size:32px;line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);max-width:820px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--live)}
+.live .dot{animation:pulse 1.4s infinite}@keyframes pulse{50%{opacity:.25}}
+.themebtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0}
+.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.stat{padding:14px 16px}
+.stat .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.stat .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:16px;font-weight:600;color:var(--muted)}
+.stat .s{font-size:12.5px;color:var(--muted)}
+.stat.hero .v{color:var(--accent)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:26px 0 10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tile{padding:14px 16px;position:relative}
+.tile .top{display:flex;justify-content:space-between;align-items:center}
+.tile .vid{font-size:20px;font-weight:700}
+.tile .elo{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}
+.tile .elo small{font-size:13px;color:var(--muted);font-weight:500}
+.tile .row{font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.tile .chg{margin-top:8px;font-size:13px;padding:6px 8px;background:var(--soft);border-radius:8px}
+.tile.next{border-style:dashed;display:flex;flex-direction:column;justify-content:center;color:var(--muted)}
+.pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.champion{color:var(--accent)}.pill.kept{color:var(--win)}.pill.pruned{color:var(--loss)}.pill.pending{color:var(--live)}
+.gain.up{color:var(--win)}.gain.down{color:var(--loss)}
+.w{color:var(--win)}.d{color:var(--draw)}.l{color:var(--loss)}
+.chart{padding:12px 12px 6px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 8px 6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1050px){.main{grid-template-columns:1fr}}
+.tl{padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+@media (max-width:760px){.tl{grid-template-columns:1fr}}
+.board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;width:100%;border-radius:6px;overflow:hidden;border:1px solid var(--line);user-select:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;line-height:1}
+.sq.lt{background:var(--sq-light)}.sq.dk{background:var(--sq-dark)}
+.sq.hl::after{content:"";position:absolute;inset:0;background:var(--hl)}
+.pc{position:relative;z-index:1;font-family:"Segoe UI Symbol","Apple Symbols","DejaVu Sans","Noto Sans Symbols2",serif}
+.pc.W{color:#fbfaf6;text-shadow:0 0 1px #000,0 0 1px #000,0 1px 1px #000,1px 0 1px #000,-1px 0 1px #000}
+.pc.B{color:#151515;text-shadow:0 0 1px rgba(255,255,255,.35)}
+.bigboard{max-width:600px;margin:0 auto}
+.bigboard .pc{font-size:min(5.6vw,50px)}
+.coord{position:absolute;font-size:10px;font-weight:700;opacity:.65;z-index:2}
+.coord.f{right:3px;bottom:1px}.coord.r{left:3px;top:1px}
+.sq.lt .coord{color:var(--sq-dark)}.sq.dk .coord{color:var(--sq-light)}
+.ctrls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ctrls button,.ctrls select{background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.ctrls button.play{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700;min-width:74px}
+input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
+.scrubinfo{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.side .gt{font-size:18px;font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13.5px;margin:10px 0}
+.kv b{color:var(--muted);font-weight:500}
+.res{font-size:13px;font-weight:700;padding:2px 9px;border-radius:6px;color:#fff;display:inline-block}
+.res.win{background:var(--win)}.res.draw{background:var(--draw)}.res.loss{background:var(--loss)}.res.live{background:var(--live)}.res.void{background:var(--muted)}
+.moves{height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px;background:var(--soft)}
+.moves .mv{display:grid;grid-template-columns:34px 1fr 1fr;gap:4px}
+.moves span.m{padding:0 4px;border-radius:4px;cursor:pointer}
+.moves span.m.cur{background:var(--accent);color:var(--panel)}
+.moves span.m.bk{color:var(--muted);font-style:italic}
+.moves .n{color:var(--muted)}
+.gridp{padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;max-height:760px;overflow:auto;padding-right:4px}
+.mini{cursor:pointer;border-radius:8px;padding:4px;border:2px solid transparent;background:var(--soft)}
+.mini.sel{border-color:var(--accent)}
+.mini .board{border-radius:3px}
+.mini .pc{font-size:clamp(8px,1.05vw,13px)}
+.mini .cap{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:4px;gap:4px}
+.mini .res{font-size:10.5px;padding:1px 6px}
+footer{margin-top:28px;color:var(--muted);font-size:12.5px}
+.ver-line{stroke:var(--line);stroke-dasharray:3 4}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Bonsai Chess: <span>a self-improving agent climbs a Stockfish Elo ladder</span></h1>
+    <div class="sub">Elo estimated from game results vs a calibrated Stockfish ladder (Stockfish-anchored scale). Every Elo here is an <b>estimate</b> with its 95% interval. Real games from run <b class="mono" id="runid"></b>.</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="status" class="badge"></span>
+    <button class="themebtn" id="theme" title="Toggle light/dark">Theme</button>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<h2>Harness versions</h2>
+<div class="tiles" id="tiles"></div>
+
+<h2>Elo ladder</h2>
+<div class="card chart">
+  <div id="chart"></div>
+  <div class="legend">
+    <span><i style="background:var(--accent)"></i>agent Elo est. (rolling window)</span>
+    <span><i style="background:var(--band);border-radius:2px"></i>95% CI</span>
+    <span><i style="background:var(--win)"></i>win</span><span><i style="background:var(--draw)"></i>draw</span><span><i style="background:var(--loss)"></i>loss</span>
+    <span><i style="background:transparent;border:2px solid var(--live)"></i>in progress</span>
+    <span>dots sit at the opponent's ladder Elo · lines are calibrated rungs</span>
+  </div>
+</div>
+
+<div class="main" style="margin-top:16px">
+  <div>
+    <h2 style="margin-top:0">Timelapse: every game, in order</h2>
+    <div class="card tl">
+      <div>
+        <div class="board bigboard" id="board"></div>
+        <input type="range" id="scrub" min="0" value="0">
+        <div class="scrubinfo"><span id="scrubL"></span><span id="scrubR"></span></div>
+        <div class="ctrls">
+          <button id="prevG" title="Previous game">&#9198;</button>
+          <button id="prevM" title="Previous move">&#9664;</button>
+          <button class="play" id="play">Play</button>
+          <button id="nextM" title="Next move">&#9654;</button>
+          <button id="nextG" title="Next game">&#9197;</button>
+          <select id="speed"><option value="600">1x</option><option value="250" selected>2x</option><option value="90">5x</option><option value="30">fast</option></select>
+          <span class="muted" style="font-size:12px">Space: play/pause · arrows: step</span>
+        </div>
+      </div>
+      <div class="side" id="side"></div>
+    </div>
+  </div>
+  <div>
+    <h2 style="margin-top:0">All games <span id="gcount"></span></h2>
+    <div class="card gridp"><div class="grid" id="grid"></div></div>
+  </div>
+</div>
+
+<footer id="foot"></footer>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById("data").textContent);
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function fmtDur(s){ if(s == null) return "–"; s = Math.max(0, Math.round(s)); var h = Math.floor(s/3600), m = Math.floor(s%3600/60);
+  return h ? h + "h " + (m<10?"0":"") + m + "m" : m ? m + "m " + (s%60) + "s" : s + "s"; }
+function estTxt(e){ if(!e || e.elo == null) return "–"; return e.elo + (e.lo != null ? " <small>± " + Math.round((e.hi - e.lo)/2) + "</small>" : ""); }
+function ciTxt(e){ return e && e.lo != null ? "95% CI " + e.lo + " to " + e.hi + " · " + e.n + " games" : ""; }
+function resOf(g){
+  if(g.status === "in_progress") return ["live","LIVE"];
+  if(g.status !== "complete" || g.score == null) return ["void", g.status === "abandoned" ? "STOP" : "VOID"];
+  return g.score > 0.5 ? ["win","WIN"] : g.score === 0.5 ? ["draw","DRAW"] : ["loss","LOSS"];
+}
+
+// theme toggle
+(function(){ var t = null; try { t = localStorage.getItem("judge-theme"); } catch(e){}
+  if(t) document.documentElement.setAttribute("data-theme", t);
+  $("theme").onclick = function(){ var cur = document.documentElement.getAttribute("data-theme");
+    var dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    var nt = dark ? "light" : "dark"; document.documentElement.setAttribute("data-theme", nt);
+    try { localStorage.setItem("judge-theme", nt); } catch(e){} drawChart(); };
+})();
+
+// ---------- header ----------
+$("runid").textContent = D.run;
+var G = D.games, live = G.filter(function(g){ return g.status === "in_progress"; }).length;
+var comp = G.filter(function(g){ return g.status === "complete"; });
+$("status").className = "badge" + (D.done ? "" : " live");
+$("status").innerHTML = D.done ? "<span class='dot' style='background:var(--muted)'></span>run finished" :
+  "<span class='dot'></span>live · gen " + esc(D.gen) + " · " + esc(D.phase || "");
+var gain = (D.start_est && D.cur_est && D.start_est.elo != null && D.cur_est.elo != null) ? D.cur_est.elo - D.start_est.elo : null;
+var stats = [
+  ["Starting Elo est.", estTxt(D.start_est), "first version " + esc((D.versions[0]||{}).id || "g0") + " · " + ciTxt(D.start_est), ""],
+  [(D.done ? "End" : "Current") + " Elo est.", estTxt(D.cur_est), "champion " + esc(D.champion) + " · " + ciTxt(D.cur_est), "hero"],
+  ["Change", gain == null ? "–" : (gain >= 0 ? "+" : "") + gain, "current est. minus starting est.", ""],
+  ["Games played", comp.length + (live ? " <small>+" + live + " live</small>" : ""), G.length - comp.length - live > 0 ? (G.length - comp.length - live) + " void (not rated)" : "rated games vs the ladder", ""],
+  ["Run time", fmtDur(D.last - D.started), D.done ? "start to finish" : "so far", ""],
+  ["Model calls", D.calls.toLocaleString(), "$" + D.spend_usd.toFixed(2) + " spent", ""]
+];
+$("stats").innerHTML = stats.map(function(s){ return "<div class='stat " + s[3] + "'><div class='k'>" + s[0] + "</div><div class='v'>" + s[1] + "</div><div class='s'>" + s[2] + "</div></div>"; }).join("");
+
+// ---------- version tiles ----------
+var th = D.versions.map(function(v){
+  var e = v.est, g = v.gain;
+  var gainH = g == null ? "" : "<span class='gain " + (g >= 0 ? "up" : "down") + "'>" + (g >= 0 ? "+" : "") + g + " vs " + esc(v.parent) + "</span>";
+  var exam = v.exam ? "exam: " + (v.exam.gain >= 0 ? "+" : "") + v.exam.gain + " (n=" + v.exam.n + ")" : "";
+  return "<div class='card tile'><div class='top'><span class='vid mono'>" + esc(v.id) + "</span><span class='pill " + v.status + "'>" + v.status + "</span></div>" +
+    "<div class='elo'>" + (e ? "est. " + estTxt(e) : "<span class='muted' style='font-size:15px'>no ladder games</span>") + "</div>" +
+    (e && e.lo != null ? "<div class='row'>95% CI " + e.lo + " to " + e.hi + "</div>" : "") +
+    "<div class='row'><span>" + v.games + " games</span>" + (v.games ? "<span><b class='w'>" + v.w + "W</b> <b class='d'>" + v.d + "D</b> <b class='l'>" + v.l + "L</b></span>" : "") +
+    (v.live ? "<span style='color:var(--live)'>" + v.live + " live</span>" : "") + "</div>" +
+    "<div class='row'>" + (v.dur != null ? "<span>ran " + fmtDur(v.dur) + "</span>" : "") + gainH + (exam ? "<span>" + esc(exam) + "</span>" : "") + "</div>" +
+    "<div class='chg'>" + (v.parent ? "<span class='muted'>change from " + esc(v.parent) + ":</span> " : "") + esc(v.change || "–") + "</div>" +
+    (v.signal ? "<div class='row'>" + esc(v.signal) + "</div>" : "") + "</div>";
+});
+if(!D.done && D.versions.length <= 1) th.push("<div class='card tile next'><div style='font-weight:700;font-size:15px;color:var(--ink)'>next</div><div>self-improvement generation running: the agent mines its own games for mistakes and proposes a harness change</div></div>");
+$("tiles").innerHTML = th.join("");
+
+// ---------- chart ----------
+var selGame = 0;
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawChart(){
+  var W = 1400, H = 460, L = 120, R = 20, T = 16, B = 40;
+  var pts = G.filter(function(g){ return g.opp_elo != null; });
+  var ys = pts.map(function(g){ return g.opp_elo; });
+  D.timeline.forEach(function(t){ ys.push(t.elo); });
+  var lastT = D.timeline[D.timeline.length - 1]; if(lastT && lastT.lo != null) ys.push(lastT.lo, lastT.hi);
+  if(!ys.length) ys = [0, 400];
+  var y0 = Math.min.apply(null, ys) - 80, y1 = Math.max.apply(null, ys) + 80;
+  var rungs = D.rungs.filter(function(r){ return r.climb || r.kind === "sf_elo"; });
+  var t0 = D.started, t1 = Math.max(D.last, t0 + 60);
+  function X(t){ return L + (t - t0) / (t1 - t0) * (W - L - R); }
+  function Y(e){ return T + (1 - (e - y0) / (y1 - y0)) * (H - T - B); }
+  var s = [];
+  rungs.forEach(function(r){ if(r.elo < y0 || r.elo > y1) return; var y = Y(r.elo), sf = r.kind === "sf_elo";
+    s.push("<line x1='" + L + "' x2='" + (W - R) + "' y1='" + y + "' y2='" + y + "' stroke='" + cssv("--line") + "'" + (sf ? "" : " stroke-dasharray='2 5'") + "/>");
+    s.push("<text x='" + (L - 8) + "' y='" + (y + 4) + "' text-anchor='end' font-size='12' fill='" + cssv(sf ? "--ink" : "--muted") + "' font-weight='" + (sf ? 700 : 400) + "'>" + esc(sf ? "Stockfish " + r.name.slice(2) : r.name) + " · " + r.elo + "</text>"); });
+  // version boundaries
+  var seenV = {};
+  G.forEach(function(g){ if(!seenV[g.vid] && g.started){ seenV[g.vid] = 1; var x = X(g.started);
+    s.push("<line class='ver-line' x1='" + x + "' x2='" + x + "' y1='" + T + "' y2='" + (H - B) + "'/><text x='" + (x + 4) + "' y='" + (T + 12) + "' font-size='12' font-weight='700' fill='" + cssv("--muted") + "'>" + esc(g.vid) + "</text>"); } });
+  // CI band + line (step after each game)
+  var tl = D.timeline;
+  if(tl.length){
+    var up = [], dn = [], ln = [];
+    tl.forEach(function(p, k){ var xa = X(p.t), xb = k + 1 < tl.length ? X(tl[k+1].t) : X(t1);
+      if(p.lo != null){ up.push(xa + "," + Y(p.hi), xb + "," + Y(p.hi)); dn.unshift(xb + "," + Y(p.lo), xa + "," + Y(p.lo)); }
+      ln.push(xa + "," + Y(p.elo), xb + "," + Y(p.elo)); });
+    s.push("<clipPath id='plotclip'><rect x='" + L + "' y='" + T + "' width='" + (W - L - R) + "' height='" + (H - T - B) + "'/></clipPath>");
+    if(up.length) s.push("<polygon clip-path='url(#plotclip)' points='" + up.concat(dn).join(" ") + "' fill='" + cssv("--band") + "'/>");
+    s.push("<polyline points='" + ln.join(" ") + "' fill='none' stroke='" + cssv("--accent") + "' stroke-width='3' stroke-linejoin='round'/>");
+    var lp = tl[tl.length - 1];
+    s.push("<text x='" + (W - R - 4) + "' y='" + (Y(lp.elo) - 8) + "' text-anchor='end' font-size='14' font-weight='700' fill='" + cssv("--accent") + "'>est. " + lp.elo + (lp.lo != null ? " ± " + Math.round((lp.hi - lp.lo)/2) : "") + "</text>");
+  }
+  // game dots
+  pts.forEach(function(g){ var t = g.finished || D.last, x = X(t), y = Y(g.opp_elo), r = resOf(g)[0];
+    var col = r === "win" ? "--win" : r === "draw" ? "--draw" : r === "loss" ? "--loss" : r === "live" ? "--live" : "--muted";
+    var hollow = r === "live" || r === "void";
+    s.push("<circle data-i='" + g.i + "' cx='" + x + "' cy='" + y + "' r='" + (g.i === selGame ? 8 : 5.5) + "' fill='" + (hollow ? "none" : cssv(col)) + "' stroke='" + (g.i === selGame ? cssv("--ink") : cssv(col)) + "' stroke-width='" + (g.i === selGame ? 2.5 : hollow ? 2 : 1) + "' style='cursor:pointer'><title>" + esc(g.vid + " vs " + g.opp_name + " (" + g.opp_elo + "): " + resOf(g)[1]) + "</title></circle>"); });
+  // x axis
+  var span = t1 - t0, step = [60,300,600,900,1800,3600,7200,14400,28800].find(function(v){ return span / v <= 8; }) || 28800;
+  for(var t = 0; t <= span; t += step){ var x = X(t0 + t);
+    s.push("<text x='" + x + "' y='" + (H - B + 18) + "' text-anchor='middle' font-size='12' fill='" + cssv("--muted") + "'>" + fmtDur(t) + "</text>"); }
+  s.push("<text x='" + (W - R) + "' y='" + (H - 6) + "' text-anchor='end' font-size='12' fill='" + cssv("--muted") + "'>wall-clock time since run start</text>");
+  s.push("<text x='12' y='" + (H - 6) + "' font-size='12' fill='" + cssv("--muted") + "'>ladder Elo (Stockfish-anchored)</text>");
+  $("chart").innerHTML = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Elo ladder chart'>" + s.join("") + "</svg>";
+  Array.prototype.forEach.call($("chart").querySelectorAll("circle[data-i]"), function(c){ c.onclick = function(){ jumpGame(+c.getAttribute("data-i")); }; });
+}
+
+// ---------- boards ----------
+var GLYPH = {k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+function sqName(f, r){ return "abcdefgh"[f] + (r + 1); }
+function boardHTML(placement, hl, flip, coords){
+  var rows = placement.split("/"), grid = [];
+  rows.forEach(function(row){ var line = []; for(var c of row){ if(/\d/.test(c)) for(var k = 0; k < +c; k++) line.push(null); else line.push(c); } grid.push(line); });
+  var out = [];
+  for(var vr = 0; vr < 8; vr++) for(var vf = 0; vf < 8; vf++){
+    var r = flip ? vr : 7 - vr, f = flip ? 7 - vf : vf;        // r: 0 = rank 1
+    var p = grid[7 - r][f], name = sqName(f, r), dark = (r + f) % 2 === 0;
+    var h = "<div class='sq " + (dark ? "dk" : "lt") + (hl && hl.indexOf(name) >= 0 ? " hl" : "") + "'>";
+    if(coords){ if(vr === 7) h += "<span class='coord f'>" + "abcdefgh"[f] + "</span>"; if(vf === 0) h += "<span class='coord r'>" + (r + 1) + "</span>"; }
+    if(p) h += "<span class='pc " + (p === p.toUpperCase() ? "W" : "B") + "'>" + GLYPH[p.toLowerCase()] + "︎</span>";
+    out.push(h + "</div>");
+  }
+  return out.join("");
+}
+
+// ---------- timelapse ----------
+var frames = [];  // [gameIndex, ply]
+var gameStart = [];
+G.forEach(function(g, gi){ gameStart.push(frames.length); for(var p = 0; p < g.fens.length; p++) frames.push([gi, p]); });
+var cur = 0, timer = null;
+$("scrub").max = Math.max(0, frames.length - 1);
+function show(k){
+  if(!frames.length) return;
+  cur = Math.max(0, Math.min(frames.length - 1, k));
+  var gi = frames[cur][0], ply = frames[cur][1], g = G[gi];
+  var hl = ply > 0 && g.uci[ply - 1] ? [g.uci[ply - 1].slice(0, 2), g.uci[ply - 1].slice(2, 4)] : null;
+  $("board").innerHTML = boardHTML(g.fens[ply], hl, g.color === "black", true);
+  $("scrub").value = cur;
+  $("scrubL").textContent = "game " + (gi + 1) + " of " + G.length;
+  $("scrubR").textContent = ply === 0 ? "start" : "ply " + ply + " of " + (g.fens.length - 1);
+  if(gi !== selGame){ selGame = gi; renderSide(); markGrid(); drawChart(); }
+  markMove(ply);
+}
+function renderSide(){
+  var g = G[selGame], r = resOf(g);
+  var ended = g.status === "in_progress" ? "still being played" : g.status === "complete" ? (g.how || "–") + (g.result ? " · " + g.result : "") : (g.infra || g.status) + " (not rated)";
+  var mv = [];
+  for(var i = 0; i < g.san.length; i += 2){
+    var cell = function(j){ return j < g.san.length ? "<span class='m" + (j < g.book ? " bk" : "") + "' data-p='" + (j + 1) + "'>" + esc(g.san[j]) + "</span>" : "<span></span>"; };
+    mv.push("<div class='mv'><span class='n'>" + (i/2 + 1) + ".</span>" + cell(i) + cell(i + 1) + "</div>");
+  }
+  $("side").innerHTML = "<div class='gt'>Game " + (selGame + 1) + " <span class='res " + r[0] + "'>" + r[1] + "</span></div>" +
+    "<div class='kv'><b>Agent</b><span class='mono'>" + esc(g.vid) + " · plays " + esc(g.color) + "</span>" +
+    "<b>Opponent</b><span>" + esc(g.opp_name) + " · <b style='color:var(--ink)'>" + esc(g.opp_elo) + "</b> Elo</span>" +
+    "<b>Opening</b><span>" + esc(g.family || "–") + (g.eco ? " (" + esc(g.eco) + ")" : "") + "</span>" +
+    "<b>Ended</b><span>" + esc(ended) + "</span>" + (g.score != null && g.score !== 0 && g.score !== 0.5 && g.score !== 1 ? "<b>Score</b><span>" + g.score + " (adjudicated)</span>" : "") +
+    "<b>Length</b><span>" + g.san.length + " plies" + (g.elapsed ? " · " + fmtDur(g.elapsed) : "") + (g.cost ? " · $" + g.cost.toFixed(3) : "") + "</span></div>" +
+    "<div class='moves mono' id='moves'>" + (mv.join("") || "<span class='muted'>no moves yet</span>") + "</div>" +
+    (g.book ? "<div class='muted' style='font-size:12px;margin-top:6px'>italic = opening book plies (not chosen by the agent)</div>" : "");
+  Array.prototype.forEach.call($("moves").querySelectorAll("[data-p]"), function(el){ el.onclick = function(){ stop(); show(gameStart[selGame] + +el.getAttribute("data-p")); }; });
+}
+function markMove(ply){
+  var box = $("moves"); if(!box) return;
+  var old = box.querySelector(".cur"); if(old) old.classList.remove("cur");
+  var el = box.querySelector("[data-p='" + ply + "']");
+  if(el){ el.classList.add("cur"); var top = el.offsetTop - box.offsetTop; if(top < box.scrollTop || top > box.scrollTop + box.clientHeight - 24) box.scrollTop = top - box.clientHeight / 2; }
+  else if(ply === 0) box.scrollTop = 0;
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } $("play").textContent = "Play"; }
+function play(){ if(timer){ stop(); return; } if(cur >= frames.length - 1) show(0);
+  $("play").textContent = "Pause";
+  timer = setInterval(function(){ if(cur >= frames.length - 1){ stop(); return; } show(cur + 1); }, +$("speed").value); }
+function jumpGame(gi){ stop(); show(gameStart[gi] + G[gi].fens.length - 1); var m = $("grid").querySelector("[data-g='" + gi + "']"); if(m) m.scrollIntoView({block:"nearest"}); }
+$("play").onclick = play;
+$("speed").onchange = function(){ if(timer){ stop(); play(); } };
+$("scrub").oninput = function(){ stop(); show(+this.value); };
+$("prevM").onclick = function(){ stop(); show(cur - 1); };
+$("nextM").onclick = function(){ stop(); show(cur + 1); };
+$("prevG").onclick = function(){ stop(); var gi = frames[cur][0]; show(frames[cur][1] > 0 ? gameStart[gi] : gameStart[Math.max(0, gi - 1)]); };
+$("nextG").onclick = function(){ stop(); var gi = frames[cur][0]; if(gi + 1 < G.length) show(gameStart[gi + 1]); };
+document.addEventListener("keydown", function(e){
+  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if(e.key === " "){ e.preventDefault(); play(); } else if(e.key === "ArrowRight"){ stop(); show(cur + 1); } else if(e.key === "ArrowLeft"){ stop(); show(cur - 1); }
+});
+
+// ---------- grid ----------
+$("gcount").textContent = "(" + G.length + ")";
+$("grid").innerHTML = G.map(function(g, gi){ var r = resOf(g);
+  return "<div class='mini' data-g='" + gi + "' title='" + esc("#" + (gi + 1) + " " + g.vid + " vs " + g.opp_name + " · " + (g.how || g.status)) + "'><div class='board'>" + boardHTML(g.fens[g.fens.length - 1], null, g.color === "black", false) +
+    "</div><div class='cap'><span class='res " + r[0] + "'>" + r[1] + "</span><span class='mono muted'>" + esc(g.opp_elo) + "</span></div></div>"; }).join("") ||
+  "<div class='muted'>No games yet.</div>";
+Array.prototype.forEach.call($("grid").querySelectorAll(".mini"), function(m){ m.onclick = function(){ jumpGame(+m.getAttribute("data-g")); }; });
+function markGrid(){ Array.prototype.forEach.call($("grid").querySelectorAll(".mini"), function(m){ m.classList.toggle("sel", +m.getAttribute("data-g") === selGame); }); }
+
+$("foot").innerHTML = "Scale: " + esc(D.scale) + ". " + esc(D.calibration) + ". Agent estimate = performance rating (MAP, 95% profile CI) over the last " + D.window +
+  " rated games of the champion lineage (" + esc(D.lineage.slice().reverse().join(" → ")) + "); version tiles use each version's own games. Void/infra games are shown but never rated. Generated " + new Date(D.generated * 1000).toLocaleString() + ".";
+
+drawChart();
+if(frames.length){ renderSide(); markGrid(); show(0); } else { $("side").innerHTML = "<div class='muted'>No games yet.</div>"; }
+})();
+</script>
+</body>
+</html>

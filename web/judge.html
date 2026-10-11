@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai Chess Ladder</title>
+<style>
+:root{
+  --bg:#f6f5f1;--panel:#ffffff;--ink:#17181b;--muted:#6b6e76;--line:#e3e1da;--soft:#efede6;
+  --accent:#2f6f4f;--win:#2e9b5d;--draw:#9aa0a6;--loss:#d24b4b;--live:#d99a1e;
+  --sq-light:#ebe4d3;--sq-dark:#a98c66;--hl:rgba(255,214,64,.55);--band:rgba(47,111,79,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111315;--panel:#1a1d20;--ink:#eceae4;--muted:#9a9ea6;--line:#2b2f34;--soft:#22262a;
+  --accent:#6cc497;--win:#4cc27e;--draw:#8b9198;--loss:#ec6a6a;--live:#f0b440;
+  --sq-light:#c9bfa8;--sq-dark:#7d6446;--hl:rgba(255,214,64,.5);--band:rgba(108,196,151,.18);
+  --shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#111315;--panel:#1a1d20;--ink:#eceae4;--muted:#9a9ea6;--line:#2b2f34;--soft:#22262a;
+  --accent:#6cc497;--win:#4cc27e;--draw:#8b9198;--loss:#ec6a6a;--live:#f0b440;
+  --sq-light:#c9bfa8;--sq-dark:#7d6446;--hl:rgba(255,214,64,.5);--band:rgba(108,196,151,.18);--shadow:none;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:28px 24px 48px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.muted{color:var(--muted)}
+header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap}
+h1{font-size:32px;line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);max-width:820px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--live)}
+.live .dot{animation:pulse 1.4s infinite}@keyframes pulse{50%{opacity:.25}}
+.themebtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0}
+.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.stat{padding:14px 16px}
+.stat .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.stat .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:16px;font-weight:600;color:var(--muted)}
+.stat .s{font-size:12.5px;color:var(--muted)}
+.stat.hero .v{color:var(--accent)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:26px 0 10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tile{padding:14px 16px;position:relative}
+.tile .top{display:flex;justify-content:space-between;align-items:center}
+.tile .vid{font-size:20px;font-weight:700}
+.tile .elo{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}
+.tile .elo small{font-size:13px;color:var(--muted);font-weight:500}
+.tile .row{font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.tile .chg{margin-top:8px;font-size:13px;padding:6px 8px;background:var(--soft);border-radius:8px}
+.tile.next{border-style:dashed;display:flex;flex-direction:column;justify-content:center;color:var(--muted)}
+.pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.champion{color:var(--accent)}.pill.kept{color:var(--win)}.pill.pruned{color:var(--loss)}.pill.pending{color:var(--live)}
+.gain.up{color:var(--win)}.gain.down{color:var(--loss)}
+.w{color:var(--win)}.d{color:var(--draw)}.l{color:var(--loss)}
+.chart{padding:12px 12px 6px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 8px 6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1050px){.main{grid-template-columns:1fr}}
+.tl{padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+@media (max-width:760px){.tl{grid-template-columns:1fr}}
+.board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;width:100%;border-radius:6px;overflow:hidden;border:1px solid var(--line);user-select:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;line-height:1}
+.sq.lt{background:var(--sq-light)}.sq.dk{background:var(--sq-dark)}
+.sq.hl::after{content:"";position:absolute;inset:0;background:var(--hl)}
+.pc{position:relative;z-index:1;font-family:"Segoe UI Symbol","Apple Symbols","DejaVu Sans","Noto Sans Symbols2",serif}
+.pc.W{color:#fbfaf6;text-shadow:0 0 1px #000,0 0 1px #000,0 1px 1px #000,1px 0 1px #000,-1px 0 1px #000}
+.pc.B{color:#151515;text-shadow:0 0 1px rgba(255,255,255,.35)}
+.bigboard{max-width:600px;margin:0 auto}
+.bigboard .pc{font-size:min(5.6vw,50px)}
+.coord{position:absolute;font-size:10px;font-weight:700;opacity:.65;z-index:2}
+.coord.f{right:3px;bottom:1px}.coord.r{left:3px;top:1px}
+.sq.lt .coord{color:var(--sq-dark)}.sq.dk .coord{color:var(--sq-light)}
+.ctrls{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ctrls button,.ctrls select{background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.ctrls button.play{background:var(--accent);color:var(--panel);border-color:var(--accent);font-weight:700;min-width:74px}
+input[type=range]{width:100%;accent-color:var(--accent);margin-top:10px}
+.scrubinfo{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.side .gt{font-size:18px;font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13.5px;margin:10px 0}
+.kv b{color:var(--muted);font-weight:500}
+.res{font-size:13px;font-weight:700;padding:2px 9px;border-radius:6px;color:#fff;display:inline-block}
+.res.win{background:var(--win)}.res.draw{background:var(--draw)}.res.loss{background:var(--loss)}.res.live{background:var(--live)}.res.void{background:var(--muted)}
+.moves{height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13.5px;background:var(--soft)}
+.moves .mv{display:grid;grid-template-columns:34px 1fr 1fr;gap:4px}
+.moves span.m{padding:0 4px;border-radius:4px;cursor:pointer}
+.moves span.m.cur{background:var(--accent);color:var(--panel)}
+.moves span.m.bk{color:var(--muted);font-style:italic}
+.moves .n{color:var(--muted)}
+.gridp{padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;max-height:760px;overflow:auto;padding-right:4px}
+.mini{cursor:pointer;border-radius:8px;padding:4px;border:2px solid transparent;background:var(--soft)}
+.mini.sel{border-color:var(--accent)}
+.mini .board{border-radius:3px}
+.mini .pc{font-size:clamp(8px,1.05vw,13px)}
+.mini .cap{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:4px;gap:4px}
+.mini .res{font-size:10.5px;padding:1px 6px}
+footer{margin-top:28px;color:var(--muted);font-size:12.5px}
+.ver-line{stroke:var(--line);stroke-dasharray:3 4}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Bonsai Chess: <span>a self-improving agent climbs a Stockfish Elo ladder</span></h1>
+    <div class="sub">Elo estimated from game results vs a calibrated Stockfish ladder (Stockfish-anchored scale). Every Elo here is an <b>estimate</b> with its 95% interval. Real games from run <b class="mono" id="runid"></b>.</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="status" class="badge"></span>
+    <button class="themebtn" id="theme" title="Toggle light/dark">Theme</button>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<h2>Harness versions</h2>
+<div class="tiles" id="tiles"></div>
+
+<h2>Elo ladder</h2>
+<div class="card chart">
+  <div id="chart"></div>
+  <div class="legend">
+    <span><i style="background:var(--accent)"></i>agent Elo est. (rolling window)</span>
+    <span><i style="background:var(--band);border-radius:2px"></i>95% CI</span>
+    <span><i style="background:var(--win)"></i>win</span><span><i style="background:var(--draw)"></i>draw</span><span><i style="background:var(--loss)"></i>loss</span>
+    <span><i style="background:transparent;border:2px solid var(--live)"></i>in progress</span>
+    <span>dots sit at the opponent's ladder Elo · lines are calibrated rungs</span>
+  </div>
+</div>
+
+<div class="main" style="margin-top:16px">
+  <div>
+    <h2 style="margin-top:0">Timelapse: every game, in order</h2>
+    <div class="card tl">
+      <div>
+        <div class="board bigboard" id="board"></div>
+        <input type="range" id="scrub" min="0" value="0">
+        <div class="scrubinfo"><span id="scrubL"></span><span id="scrubR"></span></div>
+        <div class="ctrls">
+          <button id="prevG" title="Previous game">&#9198;</button>
+          <button id="prevM" title="Previous move">&#9664;</button>
+          <button class="play" id="play">Play</button>
+          <button id="nextM" title="Next move">&#9654;</button>
+          <button id="nextG" title="Next game">&#9197;</button>
+          <select id="speed"><option value="600">1x</option><option value="250" selected>2x</option><option value="90">5x</option><option value="30">fast</option></select>
+          <span class="muted" style="font-size:12px">Space: play/pause · arrows: step</span>
+        </div>
+      </div>
+      <div class="side" id="side"></div>
+    </div>
+  </div>
+  <div>
+    <h2 style="margin-top:0">All games <span id="gcount"></span></h2>
+    <div class="card gridp"><div class="grid" id="grid"></div></div>
+  </div>
+</div>
+
+<footer id="foot"></footer>
+</div>
+
+<script type="application/json" id="data">{"run":"judge1","generated":1791759213.5489511,"done":false,"phase":"play","gen":0,"champion":"g0","lineage":["g0"],"window":60,"scale":"Bonsai ladder Elo (Stockfish-anchored, sf1320 = 1320; not lichess/chess.com)","calibration":"Elo, anchored {'sf1320': 1320.0} (Stockfish UCI_Elo calibration: CCRL 40/4, TC 60s+0.6s)","stockfish":"Stockfish 19","rungs":[{"name":"random","elo":32,"lo":-176,"hi":202,"climb":true,"kind":"random"},{"name":"E100","elo":93,"lo":-93,"hi":279,"climb":true,"kind":"policy"},{"name":"T8","elo":185,"lo":-17,"hi":330,"climb":true,"kind":"policy"},{"name":"T5.7","elo":282,"lo":83,"hi":428,"climb":true,"kind":"policy"},{"name":"eps0.8","elo":311,"lo":78,"hi":494,"climb":false,"kind":"policy"},{"name":"T4","elo":395,"lo":230,"hi":530,"climb":true,"kind":"policy"},{"name":"T2.8","elo":512,"lo":350,"hi":658,"climb":true,"kind":"policy"},{"name":"eps0.6","elo":545,"lo":359,"hi":690,"climb":false,"kind":"policy"},{"name":"T2","elo":709,"lo":565,"hi":835,"climb":true,"kind":"policy"},{"name":"T1.6","elo":829,"lo":691,"hi":960,"climb":true,"kind":"policy"},{"name":"eps0.4","elo":838,"lo":648,"hi":986,"climb":false,"kind":"policy"},{"name":"T1.25","elo":963,"lo":834,"hi":1082,"climb":true,"kind":"policy"},{"name":"T1","elo":1127,"lo":1005,"hi":1231,"climb":true,"kind":"policy"},{"name":"eps0.2","elo":1165,"lo":1011,"hi":1291,"climb":false,"kind":"policy"},{"name":"T0.75","elo":1300,"lo":1198,"hi":1388,"climb":true,"kind":"policy"},{"name":"sf1320","elo":1320,"lo":1320,"hi":1320,"climb":false,"kind":"sf_elo"},{"name":"sf1500","elo":1453,"lo":1382,"hi":1538,"climb":false,"kind":"sf_elo"},{"name":"T0.5","elo":1458,"lo":1388,"hi":1521,"climb":true,"kind":"policy"},{"name":"eps0.1","elo":1459,"lo":1331,"hi":1586,"climb":false,"kind":"policy"},{"name":"T0.35","elo":1541,"lo":1471,"hi":1609,"climb":false,"kind":"policy"},{"name":"T0.15","elo":1606,"lo":1538,"hi":1675,"climb":false,"kind":"policy"},{"name":"T0.25","elo":1613,"lo":1551,"hi":1684,"climb":true,"kind":"policy"},{"name":"sf1800","elo":1700,"lo":1614,"hi":1810,"climb":false,"kind":"sf_elo"},{"name":"d1","elo":1706,"lo":1648,"hi":1772,"climb":true,"kind":"policy"},{"name":"sf2100","elo":1830,"lo":1715,"hi":1971,"climb":true,"kind":"sf_elo"},{"name":"d3","elo":2000,"lo":1877,"hi":2165,"climb":false,"kind":"policy"},{"name":"sf2500","elo":2094,"lo":1953,"hi":2273,"climb":true,"kind":"sf_elo"},{"name":"d5","elo":2253,"lo":2108,"hi":2458,"climb":false,"kind":"policy"},{"name":"sf2900","elo":2442,"lo":2259,"hi":2712,"climb":true,"kind":"sf_elo"}],"started":1791758861.786073,"last":1791759213.5489511,"spend_usd":0.7316,"calls":207,"start_est":{"elo":223,"lo":-198,"hi":725,"n":2,"score":1.5},"cur_est":{"elo":223,"lo":-198,"hi":725,"n":2,"score":1.5},"milestones":[],"versions":[{"id":"g0","parent":null,"change":"seed harness","model":"claude-haiku-4-5-20251001","status":"champion","signal":null,"est":{"elo":223,"lo":-198,"hi":725,"n":2,"score":1.5},"games":2,"w":1,"d":1,"l":0,"live":3,"dur":349.9982080459595,"exam":null}],"games":[{"id":"g0/g0r0-s01","vid":"g0","slot":"g0r0-s01","gen":0,"status":"complete","score":1.0,"result":"0-1","how":"checkmate","infra":null,"color":"black","family":"italian","eco":"C50","split":"train","opp_name":"E100","opp_elo":93,"started":1791758863.5514371,"finished":1791758935.576215,"elapsed":71.82,"cost":0.045993,"model":"claude-haiku-4-5-20251001","uci":["e2e4","e7e5","g1f3","b8c6","f1c4","g8f6","h2h3","d7d5","b2b3","f6e4","e1g1","e4f2","h3h4","f2d1","f3e1","d1e3","c1b2","e3f1","e1d3","f8c5","g1f1","d8f6","f1e2","c6d4","e2e3","d4e2","d3c5","d5d4","e3e2","d4d3","e2d1","f6f1"],"san":["e4","e5","Nf3","Nc6","Bc4","Nf6","h3","d5","b3","Nxe4","O-O","Nxf2","h4","Nxd1","Ne1","Ne3","Bb2","Nxf1","Nd3","Bc5+","Kxf1","Qf6+","Ke2","Nd4+","Ke3","Ne2+","Nxc5","d4+","Kxe2","d3+","Kd1","Qf1#"],"fens":["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR","rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N1P/PPPP1PP1/RNBQK2R","r1bqkb1r/ppp2ppp/2n2n2/3pp3/2B1P3/5N1P/PPPP1PP1/RNBQK2R","r1bqkb1r/ppp2ppp/2n2n2/3pp3/2B1P3/1P3N1P/P1PP1PP1/RNBQK2R","r1bqkb1r/ppp2ppp/2n5/3pp3/2B1n3/1P3N1P/P1PP1PP1/RNBQK2R","r1bqkb1r/ppp2ppp/2n5/3pp3/2B1n3/1P3N1P/P1PP1PP1/RNBQ1RK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B5/1P3N1P/P1PP1nP1/RNBQ1RK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P3N2/P1PP1nP1/RNBQ1RK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P3N2/P1PP2P1/RNBn1RK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P6/P1PP2P1/RNBnNRK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P2n3/P1PP2P1/RNB1NRK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P2n3/PBPP2P1/RN2NRK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P6/PBPP2P1/RN2NnK1","r1bqkb1r/ppp2ppp/2n5/3pp3/2B4P/1P1N4/PBPP2P1/RN3nK1","r1bqk2r/ppp2ppp/2n5/2bpp3/2B4P/1P1N4/PBPP2P1/RN3nK1","r1bqk2r/ppp2ppp/2n5/2bpp3/2B4P/1P1N4/PBPP2P1/RN3K2","r1b1k2r/ppp2ppp/2n2q2/2bpp3/2B4P/1P1N4/PBPP2P1/RN3K2","r1b1k2r/ppp2ppp/2n2q2/2bpp3/2B4P/1P1N4/PBPPK1P1/RN6","r1b1k2r/ppp2ppp/5q2/2bpp3/2Bn3P/1P1N4/PBPPK1P1/RN6","r1b1k2r/ppp2ppp/5q2/2bpp3/2Bn3P/1P1NK3/PBPP2P1/RN6","r1b1k2r/ppp2ppp/5q2/2bpp3/2B4P/1P1NK3/PBPPn1P1/RN6","r1b1k2r/ppp2ppp/5q2/2Npp3/2B4P/1P2K3/PBPPn1P1/RN6","r1b1k2r/ppp2ppp/5q2/2N1p3/2Bp3P/1P2K3/PBPPn1P1/RN6","r1b1k2r/ppp2ppp/5q2/2N1p3/2Bp3P/1P6/PBPPK1P1/RN6","r1b1k2r/ppp2ppp/5q2/2N1p3/2B4P/1P1p4/PBPPK1P1/RN6","r1b1k2r/ppp2ppp/5q2/2N1p3/2B4P/1P1p4/PBPP2P1/RN1K4","r1b1k2r/ppp2ppp/8/2N1p3/2B4P/1P1p4/PBPP2P1/RN1K1q2"],"book":6,"i":0},{"id":"g0/g0r0-s03","vid":"g0","slot":"g0r0-s03","gen":0,"status":"complete","score":0.5,"result":"1/2-1/2","how":"threefold_repetition","infra":null,"color":"white","family":"ruy-lopez","eco":"C60","split":"train","opp_name":"E100","opp_elo":93,"started":1791758935.578321,"finished":1791759210.139786,"elapsed":274.32,"cost":0.195845,"model":"claude-haiku-4-5-20251001","uci":["e2e4","e7e5","g1f3","b8c6","f1b5","a7a6","b5c6","d8e7","f3e5","f7f5","e5d7","e8d8","d7f6","e7e5","f6d5","e5f6","d5f6","h7h5","f6d5","a8a7","d5c7","f8e7","c7e6","c8e6","d1g4","a7a8","c6d7","e6d7","g4g5","g7g6","g5e7","g8e7","e1g1","h8e8","d2d4","b7b6","e4f5","d7c6","f5g6","a6a5","g6g7","a8c8","g7g8q","a5a4","g8e8","d8c7","e8c8","c7c8","d4d5","c6a8","d5d6","h5h4","d6d7","c8d8","f1e1","d8d7","e1e7","d7d6","e7d7","d6e5","d7d5","e5d5","c2c4","d5c4","b2b4","a8g2","b1a3","c4b4","a3c2","b4c3","g1g2","c3d3","c2e1","d3c4","e1d3","a4a3","d3e5","c4c5","c1a3","c5d4","a1d1","d4c3","d1c1","c3d2","c1d1","d2c2","d1d2","c2d2","e5c4","d2d3","c4e5","d3e2","e5d3","e2d2","a3b4","d2c2","d3e1","c2c1","e1d3","c1d1","d3e1","d1e2","e1d3","h4h3","g2h3","e2d1","d3b2","d1c1","b2d3","c1d1","d3b2","d1c2","b2a4","c2d1"],"san":["e4","e5","Nf3","Nc6","Bb5","a6","Bxc6","Qe7","Nxe5","f5","Nxd7","Kd8","Nf6","Qe5","Nd5","Qf6","Nxf6","h5","Nd5","Ra7","Nxc7","Be7","Ne6+","Bxe6","Qg4","Ra8","Bd7","Bxd7","Qg5","g6","Qxe7+","Nxe7","O-O","Re8","d4","b6","exf5","Bc6","fxg6","a5","g7","Rc8","g8=Q","a4","Qxe8+","Kc7","Qxc8+","Kxc8","d5","Ba8","d6","h4","d7+","Kd8","Re1","Kxd7","Rxe7+","Kd6","Rd7+","Ke5","Rd5+","Kxd5","c4+","Kxc4","b4","Bxg2","Na3+","Kxb4","Nc2+","Kc3","Kxg2","Kd3","Ne1+","Kc4","Nd3","a3","Ne5+","Kc5","Bxa3+","Kd4","Rd1+","Kc3","Rc1+","Kd2","Rd1+","Kc2","Rd2+","Kxd2","Nc4+","Kd3","Ne5+","Ke2","Nd3","Kd2","Bb4+","Kc2","Ne1+","Kc1","Nd3+","Kd1","Ne1","Ke2","Nd3","h3+","Kxh3","Kd1","Nb2+","Kc1","Nd3+","Kd1","Nb2+","Kc2","Na4","Kd1"],"fens":["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR","rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1bqkbnr/1ppp1ppp/p1B5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1b1kbnr/1pppqppp/p1B5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1b1kbnr/1pppqppp/p1B5/4N3/4P3/8/PPPP1PPP/RNBQK2R","r1b1kbnr/1pppq1pp/p1B5/4Np2/4P3/8/PPPP1PPP/RNBQK2R","r1b1kbnr/1ppNq1pp/p1B5/5p2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1ppNq1pp/p1B5/5p2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp1q1pp/p1B2N2/5p2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3pp/p1B2N2/4qp2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3pp/p1B5/3Nqp2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3pp/p1B2q2/3N1p2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3pp/p1B2N2/5p2/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3p1/p1B2N2/5p1p/4P3/8/PPPP1PPP/RNBQK2R","r1bk1bnr/1pp3p1/p1B5/3N1p1p/4P3/8/PPPP1PPP/RNBQK2R","2bk1bnr/rpp3p1/p1B5/3N1p1p/4P3/8/PPPP1PPP/RNBQK2R","2bk1bnr/rpN3p1/p1B5/5p1p/4P3/8/PPPP1PPP/RNBQK2R","2bk2nr/rpN1b1p1/p1B5/5p1p/4P3/8/PPPP1PPP/RNBQK2R","2bk2nr/rp2b1p1/p1B1N3/5p1p/4P3/8/PPPP1PPP/RNBQK2R","3k2nr/rp2b1p1/p1B1b3/5p1p/4P3/8/PPPP1PPP/RNBQK2R","3k2nr/rp2b1p1/p1B1b3/5p1p/4P1Q1/8/PPPP1PPP/RNB1K2R","r2k2nr/1p2b1p1/p1B1b3/5p1p/4P1Q1/8/PPPP1PPP/RNB1K2R","r2k2nr/1p1Bb1p1/p3b3/5p1p/4P1Q1/8/PPPP1PPP/RNB1K2R","r2k2nr/1p1bb1p1/p7/5p1p/4P1Q1/8/PPPP1PPP/RNB1K2R","r2k2nr/1p1bb1p1/p7/5pQp/4P3/8/PPPP1PPP/RNB1K2R","r2k2nr/1p1bb3/p5p1/5pQp/4P3/8/PPPP1PPP/RNB1K2R","r2k2nr/1p1bQ3/p5p1/5p1p/4P3/8/PPPP1PPP/RNB1K2R","r2k3r/1p1bn3/p5p1/5p1p/4P3/8/PPPP1PPP/RNB1K2R","r2k3r/1p1bn3/p5p1/5p1p/4P3/8/PPPP1PPP/RNB2RK1","r2kr3/1p1bn3/p5p1/5p1p/4P3/8/PPPP1PPP/RNB2RK1","r2kr3/1p1bn3/p5p1/5p1p/3PP3/8/PPP2PPP/RNB2RK1","r2kr3/3bn3/pp4p1/5p1p/3PP3/8/PPP2PPP/RNB2RK1","r2kr3/3bn3/pp4p1/5P1p/3P4/8/PPP2PPP/RNB2RK1","r2kr3/4n3/ppb3p1/5P1p/3P4/8/PPP2PPP/RNB2RK1","r2kr3/4n3/ppb3P1/7p/3P4/8/PPP2PPP/RNB2RK1","r2kr3/4n3/1pb3P1/p6p/3P4/8/PPP2PPP/RNB2RK1","r2kr3/4n1P1/1pb5/p6p/3P4/8/PPP2PPP/RNB2RK1","2rkr3/4n1P1/1pb5/p6p/3P4/8/PPP2PPP/RNB2RK1","2rkr1Q1/4n3/1pb5/p6p/3P4/8/PPP2PPP/RNB2RK1","2rkr1Q1/4n3/1pb5/7p/p2P4/8/PPP2PPP/RNB2RK1","2rkQ3/4n3/1pb5/7p/p2P4/8/PPP2PPP/RNB2RK1","2r1Q3/2k1n3/1pb5/7p/p2P4/8/PPP2PPP/RNB2RK1","2Q5/2k1n3/1pb5/7p/p2P4/8/PPP2PPP/RNB2RK1","2k5/4n3/1pb5/7p/p2P4/8/PPP2PPP/RNB2RK1","2k5/4n3/1pb5/3P3p/p7/8/PPP2PPP/RNB2RK1","b1k5/4n3/1p6/3P3p/p7/8/PPP2PPP/RNB2RK1","b1k5/4n3/1p1P4/7p/p7/8/PPP2PPP/RNB2RK1","b1k5/4n3/1p1P4/8/p6p/8/PPP2PPP/RNB2RK1","b1k5/3Pn3/1p6/8/p6p/8/PPP2PPP/RNB2RK1","b2k4/3Pn3/1p6/8/p6p/8/PPP2PPP/RNB2RK1","b2k4/3Pn3/1p6/8/p6p/8/PPP2PPP/RNB1R1K1","b7/3kn3/1p6/8/p6p/8/PPP2PPP/RNB1R1K1","b7/3kR3/1p6/8/p6p/8/PPP2PPP/RNB3K1","b7/4R3/1p1k4/8/p6p/8/PPP2PPP/RNB3K1","b7/3R4/1p1k4/8/p6p/8/PPP2PPP/RNB3K1","b7/3R4/1p6/4k3/p6p/8/PPP2PPP/RNB3K1","b7/8/1p6/3Rk3/p6p/8/PPP2PPP/RNB3K1","b7/8/1p6/3k4/p6p/8/PPP2PPP/RNB3K1","b7/8/1p6/3k4/p1P4p/8/PP3PPP/RNB3K1","b7/8/1p6/8/p1k4p/8/PP3PPP/RNB3K1","b7/8/1p6/8/pPk4p/8/P4PPP/RNB3K1","8/8/1p6/8/pPk4p/8/P4PbP/RNB3K1","8/8/1p6/8/pPk4p/N7/P4PbP/R1B3K1","8/8/1p6/8/pk5p/N7/P4PbP/R1B3K1","8/8/1p6/8/pk5p/8/P1N2PbP/R1B3K1","8/8/1p6/8/p6p/2k5/P1N2PbP/R1B3K1","8/8/1p6/8/p6p/2k5/P1N2PKP/R1B5","8/8/1p6/8/p6p/3k4/P1N2PKP/R1B5","8/8/1p6/8/p6p/3k4/P4PKP/R1B1N3","8/8/1p6/8/p1k4p/8/P4PKP/R1B1N3","8/8/1p6/8/p1k4p/3N4/P4PKP/R1B5","8/8/1p6/8/2k4p/p2N4/P4PKP/R1B5","8/8/1p6/4N3/2k4p/p7/P4PKP/R1B5","8/8/1p6/2k1N3/7p/p7/P4PKP/R1B5","8/8/1p6/2k1N3/7p/B7/P4PKP/R7","8/8/1p6/4N3/3k3p/B7/P4PKP/R7","8/8/1p6/4N3/3k3p/B7/P4PKP/3R4","8/8/1p6/4N3/7p/B1k5/P4PKP/3R4","8/8/1p6/4N3/7p/B1k5/P4PKP/2R5","8/8/1p6/4N3/7p/B7/P2k1PKP/2R5","8/8/1p6/4N3/7p/B7/P2k1PKP/3R4","8/8/1p6/4N3/7p/B7/P1k2PKP/3R4","8/8/1p6/4N3/7p/B7/P1kR1PKP/8","8/8/1p6/4N3/7p/B7/P2k1PKP/8","8/8/1p6/8/2N4p/B7/P2k1PKP/8","8/8/1p6/8/2N4p/B2k4/P4PKP/8","8/8/1p6/4N3/7p/B2k4/P4PKP/8","8/8/1p6/4N3/7p/B7/P3kPKP/8","8/8/1p6/8/7p/B2N4/P3kPKP/8","8/8/1p6/8/7p/B2N4/P2k1PKP/8","8/8/1p6/8/1B5p/3N4/P2k1PKP/8","8/8/1p6/8/1B5p/3N4/P1k2PKP/8","8/8/1p6/8/1B5p/8/P1k2PKP/4N3","8/8/1p6/8/1B5p/8/P4PKP/2k1N3","8/8/1p6/8/1B5p/3N4/P4PKP/2k5","8/8/1p6/8/1B5p/3N4/P4PKP/3k4","8/8/1p6/8/1B5p/8/P4PKP/3kN3","8/8/1p6/8/1B5p/8/P3kPKP/4N3","8/8/1p6/8/1B5p/3N4/P3kPKP/8","8/8/1p6/8/1B6/3N3p/P3kPKP/8","8/8/1p6/8/1B6/3N3K/P3kP1P/8","8/8/1p6/8/1B6/3N3K/P4P1P/3k4","8/8/1p6/8/1B6/7K/PN3P1P/3k4","8/8/1p6/8/1B6/7K/PN3P1P/2k5","8/8/1p6/8/1B6/3N3K/P4P1P/2k5","8/8/1p6/8/1B6/3N3K/P4P1P/3k4","8/8/1p6/8/1B6/7K/PN3P1P/3k4","8/8/1p6/8/1B6/7K/PNk2P1P/8","8/8/1p6/8/NB6/7K/P1k2P1P/8","8/8/1p6/8/NB6/7K/P4P1P/3k4"],"book":6,"i":1},{"id":"g0/g0r0-s02","vid":"g0","slot":"g0r0-s02","gen":0,"status":"in_progress","score":null,"result":null,"how":null,"infra":null,"color":"white","family":"slav","eco":null,"split":"held","opp_name":"E100","opp_elo":93,"started":1791758863.550743,"finished":null,"elapsed":344.54,"cost":0.2432,"model":"claude-haiku-4-5-20251001","uci":["d2d4","d7d5","c2c4","c7c6","g1f3","d5c4","b1c3","g8h6","f3e5","d8b6","e5f7","e8f7","c3d5","b6d4","d5e7","d4d1","e1d1","f7e8","e7c6","c8h3","c6d8","h3c8","d8f7","f8c5","f7d6","e8e7","d6c8","e7f7","c8d6","f7g6","d6f7","h8e8","f7e5","g6f5","e2e4","f5e5","c1f4","e5e6","f1c4","e6e7","f4g5","e7f8","g5e7","e8e7","c4f7","h6g8","e4e5","c5b4","e5e6","e7e6","h1e1","b7b5","e1e6","a7a6","e6e8","f8f7","e8f8","f7f8","a1b1","b4a5","b1c1","g8h6","c1c8","f8f7","c8f8","f7g6","f8f6","g7f6","d1e2","a5b4","e2d3","f6f5","f2f4","b4d6","g2g4","g6f7","g4f5","h6g4","f5f6","b8d7","f4f5","a8h8","d3e4","g4e5","e4d5","e5g6","f5g6","f7e8","f6f7","e8f8","g6g7","f8g7","f7f8q","g7f8","d5d6","f8g8","d6d7","g8g7","d7c6","h8a8","b2b4","a8f8","a2a4","g7h8","a4b5","h7h6","b5a6","f8f3","a6a7","f3f2","a7a8q","h8h7","a8h8","h7h8","b4b5","f2h2","b5b6","h2h4","b6b7","h4f4","b7b8q","h8h7","b8h8","h7h8","c6d7","f4f6","d7e7","f6f5","e7e8","h8g7","e8e7","f5a5","e7d6","a5a8","d6e7","h6h5","e7d7","g7h7","d7e6","a8a1","e6f7","a1a4"],"san":["d4","d5","c4","c6","Nf3","dxc4","Nc3","Nh6","Ne5","Qb6","Nxf7","Kxf7","Nd5","Qxd4","Nxe7","Qxd1+","Kxd1","Ke8","Nxc6","Bh3","Nd8","Bc8","Nf7","Bc5","Nd6+","Ke7","Nxc8+","Kf7","Nd6+","Kg6","Nf7","Re8","Ne5+","Kf5","e4+","Kxe5","Bf4+","Ke6","Bxc4+","Ke7","Bg5+","Kf8","Be7+","Rxe7","Bf7","Ng8","e5","Bb4","e6","Rxe6","Re1","b5","Rxe6","a6","Re8+","Kxf7","Rf8+","Kxf8","Rb1","Ba5","Rc1","Nh6","Rc8+","Kf7","Rf8+","Kg6","Rf6+","gxf6","Ke2","Bb4","Kd3","f5","f4","Bd6","g4","Kf7","gxf5","Ng4","f6","Nd7","f5","Rh8","Ke4","Nge5","Kd5","Ng6","fxg6+","Ke8","f7+","Kf8","g7+","Kxg7","f8=Q+","Kxf8","Kxd6","Kg8","Kxd7","Kg7","Kc6","Ra8","b4","Rf8","a4","Kh8","axb5","h6","bxa6","Rf3","a7","Rf2","a8=Q+","Kh7","Qh8+","Kxh8","b5","Rxh2","b6","Rh4","b7","Rf4","b8=Q+","Kh7","Qh8+","Kxh8","Kd7","Rf6","Ke7","Rf5","Ke8","Kg7","Ke7","Ra5","Kd6","Ra8","Ke7","h5","Kd7","Kh7","Ke6","Ra1","Kf7","Ra4"],"fens":["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR","rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR","rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR","rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR","rnbqkbnr/pp2pppp/2p5/3p4/2PP4/8/PP2PPPP/RNBQKBNR","rnbqkbnr/pp2pppp/2p5/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R","rnbqkbnr/pp2pppp/2p5/8/2pP4/5N2/PP2PPPP/RNBQKB1R","rnbqkbnr/pp2pppp/2p5/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R","rnbqkb1r/pp2pppp/2p4n/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R","rnbqkb1r/pp2pppp/2p4n/4N3/2pP4/2N5/PP2PPPP/R1BQKB1R","rnb1kb1r/pp2pppp/1qp4n/4N3/2pP4/2N5/PP2PPPP/R1BQKB1R","rnb1kb1r/pp2pNpp/1qp4n/8/2pP4/2N5/PP2PPPP/R1BQKB1R","rnb2b1r/pp2pkpp/1qp4n/8/2pP4/2N5/PP2PPPP/R1BQKB1R","rnb2b1r/pp2pkpp/1qp4n/3N4/2pP4/8/PP2PPPP/R1BQKB1R","rnb2b1r/pp2pkpp/2p4n/3N4/2pq4/8/PP2PPPP/R1BQKB1R","rnb2b1r/pp2Nkpp/2p4n/8/2pq4/8/PP2PPPP/R1BQKB1R","rnb2b1r/pp2Nkpp/2p4n/8/2p5/8/PP2PPPP/R1BqKB1R","rnb2b1r/pp2Nkpp/2p4n/8/2p5/8/PP2PPPP/R1BK1B1R","rnb1kb1r/pp2N1pp/2p4n/8/2p5/8/PP2PPPP/R1BK1B1R","rnb1kb1r/pp4pp/2N4n/8/2p5/8/PP2PPPP/R1BK1B1R","rn2kb1r/pp4pp/2N4n/8/2p5/7b/PP2PPPP/R1BK1B1R","rn1Nkb1r/pp4pp/7n/8/2p5/7b/PP2PPPP/R1BK1B1R","rnbNkb1r/pp4pp/7n/8/2p5/8/PP2PPPP/R1BK1B1R","rnb1kb1r/pp3Npp/7n/8/2p5/8/PP2PPPP/R1BK1B1R","rnb1k2r/pp3Npp/7n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rnb1k2r/pp4pp/3N3n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rnb4r/pp2k1pp/3N3n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rnN4r/pp2k1pp/7n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rnN4r/pp3kpp/7n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rn5r/pp3kpp/3N3n/2b5/2p5/8/PP2PPPP/R1BK1B1R","rn5r/pp4pp/3N2kn/2b5/2p5/8/PP2PPPP/R1BK1B1R","rn5r/pp3Npp/6kn/2b5/2p5/8/PP2PPPP/R1BK1B1R","rn2r3/pp3Npp/6kn/2b5/2p5/8/PP2PPPP/R1BK1B1R","rn2r3/pp4pp/6kn/2b1N3/2p5/8/PP2PPPP/R1BK1B1R","rn2r3/pp4pp/7n/2b1Nk2/2p5/8/PP2PPPP/R1BK1B1R","rn2r3/pp4pp/7n/2b1Nk2/2p1P3/8/PP3PPP/R1BK1B1R","rn2r3/pp4pp/7n/2b1k3/2p1P3/8/PP3PPP/R1BK1B1R","rn2r3/pp4pp/7n/2b1k3/2p1PB2/8/PP3PPP/R2K1B1R","rn2r3/pp4pp/4k2n/2b5/2p1PB2/8/PP3PPP/R2K1B1R","rn2r3/pp4pp/4k2n/2b5/2B1PB2/8/PP3PPP/R2K3R","rn2r3/pp2k1pp/7n/2b5/2B1PB2/8/PP3PPP/R2K3R","rn2r3/pp2k1pp/7n/2b3B1/2B1P3/8/PP3PPP/R2K3R","rn2rk2/pp4pp/7n/2b3B1/2B1P3/8/PP3PPP/R2K3R","rn2rk2/pp2B1pp/7n/2b5/2B1P3/8/PP3PPP/R2K3R","rn3k2/pp2r1pp/7n/2b5/2B1P3/8/PP3PPP/R2K3R","rn3k2/pp2rBpp/7n/2b5/4P3/8/PP3PPP/R2K3R","rn3kn1/pp2rBpp/8/2b5/4P3/8/PP3PPP/R2K3R","rn3kn1/pp2rBpp/8/2b1P3/8/8/PP3PPP/R2K3R","rn3kn1/pp2rBpp/8/4P3/1b6/8/PP3PPP/R2K3R","rn3kn1/pp2rBpp/4P3/8/1b6/8/PP3PPP/R2K3R","rn3kn1/pp3Bpp/4r3/8/1b6/8/PP3PPP/R2K3R","rn3kn1/pp3Bpp/4r3/8/1b6/8/PP3PPP/R2KR3","rn3kn1/p4Bpp/4r3/1p6/1b6/8/PP3PPP/R2KR3","rn3kn1/p4Bpp/4R3/1p6/1b6/8/PP3PPP/R2K4","rn3kn1/5Bpp/p3R3/1p6/1b6/8/PP3PPP/R2K4","rn2Rkn1/5Bpp/p7/1p6/1b6/8/PP3PPP/R2K4","rn2R1n1/5kpp/p7/1p6/1b6/8/PP3PPP/R2K4","rn3Rn1/5kpp/p7/1p6/1b6/8/PP3PPP/R2K4","rn3kn1/6pp/p7/1p6/1b6/8/PP3PPP/R2K4","rn3kn1/6pp/p7/1p6/1b6/8/PP3PPP/1R1K4","rn3kn1/6pp/p7/bp6/8/8/PP3PPP/1R1K4","rn3kn1/6pp/p7/bp6/8/8/PP3PPP/2RK4","rn3k2/6pp/p6n/bp6/8/8/PP3PPP/2RK4","rnR2k2/6pp/p6n/bp6/8/8/PP3PPP/3K4","rnR5/5kpp/p6n/bp6/8/8/PP3PPP/3K4","rn3R2/5kpp/p6n/bp6/8/8/PP3PPP/3K4","rn3R2/6pp/p5kn/bp6/8/8/PP3PPP/3K4","rn6/6pp/p4Rkn/bp6/8/8/PP3PPP/3K4","rn6/7p/p4pkn/bp6/8/8/PP3PPP/3K4","rn6/7p/p4pkn/bp6/8/8/PP2KPPP/8","rn6/7p/p4pkn/1p6/1b6/8/PP2KPPP/8","rn6/7p/p4pkn/1p6/1b6/3K4/PP3PPP/8","rn6/7p/p5kn/1p3p2/1b6/3K4/PP3PPP/8","rn6/7p/p5kn/1p3p2/1b3P2/3K4/PP4PP/8","rn6/7p/p2b2kn/1p3p2/5P2/3K4/PP4PP/8","rn6/7p/p2b2kn/1p3p2/5PP1/3K4/PP5P/8","rn6/5k1p/p2b3n/1p3p2/5PP1/3K4/PP5P/8","rn6/5k1p/p2b3n/1p3P2/5P2/3K4/PP5P/8","rn6/5k1p/p2b4/1p3P2/5Pn1/3K4/PP5P/8","rn6/5k1p/p2b1P2/1p6/5Pn1/3K4/PP5P/8","r7/3n1k1p/p2b1P2/1p6/5Pn1/3K4/PP5P/8","r7/3n1k1p/p2b1P2/1p3P2/6n1/3K4/PP5P/8","7r/3n1k1p/p2b1P2/1p3P2/6n1/3K4/PP5P/8","7r/3n1k1p/p2b1P2/1p3P2/4K1n1/8/PP5P/8","7r/3n1k1p/p2b1P2/1p2nP2/4K3/8/PP5P/8","7r/3n1k1p/p2b1P2/1p1KnP2/8/8/PP5P/8","7r/3n1k1p/p2b1Pn1/1p1K1P2/8/8/PP5P/8","7r/3n1k1p/p2b1PP1/1p1K4/8/8/PP5P/8","4k2r/3n3p/p2b1PP1/1p1K4/8/8/PP5P/8","4k2r/3n1P1p/p2b2P1/1p1K4/8/8/PP5P/8","5k1r/3n1P1p/p2b2P1/1p1K4/8/8/PP5P/8","5k1r/3n1PPp/p2b4/1p1K4/8/8/PP5P/8","7r/3n1Pkp/p2b4/1p1K4/8/8/PP5P/8","5Q1r/3n2kp/p2b4/1p1K4/8/8/PP5P/8","5k1r/3n3p/p2b4/1p1K4/8/8/PP5P/8","5k1r/3n3p/p2K4/1p6/8/8/PP5P/8","6kr/3n3p/p2K4/1p6/8/8/PP5P/8","6kr/3K3p/p7/1p6/8/8/PP5P/8","7r/3K2kp/p7/1p6/8/8/PP5P/8","7r/6kp/p1K5/1p6/8/8/PP5P/8","r7/6kp/p1K5/1p6/8/8/PP5P/8","r7/6kp/p1K5/1p6/1P6/8/P6P/8","5r2/6kp/p1K5/1p6/1P6/8/P6P/8","5r2/6kp/p1K5/1p6/PP6/8/7P/8","5r1k/7p/p1K5/1p6/PP6/8/7P/8","5r1k/7p/p1K5/1P6/1P6/8/7P/8","5r1k/8/p1K4p/1P6/1P6/8/7P/8","5r1k/8/P1K4p/8/1P6/8/7P/8","7k/8/P1K4p/8/1P6/5r2/7P/8","7k/P7/2K4p/8/1P6/5r2/7P/8","7k/P7/2K4p/8/1P6/8/5r1P/8","Q6k/8/2K4p/8/1P6/8/5r1P/8","Q7/7k/2K4p/8/1P6/8/5r1P/8","7Q/7k/2K4p/8/1P6/8/5r1P/8","7k/8/2K4p/8/1P6/8/5r1P/8","7k/8/2K4p/1P6/8/8/5r1P/8","7k/8/2K4p/1P6/8/8/7r/8","7k/8/1PK4p/8/8/8/7r/8","7k/8/1PK4p/8/7r/8/8/8","7k/1P6/2K4p/8/7r/8/8/8","7k/1P6/2K4p/8/5r2/8/8/8","1Q5k/8/2K4p/8/5r2/8/8/8","1Q6/7k/2K4p/8/5r2/8/8/8","7Q/7k/2K4p/8/5r2/8/8/8","7k/8/2K4p/8/5r2/8/8/8","7k/3K4/7p/8/5r2/8/8/8","7k/3K4/5r1p/8/8/8/8/8","7k/4K3/5r1p/8/8/8/8/8","7k/4K3/7p/5r2/8/8/8/8","4K2k/8/7p/5r2/8/8/8/8","4K3/6k1/7p/5r2/8/8/8/8","8/4K1k1/7p/5r2/8/8/8/8","8/4K1k1/7p/r7/8/8/8/8","8/6k1/3K3p/r7/8/8/8/8","r7/6k1/3K3p/8/8/8/8/8","r7/4K1k1/7p/8/8/8/8/8","r7/4K1k1/8/7p/8/8/8/8","r7/3K2k1/8/7p/8/8/8/8","r7/3K3k/8/7p/8/8/8/8","r7/7k/4K3/7p/8/8/8/8","8/7k/4K3/7p/8/8/8/r7","8/5K1k/8/7p/8/8/8/r7","8/5K1k/8/7p/r7/8/8/8"],"book":0,"i":2},{"id":"g0/g0r0-s00","vid":"g0","slot":"g0r0-s00","gen":0,"status":"in_progress","score":null,"result":null,"how":null,"infra":null,"color":"white","family":"italian","eco":null,"split":"train","opp_name":"E100","opp_elo":93,"started":1791758863.5511198,"finished":null,"elapsed":349.45,"cost":0.2464,"model":"claude-haiku-4-5-20251001","uci":["e2e4","e7e5","g1f3","b8c6","f1c4","g8f6","d2d4","c6b8","d4e5","f8c5","c4f7","e8f7","f3g5","f7e7","d1d6","c5d6","e5d6","e7e8","d6c7","b7b5","c7d8q","e8d8","g5e6","d8e8","e6c7","e8f8","c7e6","f8e7","e6d8","e7f8","d8e6","f8g8","e6g7","g8g7","e1g1","f6e8","c1h6","g7h6","f1d1","c8a6","d1d6","h6h5","g2g4","h5g5","f2f4","g5h4","d6h6","h4g4","h6h4","g4h4","f4f5","h7h6","f5f6","e8f6","e4e5","f6h5","e5e6","h8f8","e6e7","b8c6","e7e8q","f8g8","e8g8","c6b8","g8g4","h4g4","h2h3","g4g3","c2c4","g3h3","c4b5","h3h4","b5b6","a7b6","g1h2","d7d5","h2g2","h5g7","g2h2","a6d3","b1c3","h4g5","a1g1","g5f4","c3d5","f4f5","g1g5","f5e6","d5f4","e6d7","g5g7","d7c8","g7c7","c8d8","c7c8","d8e7","c8e8","e7e8","f4d3","a8a4","d3b4","a4a5","b4d5","a5a7","d5c7","e8d7","c7e6","b8a6","e6f8","d7c6","f8e6","c6b5","e6c7","a6c7","a2a4","b5b4","a4a5","c7e8","a5b6","a7a8","b6b7","a8a2","b7b8q","b4c5","b8b4","c5d5","b4d6","d5c4","d6c5","c4c5","h2g3","a2a7","b2b4","c5b5","g3f4","e8f6","f4e5","b5b6","e5f6","a7a3","b4b5","a3d3","f6g6","d3b3"],"san":["e4","e5","Nf3","Nc6","Bc4","Nf6","d4","Nb8","dxe5","Bc5","Bxf7+","Kxf7","Ng5+","Ke7","Qd6+","Bxd6","exd6+","Ke8","dxc7","b5","cxd8=Q+","Kxd8","Ne6+","Ke8","Nc7+","Kf8","Ne6+","Ke7","Nd8","Kf8","Ne6+","Kg8","Nxg7","Kxg7","O-O","Ne8","Bh6+","Kxh6","Rd1","Ba6","Rd6+","Kh5","g4+","Kg5","f4+","Kh4","Rh6+","Kxg4","Rh4+","Kxh4","f5","h6","f6","Nxf6","e5","Nh5","e6","Rf8","e7","Nc6","e8=Q","Rg8+","Qxg8","Nb8","Qg4+","Kxg4","h3+","Kg3","c4","Kxh3","cxb5","Kh4","b6","axb6","Kh2","d5","Kg2","Ng7","Kh2","Bd3","Nc3","Kg5","Rg1+","Kf4","Nxd5+","Kf5","Rg5+","Ke6","Nf4+","Kd7","Rxg7+","Kc8","Rc7+","Kd8","Rc8+","Ke7","Re8+","Kxe8","Nxd3","Ra4","Nb4","Ra5","Nd5","Ra7","Nc7+","Kd7","Ne6","Na6","Nf8+","Kc6","Ne6","Kb5","Nc7+","Nxc7","a4+","Kb4","a5","Ne8","axb6","Ra8","b7","Ra2","b8=Q+","Kc5","Qb4+","Kd5","Qd6+","Kc4","Qc5+","Kxc5","Kg3","Ra7","b4+","Kb5","Kf4","Nf6","Ke5","Kb6","Kxf6","Ra3","b5","Rd3","Kg6","Rb3"],"fens":["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR","rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/pppp1ppp/2n2n2/4p3/2BPP3/5N2/PPP2PPP/RNBQK2R","rnbqkb1r/pppp1ppp/5n2/4p3/2BPP3/5N2/PPP2PPP/RNBQK2R","rnbqkb1r/pppp1ppp/5n2/4P3/2B1P3/5N2/PPP2PPP/RNBQK2R","rnbqk2r/pppp1ppp/5n2/2b1P3/2B1P3/5N2/PPP2PPP/RNBQK2R","rnbqk2r/pppp1Bpp/5n2/2b1P3/4P3/5N2/PPP2PPP/RNBQK2R","rnbq3r/pppp1kpp/5n2/2b1P3/4P3/5N2/PPP2PPP/RNBQK2R","rnbq3r/pppp1kpp/5n2/2b1P1N1/4P3/8/PPP2PPP/RNBQK2R","rnbq3r/ppppk1pp/5n2/2b1P1N1/4P3/8/PPP2PPP/RNBQK2R","rnbq3r/ppppk1pp/3Q1n2/2b1P1N1/4P3/8/PPP2PPP/RNB1K2R","rnbq3r/ppppk1pp/3b1n2/4P1N1/4P3/8/PPP2PPP/RNB1K2R","rnbq3r/ppppk1pp/3P1n2/6N1/4P3/8/PPP2PPP/RNB1K2R","rnbqk2r/pppp2pp/3P1n2/6N1/4P3/8/PPP2PPP/RNB1K2R","rnbqk2r/ppPp2pp/5n2/6N1/4P3/8/PPP2PPP/RNB1K2R","rnbqk2r/p1Pp2pp/5n2/1p4N1/4P3/8/PPP2PPP/RNB1K2R","rnbQk2r/p2p2pp/5n2/1p4N1/4P3/8/PPP2PPP/RNB1K2R","rnbk3r/p2p2pp/5n2/1p4N1/4P3/8/PPP2PPP/RNB1K2R","rnbk3r/p2p2pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb1k2r/p2p2pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb1k2r/p1Np2pp/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb2k1r/p1Np2pp/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb2k1r/p2p2pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb4r/p2pk1pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnbN3r/p2pk1pp/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnbN1k1r/p2p2pp/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb2k1r/p2p2pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb3kr/p2p2pp/4Nn2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb3kr/p2p2Np/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb4r/p2p2kp/5n2/1p6/4P3/8/PPP2PPP/RNB1K2R","rnb4r/p2p2kp/5n2/1p6/4P3/8/PPP2PPP/RNB2RK1","rnb1n2r/p2p2kp/8/1p6/4P3/8/PPP2PPP/RNB2RK1","rnb1n2r/p2p2kp/7B/1p6/4P3/8/PPP2PPP/RN3RK1","rnb1n2r/p2p3p/7k/1p6/4P3/8/PPP2PPP/RN3RK1","rnb1n2r/p2p3p/7k/1p6/4P3/8/PPP2PPP/RN1R2K1","rn2n2r/p2p3p/b6k/1p6/4P3/8/PPP2PPP/RN1R2K1","rn2n2r/p2p3p/b2R3k/1p6/4P3/8/PPP2PPP/RN4K1","rn2n2r/p2p3p/b2R4/1p5k/4P3/8/PPP2PPP/RN4K1","rn2n2r/p2p3p/b2R4/1p5k/4P1P1/8/PPP2P1P/RN4K1","rn2n2r/p2p3p/b2R4/1p4k1/4P1P1/8/PPP2P1P/RN4K1","rn2n2r/p2p3p/b2R4/1p4k1/4PPP1/8/PPP4P/RN4K1","rn2n2r/p2p3p/b2R4/1p6/4PPPk/8/PPP4P/RN4K1","rn2n2r/p2p3p/b6R/1p6/4PPPk/8/PPP4P/RN4K1","rn2n2r/p2p3p/b6R/1p6/4PPk1/8/PPP4P/RN4K1","rn2n2r/p2p3p/b7/1p6/4PPkR/8/PPP4P/RN4K1","rn2n2r/p2p3p/b7/1p6/4PP1k/8/PPP4P/RN4K1","rn2n2r/p2p3p/b7/1p3P2/4P2k/8/PPP4P/RN4K1","rn2n2r/p2p4/b6p/1p3P2/4P2k/8/PPP4P/RN4K1","rn2n2r/p2p4/b4P1p/1p6/4P2k/8/PPP4P/RN4K1","rn5r/p2p4/b4n1p/1p6/4P2k/8/PPP4P/RN4K1","rn5r/p2p4/b4n1p/1p2P3/7k/8/PPP4P/RN4K1","rn5r/p2p4/b6p/1p2P2n/7k/8/PPP4P/RN4K1","rn5r/p2p4/b3P2p/1p5n/7k/8/PPP4P/RN4K1","rn3r2/p2p4/b3P2p/1p5n/7k/8/PPP4P/RN4K1","rn3r2/p2pP3/b6p/1p5n/7k/8/PPP4P/RN4K1","r4r2/p2pP3/b1n4p/1p5n/7k/8/PPP4P/RN4K1","r3Qr2/p2p4/b1n4p/1p5n/7k/8/PPP4P/RN4K1","r3Q1r1/p2p4/b1n4p/1p5n/7k/8/PPP4P/RN4K1","r5Q1/p2p4/b1n4p/1p5n/7k/8/PPP4P/RN4K1","rn4Q1/p2p4/b6p/1p5n/7k/8/PPP4P/RN4K1","rn6/p2p4/b6p/1p5n/6Qk/8/PPP4P/RN4K1","rn6/p2p4/b6p/1p5n/6k1/8/PPP4P/RN4K1","rn6/p2p4/b6p/1p5n/6k1/7P/PPP5/RN4K1","rn6/p2p4/b6p/1p5n/8/6kP/PPP5/RN4K1","rn6/p2p4/b6p/1p5n/2P5/6kP/PP6/RN4K1","rn6/p2p4/b6p/1p5n/2P5/7k/PP6/RN4K1","rn6/p2p4/b6p/1P5n/8/7k/PP6/RN4K1","rn6/p2p4/b6p/1P5n/7k/8/PP6/RN4K1","rn6/p2p4/bP5p/7n/7k/8/PP6/RN4K1","rn6/3p4/bp5p/7n/7k/8/PP6/RN4K1","rn6/3p4/bp5p/7n/7k/8/PP5K/RN6","rn6/8/bp5p/3p3n/7k/8/PP5K/RN6","rn6/8/bp5p/3p3n/7k/8/PP4K1/RN6","rn6/6n1/bp5p/3p4/7k/8/PP4K1/RN6","rn6/6n1/bp5p/3p4/7k/8/PP5K/RN6","rn6/6n1/1p5p/3p4/7k/3b4/PP5K/RN6","rn6/6n1/1p5p/3p4/7k/2Nb4/PP5K/R7","rn6/6n1/1p5p/3p2k1/8/2Nb4/PP5K/R7","rn6/6n1/1p5p/3p2k1/8/2Nb4/PP5K/6R1","rn6/6n1/1p5p/3p4/5k2/2Nb4/PP5K/6R1","rn6/6n1/1p5p/3N4/5k2/3b4/PP5K/6R1","rn6/6n1/1p5p/3N1k2/8/3b4/PP5K/6R1","rn6/6n1/1p5p/3N1kR1/8/3b4/PP5K/8","rn6/6n1/1p2k2p/3N2R1/8/3b4/PP5K/8","rn6/6n1/1p2k2p/6R1/5N2/3b4/PP5K/8","rn6/3k2n1/1p5p/6R1/5N2/3b4/PP5K/8","rn6/3k2R1/1p5p/8/5N2/3b4/PP5K/8","rnk5/6R1/1p5p/8/5N2/3b4/PP5K/8","rnk5/2R5/1p5p/8/5N2/3b4/PP5K/8","rn1k4/2R5/1p5p/8/5N2/3b4/PP5K/8","rnRk4/8/1p5p/8/5N2/3b4/PP5K/8","rnR5/4k3/1p5p/8/5N2/3b4/PP5K/8","rn2R3/4k3/1p5p/8/5N2/3b4/PP5K/8","rn2k3/8/1p5p/8/5N2/3b4/PP5K/8","rn2k3/8/1p5p/8/8/3N4/PP5K/8","1n2k3/8/1p5p/8/r7/3N4/PP5K/8","1n2k3/8/1p5p/8/rN6/8/PP5K/8","1n2k3/8/1p5p/r7/1N6/8/PP5K/8","1n2k3/8/1p5p/r2N4/8/8/PP5K/8","1n2k3/r7/1p5p/3N4/8/8/PP5K/8","1n2k3/r1N5/1p5p/8/8/8/PP5K/8","1n6/r1Nk4/1p5p/8/8/8/PP5K/8","1n6/r2k4/1p2N2p/8/8/8/PP5K/8","8/r2k4/np2N2p/8/8/8/PP5K/8","5N2/r2k4/np5p/8/8/8/PP5K/8","5N2/r7/npk4p/8/8/8/PP5K/8","8/r7/npk1N2p/8/8/8/PP5K/8","8/r7/np2N2p/1k6/8/8/PP5K/8","8/r1N5/np5p/1k6/8/8/PP5K/8","8/r1n5/1p5p/1k6/8/8/PP5K/8","8/r1n5/1p5p/1k6/P7/8/1P5K/8","8/r1n5/1p5p/8/Pk6/8/1P5K/8","8/r1n5/1p5p/P7/1k6/8/1P5K/8","4n3/r7/1p5p/P7/1k6/8/1P5K/8","4n3/r7/1P5p/8/1k6/8/1P5K/8","r3n3/8/1P5p/8/1k6/8/1P5K/8","r3n3/1P6/7p/8/1k6/8/1P5K/8","4n3/1P6/7p/8/1k6/8/rP5K/8","1Q2n3/8/7p/8/1k6/8/rP5K/8","1Q2n3/8/7p/2k5/8/8/rP5K/8","4n3/8/7p/2k5/1Q6/8/rP5K/8","4n3/8/7p/3k4/1Q6/8/rP5K/8","4n3/8/3Q3p/3k4/8/8/rP5K/8","4n3/8/3Q3p/8/2k5/8/rP5K/8","4n3/8/7p/2Q5/2k5/8/rP5K/8","4n3/8/7p/2k5/8/8/rP5K/8","4n3/8/7p/2k5/8/6K1/rP6/8","4n3/r7/7p/2k5/8/6K1/1P6/8","4n3/r7/7p/2k5/1P6/6K1/8/8","4n3/r7/7p/1k6/1P6/6K1/8/8","4n3/r7/7p/1k6/1P3K2/8/8/8","8/r7/5n1p/1k6/1P3K2/8/8/8","8/r7/5n1p/1k2K3/1P6/8/8/8","8/r7/1k3n1p/4K3/1P6/8/8/8","8/r7/1k3K1p/8/1P6/8/8/8","8/8/1k3K1p/8/1P6/r7/8/8","8/8/1k3K1p/1P6/8/r7/8/8","8/8/1k3K1p/1P6/8/3r4/8/8","8/8/1k4Kp/1P6/8/3r4/8/8","8/8/1k4Kp/1P6/8/1r6/8/8"],"book":0,"i":3},{"id":"g0/g0r0-s04","vid":"g0","slot":"g0r0-s04","gen":0,"status":"in_progress","score":null,"result":null,"how":null,"infra":null,"color":"black","family":"ruy-lopez","eco":null,"split":"train","opp_name":"E100","opp_elo":93,"started":1791759210.141611,"finished":null,"elapsed":0.01,"cost":0,"model":"claude-haiku-4-5-20251001","uci":["e2e4","e7e5","g1f3","b8c6","f1b5","a7a6","b5a4","g8f6","h2h3"],"san":["e4","e5","Nf3","Nc6","Bb5","a6","Ba4","Nf6","h3"],"fens":["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR","rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR","rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R","r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R","r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R","r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N1P/PPPP1PP1/RNBQK2R"],"book":0,"i":4}],"timeline":[{"t":1791758935.576215,"i":0,"elo":304,"lo":-228,"hi":953,"n":1},{"t":1791759210.139786,"i":1,"elo":223,"lo":-198,"hi":725,"n":2}]}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById("data").textContent);
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function fmtDur(s){ if(s == null) return "–"; s = Math.max(0, Math.round(s)); var h = Math.floor(s/3600), m = Math.floor(s%3600/60);
+  return h ? h + "h " + (m<10?"0":"") + m + "m" : m ? m + "m " + (s%60) + "s" : s + "s"; }
+function estTxt(e){ if(!e || e.elo == null) return "–"; return e.elo + (e.lo != null ? " <small>± " + Math.round((e.hi - e.lo)/2) + "</small>" : ""); }
+function ciTxt(e){ return e && e.lo != null ? "95% CI " + e.lo + " to " + e.hi + " · " + e.n + " games" : ""; }
+function resOf(g){
+  if(g.status === "in_progress") return ["live","LIVE"];
+  if(g.status !== "complete" || g.score == null) return ["void", g.status === "abandoned" ? "STOP" : "VOID"];
+  return g.score > 0.5 ? ["win","WIN"] : g.score === 0.5 ? ["draw","DRAW"] : ["loss","LOSS"];
+}
+
+// theme toggle
+(function(){ var t = null; try { t = localStorage.getItem("judge-theme"); } catch(e){}
+  if(t) document.documentElement.setAttribute("data-theme", t);
+  $("theme").onclick = function(){ var cur = document.documentElement.getAttribute("data-theme");
+    var dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    var nt = dark ? "light" : "dark"; document.documentElement.setAttribute("data-theme", nt);
+    try { localStorage.setItem("judge-theme", nt); } catch(e){} drawChart(); };
+})();
+
+// ---------- header ----------
+$("runid").textContent = D.run;
+var G = D.games, live = G.filter(function(g){ return g.status === "in_progress"; }).length;
+var comp = G.filter(function(g){ return g.status === "complete"; });
+$("status").className = "badge" + (D.done ? "" : " live");
+$("status").innerHTML = D.done ? "<span class='dot' style='background:var(--muted)'></span>run finished" :
+  "<span class='dot'></span>live · gen " + esc(D.gen) + " · " + esc(D.phase || "");
+var gain = (D.start_est && D.cur_est && D.start_est.elo != null && D.cur_est.elo != null) ? D.cur_est.elo - D.start_est.elo : null;
+var stats = [
+  ["Starting Elo est.", estTxt(D.start_est), "first version " + esc((D.versions[0]||{}).id || "g0") + " · " + ciTxt(D.start_est), ""],
+  [(D.done ? "End" : "Current") + " Elo est.", estTxt(D.cur_est), "champion " + esc(D.champion) + " · " + ciTxt(D.cur_est), "hero"],
+  ["Change", gain == null ? "–" : (gain >= 0 ? "+" : "") + gain, "current est. minus starting est.", ""],
+  ["Games played", comp.length + (live ? " <small>+" + live + " live</small>" : ""), G.length - comp.length - live > 0 ? (G.length - comp.length - live) + " void (not rated)" : "rated games vs the ladder", ""],
+  ["Run time", fmtDur(D.last - D.started), D.done ? "start to finish" : "so far", ""],
+  ["Model calls", D.calls.toLocaleString(), "$" + D.spend_usd.toFixed(2) + " spent", ""]
+];
+$("stats").innerHTML = stats.map(function(s){ return "<div class='stat " + s[3] + "'><div class='k'>" + s[0] + "</div><div class='v'>" + s[1] + "</div><div class='s'>" + s[2] + "</div></div>"; }).join("");
+
+// ---------- version tiles ----------
+var th = D.versions.map(function(v){
+  var e = v.est, g = v.gain;
+  var gainH = g == null ? "" : "<span class='gain " + (g >= 0 ? "up" : "down") + "'>" + (g >= 0 ? "+" : "") + g + " vs " + esc(v.parent) + "</span>";
+  var exam = v.exam ? "exam: " + (v.exam.gain >= 0 ? "+" : "") + v.exam.gain + " (n=" + v.exam.n + ")" : "";
+  return "<div class='card tile'><div class='top'><span class='vid mono'>" + esc(v.id) + "</span><span class='pill " + v.status + "'>" + v.status + "</span></div>" +
+    "<div class='elo'>" + (e ? "est. " + estTxt(e) : "<span class='muted' style='font-size:15px'>no ladder games</span>") + "</div>" +
+    (e && e.lo != null ? "<div class='row'>95% CI " + e.lo + " to " + e.hi + "</div>" : "") +
+    "<div class='row'><span>" + v.games + " games</span>" + (v.games ? "<span><b class='w'>" + v.w + "W</b> <b class='d'>" + v.d + "D</b> <b class='l'>" + v.l + "L</b></span>" : "") +
+    (v.live ? "<span style='color:var(--live)'>" + v.live + " live</span>" : "") + "</div>" +
+    "<div class='row'>" + (v.dur != null ? "<span>ran " + fmtDur(v.dur) + "</span>" : "") + gainH + (exam ? "<span>" + esc(exam) + "</span>" : "") + "</div>" +
+    "<div class='chg'>" + (v.parent ? "<span class='muted'>change from " + esc(v.parent) + ":</span> " : "") + esc(v.change || "–") + "</div>" +
+    (v.signal ? "<div class='row'>" + esc(v.signal) + "</div>" : "") + "</div>";
+});
+if(!D.done && D.versions.length <= 1) th.push("<div class='card tile next'><div style='font-weight:700;font-size:15px;color:var(--ink)'>next</div><div>self-improvement generation running: the agent mines its own games for mistakes and proposes a harness change</div></div>");
+$("tiles").innerHTML = th.join("");
+
+// ---------- chart ----------
+var selGame = 0;
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawChart(){
+  var W = 1400, H = 460, L = 120, R = 20, T = 16, B = 40;
+  var pts = G.filter(function(g){ return g.opp_elo != null; });
+  var ys = pts.map(function(g){ return g.opp_elo; });
+  D.timeline.forEach(function(t){ ys.push(t.elo); });
+  var lastT = D.timeline[D.timeline.length - 1]; if(lastT && lastT.lo != null) ys.push(lastT.lo, lastT.hi);
+  if(!ys.length) ys = [0, 400];
+  var y0 = Math.min.apply(null, ys) - 80, y1 = Math.max.apply(null, ys) + 80;
+  var rungs = D.rungs.filter(function(r){ return r.climb || r.kind === "sf_elo"; });
+  var t0 = D.started, t1 = Math.max(D.last, t0 + 60);
+  function X(t){ return L + (t - t0) / (t1 - t0) * (W - L - R); }
+  function Y(e){ return T + (1 - (e - y0) / (y1 - y0)) * (H - T - B); }
+  var s = [];
+  rungs.forEach(function(r){ if(r.elo < y0 || r.elo > y1) return; var y = Y(r.elo), sf = r.kind === "sf_elo";
+    s.push("<line x1='" + L + "' x2='" + (W - R) + "' y1='" + y + "' y2='" + y + "' stroke='" + cssv("--line") + "'" + (sf ? "" : " stroke-dasharray='2 5'") + "/>");
+    s.push("<text x='" + (L - 8) + "' y='" + (y + 4) + "' text-anchor='end' font-size='12' fill='" + cssv(sf ? "--ink" : "--muted") + "' font-weight='" + (sf ? 700 : 400) + "'>" + esc(sf ? "Stockfish " + r.name.slice(2) : r.name) + " · " + r.elo + "</text>"); });
+  // version boundaries
+  var seenV = {};
+  G.forEach(function(g){ if(!seenV[g.vid] && g.started){ seenV[g.vid] = 1; var x = X(g.started);
+    s.push("<line class='ver-line' x1='" + x + "' x2='" + x + "' y1='" + T + "' y2='" + (H - B) + "'/><text x='" + (x + 4) + "' y='" + (T + 12) + "' font-size='12' font-weight='700' fill='" + cssv("--muted") + "'>" + esc(g.vid) + "</text>"); } });
+  // CI band + line (step after each game)
+  var tl = D.timeline;
+  if(tl.length){
+    var up = [], dn = [], ln = [];
+    tl.forEach(function(p, k){ var xa = X(p.t), xb = k + 1 < tl.length ? X(tl[k+1].t) : X(t1);
+      if(p.lo != null){ up.push(xa + "," + Y(p.hi), xb + "," + Y(p.hi)); dn.unshift(xb + "," + Y(p.lo), xa + "," + Y(p.lo)); }
+      ln.push(xa + "," + Y(p.elo), xb + "," + Y(p.elo)); });
+    s.push("<clipPath id='plotclip'><rect x='" + L + "' y='" + T + "' width='" + (W - L - R) + "' height='" + (H - T - B) + "'/></clipPath>");
+    if(up.length) s.push("<polygon clip-path='url(#plotclip)' points='" + up.concat(dn).join(" ") + "' fill='" + cssv("--band") + "'/>");
+    s.push("<polyline points='" + ln.join(" ") + "' fill='none' stroke='" + cssv("--accent") + "' stroke-width='3' stroke-linejoin='round'/>");
+    var lp = tl[tl.length - 1];
+    s.push("<text x='" + (W - R - 4) + "' y='" + (Y(lp.elo) - 8) + "' text-anchor='end' font-size='14' font-weight='700' fill='" + cssv("--accent") + "'>est. " + lp.elo + (lp.lo != null ? " ± " + Math.round((lp.hi - lp.lo)/2) : "") + "</text>");
+  }
+  // game dots
+  pts.forEach(function(g){ var t = g.finished || D.last, x = X(t), y = Y(g.opp_elo), r = resOf(g)[0];
+    var col = r === "win" ? "--win" : r === "draw" ? "--draw" : r === "loss" ? "--loss" : r === "live" ? "--live" : "--muted";
+    var hollow = r === "live" || r === "void";
+    s.push("<circle data-i='" + g.i + "' cx='" + x + "' cy='" + y + "' r='" + (g.i === selGame ? 8 : 5.5) + "' fill='" + (hollow ? "none" : cssv(col)) + "' stroke='" + (g.i === selGame ? cssv("--ink") : cssv(col)) + "' stroke-width='" + (g.i === selGame ? 2.5 : hollow ? 2 : 1) + "' style='cursor:pointer'><title>" + esc(g.vid + " vs " + g.opp_name + " (" + g.opp_elo + "): " + resOf(g)[1]) + "</title></circle>"); });
+  // x axis
+  var span = t1 - t0, step = [60,300,600,900,1800,3600,7200,14400,28800].find(function(v){ return span / v <= 8; }) || 28800;
+  for(var t = 0; t <= span; t += step){ var x = X(t0 + t);
+    s.push("<text x='" + x + "' y='" + (H - B + 18) + "' text-anchor='middle' font-size='12' fill='" + cssv("--muted") + "'>" + fmtDur(t) + "</text>"); }
+  s.push("<text x='" + (W - R) + "' y='" + (H - 6) + "' text-anchor='end' font-size='12' fill='" + cssv("--muted") + "'>wall-clock time since run start</text>");
+  s.push("<text x='12' y='" + (H - 6) + "' font-size='12' fill='" + cssv("--muted") + "'>ladder Elo (Stockfish-anchored)</text>");
+  $("chart").innerHTML = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Elo ladder chart'>" + s.join("") + "</svg>";
+  Array.prototype.forEach.call($("chart").querySelectorAll("circle[data-i]"), function(c){ c.onclick = function(){ jumpGame(+c.getAttribute("data-i")); }; });
+}
+
+// ---------- boards ----------
+var GLYPH = {k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+function sqName(f, r){ return "abcdefgh"[f] + (r + 1); }
+function boardHTML(placement, hl, flip, coords){
+  var rows = placement.split("/"), grid = [];
+  rows.forEach(function(row){ var line = []; for(var c of row){ if(/\d/.test(c)) for(var k = 0; k < +c; k++) line.push(null); else line.push(c); } grid.push(line); });
+  var out = [];
+  for(var vr = 0; vr < 8; vr++) for(var vf = 0; vf < 8; vf++){
+    var r = flip ? vr : 7 - vr, f = flip ? 7 - vf : vf;        // r: 0 = rank 1
+    var p = grid[7 - r][f], name = sqName(f, r), dark = (r + f) % 2 === 0;
+    var h = "<div class='sq " + (dark ? "dk" : "lt") + (hl && hl.indexOf(name) >= 0 ? " hl" : "") + "'>";
+    if(coords){ if(vr === 7) h += "<span class='coord f'>" + "abcdefgh"[f] + "</span>"; if(vf === 0) h += "<span class='coord r'>" + (r + 1) + "</span>"; }
+    if(p) h += "<span class='pc " + (p === p.toUpperCase() ? "W" : "B") + "'>" + GLYPH[p.toLowerCase()] + "︎</span>";
+    out.push(h + "</div>");
+  }
+  return out.join("");
+}
+
+// ---------- timelapse ----------
+var frames = [];  // [gameIndex, ply]
+var gameStart = [];
+G.forEach(function(g, gi){ gameStart.push(frames.length); for(var p = 0; p < g.fens.length; p++) frames.push([gi, p]); });
+var cur = 0, timer = null;
+$("scrub").max = Math.max(0, frames.length - 1);
+function show(k){
+  if(!frames.length) return;
+  cur = Math.max(0, Math.min(frames.length - 1, k));
+  var gi = frames[cur][0], ply = frames[cur][1], g = G[gi];
+  var hl = ply > 0 && g.uci[ply - 1] ? [g.uci[ply - 1].slice(0, 2), g.uci[ply - 1].slice(2, 4)] : null;
+  $("board").innerHTML = boardHTML(g.fens[ply], hl, g.color === "black", true);
+  $("scrub").value = cur;
+  $("scrubL").textContent = "game " + (gi + 1) + " of " + G.length;
+  $("scrubR").textContent = ply === 0 ? "start" : "ply " + ply + " of " + (g.fens.length - 1);
+  if(gi !== selGame){ selGame = gi; renderSide(); markGrid(); drawChart(); }
+  markMove(ply);
+}
+function renderSide(){
+  var g = G[selGame], r = resOf(g);
+  var ended = g.status === "in_progress" ? "still being played" : g.status === "complete" ? (g.how || "–") + (g.result ? " · " + g.result : "") : (g.infra || g.status) + " (not rated)";
+  var mv = [];
+  for(var i = 0; i < g.san.length; i += 2){
+    var cell = function(j){ return j < g.san.length ? "<span class='m" + (j < g.book ? " bk" : "") + "' data-p='" + (j + 1) + "'>" + esc(g.san[j]) + "</span>" : "<span></span>"; };
+    mv.push("<div class='mv'><span class='n'>" + (i/2 + 1) + ".</span>" + cell(i) + cell(i + 1) + "</div>");
+  }
+  $("side").innerHTML = "<div class='gt'>Game " + (selGame + 1) + " <span class='res " + r[0] + "'>" + r[1] + "</span></div>" +
+    "<div class='kv'><b>Agent</b><span class='mono'>" + esc(g.vid) + " · plays " + esc(g.color) + "</span>" +
+    "<b>Opponent</b><span>" + esc(g.opp_name) + " · <b style='color:var(--ink)'>" + esc(g.opp_elo) + "</b> Elo</span>" +
+    "<b>Opening</b><span>" + esc(g.family || "–") + (g.eco ? " (" + esc(g.eco) + ")" : "") + "</span>" +
+    "<b>Ended</b><span>" + esc(ended) + "</span>" + (g.score != null && g.score !== 0 && g.score !== 0.5 && g.score !== 1 ? "<b>Score</b><span>" + g.score + " (adjudicated)</span>" : "") +
+    "<b>Length</b><span>" + g.san.length + " plies" + (g.elapsed ? " · " + fmtDur(g.elapsed) : "") + (g.cost ? " · $" + g.cost.toFixed(3) : "") + "</span></div>" +
+    "<div class='moves mono' id='moves'>" + (mv.join("") || "<span class='muted'>no moves yet</span>") + "</div>" +
+    (g.book ? "<div class='muted' style='font-size:12px;margin-top:6px'>italic = opening book plies (not chosen by the agent)</div>" : "");
+  Array.prototype.forEach.call($("moves").querySelectorAll("[data-p]"), function(el){ el.onclick = function(){ stop(); show(gameStart[selGame] + +el.getAttribute("data-p")); }; });
+}
+function markMove(ply){
+  var box = $("moves"); if(!box) return;
+  var old = box.querySelector(".cur"); if(old) old.classList.remove("cur");
+  var el = box.querySelector("[data-p='" + ply + "']");
+  if(el){ el.classList.add("cur"); var top = el.offsetTop - box.offsetTop; if(top < box.scrollTop || top > box.scrollTop + box.clientHeight - 24) box.scrollTop = top - box.clientHeight / 2; }
+  else if(ply === 0) box.scrollTop = 0;
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } $("play").textContent = "Play"; }
+function play(){ if(timer){ stop(); return; } if(cur >= frames.length - 1) show(0);
+  $("play").textContent = "Pause";
+  timer = setInterval(function(){ if(cur >= frames.length - 1){ stop(); return; } show(cur + 1); }, +$("speed").value); }
+function jumpGame(gi){ stop(); show(gameStart[gi] + G[gi].fens.length - 1); var m = $("grid").querySelector("[data-g='" + gi + "']"); if(m) m.scrollIntoView({block:"nearest"}); }
+$("play").onclick = play;
+$("speed").onchange = function(){ if(timer){ stop(); play(); } };
+$("scrub").oninput = function(){ stop(); show(+this.value); };
+$("prevM").onclick = function(){ stop(); show(cur - 1); };
+$("nextM").onclick = function(){ stop(); show(cur + 1); };
+$("prevG").onclick = function(){ stop(); var gi = frames[cur][0]; show(frames[cur][1] > 0 ? gameStart[gi] : gameStart[Math.max(0, gi - 1)]); };
+$("nextG").onclick = function(){ stop(); var gi = frames[cur][0]; if(gi + 1 < G.length) show(gameStart[gi + 1]); };
+document.addEventListener("keydown", function(e){
+  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if(e.key === " "){ e.preventDefault(); play(); } else if(e.key === "ArrowRight"){ stop(); show(cur + 1); } else if(e.key === "ArrowLeft"){ stop(); show(cur - 1); }
+});
+
+// ---------- grid ----------
+$("gcount").textContent = "(" + G.length + ")";
+$("grid").innerHTML = G.map(function(g, gi){ var r = resOf(g);
+  return "<div class='mini' data-g='" + gi + "' title='" + esc("#" + (gi + 1) + " " + g.vid + " vs " + g.opp_name + " · " + (g.how || g.status)) + "'><div class='board'>" + boardHTML(g.fens[g.fens.length - 1], null, g.color === "black", false) +
+    "</div><div class='cap'><span class='res " + r[0] + "'>" + r[1] + "</span><span class='mono muted'>" + esc(g.opp_elo) + "</span></div></div>"; }).join("") ||
+  "<div class='muted'>No games yet.</div>";
+Array.prototype.forEach.call($("grid").querySelectorAll(".mini"), function(m){ m.onclick = function(){ jumpGame(+m.getAttribute("data-g")); }; });
+function markGrid(){ Array.prototype.forEach.call($("grid").querySelectorAll(".mini"), function(m){ m.classList.toggle("sel", +m.getAttribute("data-g") === selGame); }); }
+
+$("foot").innerHTML = "Scale: " + esc(D.scale) + ". " + esc(D.calibration) + ". Agent estimate = performance rating (MAP, 95% profile CI) over the last " + D.window +
+  " rated games of the champion lineage (" + esc(D.lineage.slice().reverse().join(" → ")) + "); version tiles use each version's own games. Void/infra games are shown but never rated. Generated " + new Date(D.generated * 1000).toLocaleString() + ".";
+
+drawChart();
+if(frames.length){ renderSide(); markGrid(); show(0); } else { $("side").innerHTML = "<div class='muted'>No games yet.</div>"; }
+})();
+</script>
+</body>
+</html>

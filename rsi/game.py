@@ -267,11 +267,16 @@ def play_game(harness: dict, slot: dict, out_dir: Path | str, run_id: str, *, ch
                     break
                 per_move.append(pm)
                 by = "agent"
+                # Only the model's own reply time counts toward the time cap: infra backoff and usage-limit waits
+                # inside a call must never push a game into adjudication.
+                spent = [a["wall_s"] for a in pm["attempts"] if isinstance(a, dict) and a.get("wall_s") is not None]
+                took = sum(spent) if spent else time.time() - t0
             else:
                 mv, by = opponent.move(board), "opponent"
+                took = time.time() - t0
             san.append(board.san(mv))
             board.push(mv)
-            elapsed += time.time() - t0
+            elapsed += took
             checkpoint()
             if log:
                 log({"kind": "move", "by": by, "san": san[-1], "fen": board.fen(), "ply": ply + 1, "game": name})
