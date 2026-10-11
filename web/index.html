@@ -25,6 +25,11 @@
   /* stage: tree on the left, ledger on the right */
   #stage { position:fixed; left:var(--term); top:0; bottom:0; right:var(--margin); }
   #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  /* one page: the stage shows the tree, the score charts or the chess replay */
+  #pane { position:absolute; left:0; right:0; top:104px; bottom:0; width:100%; height:calc(100% - 104px); border:0; border-top:1px solid var(--line); background:var(--paper); z-index:1; display:none; }
+  body.pane #pane { display:block; } body.pane #guide, body.pane .legend, body.pane .seal, body.pane #steps, body.pane #phase { display:none !important; }
+  #views { display:flex; gap:14px; margin-left:auto; } #views button { border:0; padding:4px 0; color:var(--faint); font-size:13px; } #views button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
+  #tools { flex-basis:100%; display:flex; gap:14px; align-items:baseline; } #tools button { border:0; padding:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
 
   /* terminal: the agent's files and every change to them, down the left side */
@@ -174,12 +179,12 @@
       <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
       <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
       <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
+      <nav id="views"><button type="button" id="v-tree" class="on" onclick="setView('tree')" title="The tree of versions">tree</button><button type="button" id="v-scores" onclick="setView('scores')" title="Held-out score of every version, one chart per benchmark">scores</button><button type="button" id="v-replay" onclick="setView('replay')" title="The same chess game played by two versions, side by side">replay</button></nav>
+      <div id="tools"><button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button><button type="button" onclick="toggleAgent(true)">+ new agent</button><button type="button" id="term-btn" onclick="toggleTerm()">terminal</button></div>
       <div id="opts" hidden>
         <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
         <label title="Each round: find its mistakes, write one change, test the change, keep it or cut it.">rounds <select id="gens" class="sel"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label>
         <label title="How many problems to use. Half are for practice, half are kept back to test each change fairly.">problems <select id="count" class="sel"></select></label>
-        <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
-        <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
       </div>
     </form>
   </header>
@@ -201,6 +206,7 @@
       <button type="button" onclick="toggleAgent()">Cancel</button><button type="submit" id="na-save">Save</button><button class="go" type="submit" id="na-grow" onclick="growAfterSave = true">Save and grow</button></div>
   </form>
   </div>
+  <iframe id="pane" title="Scores and replay"></iframe>
   <div id="guide" hidden>
     <div class="px g-title">Grow a better agent</div>
     <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
@@ -479,7 +485,7 @@ async function pullWatch() {
   let lines = [];
   try { const r = await fetch(`api/watch?version=${encodeURIComponent(watching.version)}&task=${encodeURIComponent(watching.task)}`, {cache:'no-store'}); if (r.ok) lines = (await r.json()).lines; } catch {}
   const fen = [...lines].reverse().find(l => l.fen)?.fen;
-  $('w-board').innerHTML = fen ? board(fen) : '';
+  $('w-board').innerHTML = fen && !$('live').classList.contains('on') ? board(fen) : '';
   const t0 = lines[0]?.t || 0, ago = l => '+' + secs(l.t - t0);
   const row = l => l.kind === 'move' ? `<div class="step move"><span class="w">${l.by === 'agent' ? 'move ' + l.n : 'reply'}</span><span><b>${esc(l.san)}</b> <span class="faint">${l.by === 'agent' ? 'played' : 'by Stockfish'}</span>${l.said ? `<span class="said">${esc(l.said.slice(-160))}</span>` : ''}</span></div>`
     : l.kind === 'tool' ? `<div class="step tool"><span class="w">${esc(l.tool)}</span><span>${esc(l.text)}</span></div>`
@@ -565,6 +571,17 @@ function renderGuide() {
   $('guide').hidden = !empty || busy; document.body.classList.toggle('guide-on', empty && !busy);
   const set = app?.sets.find(x => x.key === $('set').value);
   $('g-set').textContent = set ? set.name.split(':')[0].toLowerCase() : 'this';
+}
+function setView(v) {
+  const src = v === 'scores' ? 'benchmarks.html?embed=1' : v === 'replay' ? replaySrc() : '';
+  document.body.classList.toggle('pane', !!src);
+  if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
+  for (const k of ['tree', 'scores', 'replay']) $('v-' + k).classList.toggle('on', k === v);
+}
+// Replay compares the seed with the best kept version of the chess tree when there is one.
+function replaySrc() {
+  const V = window.__d?.versions || [], best = V.filter(x => x.kept && x.generation > 0).sort((a, b) => b.score - a.score)[0];
+  return `replay.html?a=g0&b=${encodeURIComponent(best ? best.id : 'g0')}&game=game-caro-kann-white`;
 }
 function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
 // Esc closes whatever is open, innermost first.

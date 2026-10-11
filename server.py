@@ -421,6 +421,15 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def send_text(self, text: str) -> None:
+        data = text.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_GET(self):
         path = self.path.split("?")[0]
         # Saved games, read-only: /replays/<set>/<version>/<game>.json from tasks/<set>/_replays/.
@@ -428,6 +437,15 @@ class Handler(SimpleHTTPRequestHandler):
         if m:
             f = runner.TASKS / m[1] / "_replays" / m[2] / f"{m[3]}.json"
             return self.send_json(200, json.loads(f.read_text())) if f.exists() else self.send_json(404, {"error": "no replay"})
+        # The score charts and the replay page read run logs and saved games, read-only. Hidden answers stay hidden.
+        m = re.fullmatch(r"/runs/([\w.-]+\.jsonl)", path)
+        if m:
+            f = ROOT / "runs" / m[1]
+            return self.send_text(f.read_text()) if f.exists() else self.send_json(404, {"error": "no such log"})
+        m = re.fullmatch(r"/tasks/([\w-]+)/(_replays/[\w-]+/[\w-]+\.json|[\w-]+/game\.json)", path)
+        if m:
+            f = runner.TASKS / m[1] / m[2]
+            return self.send_json(200, json.loads(f.read_text())) if f.exists() else self.send_json(404, {"error": "no such file"})
         if path == "/api/watch":
             return self.send_json(*watch(self.path.partition("?")[2]))
         if path != "/api/state":
