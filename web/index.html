@@ -51,6 +51,7 @@
   .tile .t-st { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); } .tile .t-st.done { color:var(--moss, #4f6e3f); } .tile .t-st.live { color:var(--seal); }
   .tile .t-name { font-size:16px; } .tile .t-sc { font:30px "DotGothic16", monospace; margin-top:auto; } .tile .t-sc small { font-size:14px; color:var(--faint); } .tile .t-ft { font-size:11px; color:var(--faint); }
   #back { display:none; } body.agent-view #back { display:inline; }
+  body.agent-view #ag-sec, body.agent-view #steps, body.agent-view #lv-gen, body.agent-view #ask .lead, body.agent-view #set, body.agent-view #go, body.agent-view #halt, body.agent-view #opt-btn, body.agent-view #tools, body.agent-view #opts { display:none !important; } #phase button { margin-left:10px; }
   #views { display:flex; gap:14px; margin-left:auto; } #views button { border:0; padding:4px 0; color:var(--faint); font-size:13px; } #views button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
   #tools { flex-basis:100%; display:flex; gap:14px; align-items:baseline; } #tools button { border:0; padding:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
   #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
@@ -282,7 +283,7 @@
     <div class="lbl" title="The share of problems it solves that it never practised on. Every change is judged on these alone.">score on new problems <span class="i">?</span></div>
     <div id="score"><span class="n" id="s-num">--</span><span class="faint" id="s-note">no run yet</span></div>
   </div>
-  <div class="sec">
+  <div class="sec" id="ag-sec">
     <div class="lbl" title="Every agent in the current run. Click one to watch it work.">agents <span id="ag-count" class="faint" style="letter-spacing:0;text-transform:none"></span><span class="sp"></span><button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></div>
     <div id="agents"></div>
   </div>
@@ -420,7 +421,7 @@ function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 
 async function load() {
   let data = {versions:[]};
   try {
-    if (viewing) { const t = await fetch(viewing.file, {cache:'no-store'}).then(r => r.ok ? r.text() : ''); data = {versions: t.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id)}; }
+    if (viewing) { const t = await fetch(viewing.file, {cache:'no-store'}).then(r => r.ok ? r.text() : ''); data = {versions: t.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id)}; viewTotal = data.versions.length; if (rewindN != null) data.versions = data.versions.slice(0, rewindN); }
     else { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); }
   } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
@@ -465,6 +466,7 @@ function renderRun() {
     $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
     if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
   $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow'; if (!running) stopping = false; $('halt').textContent = stopping ? 'Stopping…' : 'Stop';
+  if (viewing) return renderDone();
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
   renderSteps(job, running);
   ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>Ready</b> · pick what to improve at, then press Grow'
@@ -552,6 +554,7 @@ async function pullWatch() {
 // Views are separate pages in a sandboxed frame; one written by the model can draw and nothing else.
 let liveSrc = '', liveBusy = false, liveSet = null;
 function liveTarget() {
+  if (viewing) return doneTarget();
   const A = (app?.agents || []).filter(x => x.role !== 'proposer');
   if (watching && watching.role !== 'proposer') return A.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split) || watching;
   return A.filter(x => x.status === 'working').sort((x, y) => x.started - y.started)[0] || A.filter(x => x.ended).sort((x, y) => y.ended - x.ended)[0] || null;
@@ -567,6 +570,7 @@ async function pullLive() {
   try {
     const r = await fetch(`api/watch?version=${encodeURIComponent(t.version)}&task=${encodeURIComponent(t.task)}`, {cache:'no-store'}), j = r.ok ? await r.json() : {lines:[]};
     const css = getComputedStyle(document.documentElement), colors = Object.fromEntries(['paper', 'ink', 'faint', 'seal', 'moss'].map(k => [k, css.getPropertyValue('--' + k).trim()]));
+    if (viewing) { $('lv-kind').textContent = j.lines.length ? 'completed' : 'question only'; if (!j.lines.length && /chess/.test(set.view)) viewAt = 0; }
     $('lv-frame').contentWindow?.postMessage({lines:j.lines, question:j.question || '', agent:{task:t.task, version:t.version, status:t.status, model:t.model, split:t.split}, set:{key:set.key, name:set.name}, colors}, '*');
   } catch {} finally { liveBusy = false; }
 }
@@ -662,6 +666,7 @@ function renderHome() {
     const st = runStats[set.key], mine = (app.hosted || []).find(h => h.key === set.key);
     if (live && live.key === set.key) continue;
     if (st && st.best > st.seed) tiles.push(`<button class="tile" onclick="openAgent('${esc(set.key)}')"><span class="t-st done">✓ completed · improved</span><span class="t-name">${esc(set.name)}</span><span class="t-sc"><small>${pct(st.seed)}% →</small> ${pct(st.best)}%</span><span class="t-ft">${st.kept} kept · ${st.cut} cut · open to replay the whole run</span></button>`);
+    else if (st) tiles.push(`<button class="tile" onclick="openAgent('${esc(set.key)}')"><span class="t-st">✓ completed · no change kept</span><span class="t-name">${esc(set.name)}</span><span class="t-sc">${pct(st.best)}%</span><span class="t-ft">${st.kept} kept · ${st.cut} cut · open to replay the whole run</span></button>`);
     else if (mine) tiles.push(`<button class="tile" onclick="openSet('${esc(set.key)}')"><span class="t-st">${st ? 'completed · no gain yet' : 'ready to grow'}</span><span class="t-name">${esc(set.name)}</span><span class="t-sc">${st ? pct(st.best) + '%' : '<small>' + set.count + ' problems</small>'}</span><span class="t-ft">${esc((mine.prompt || '').slice(0, 90))} · ${mine.atlas ? 'in bonsai.agents' : 'local only'}</span></button>`);
   }
   const html = tiles.join('') || '<div class="faint" style="font-size:12px">No agent yet. Type a sentence above.</div>';
@@ -676,12 +681,37 @@ async function makeAgent(e) {
   await poll(); renderHome();
 }
 // A finished agent: the tree, the history and the score all read its stored run instead of the live one.
+// A finished agent: only its own record is on the page. The ledger and the tree regrow together from the seed,
+// the lower box shows its problems in the view made for its task, and Rewind plays the growth again.
+let viewTotal = 0, rewindN = null, rewindT = null, viewAt = 0, viewI = 0;
+const CHESS_GAMES = ['caro-kann', 'english', 'french', 'italian', 'kings-indian', 'london', 'queens-gambit', 'ruy-lopez', 'scandinavian', 'sicilian'].flatMap(o => [`chess/game-${o}-white`, `chess/game-${o}-black`]);
 function openAgent(key, stay) {
   const st = key ? runStats[key] : null; viewing = st ? {key, file: st.file} : null;
-  const src = viewing ? `${TREE_SRC}&src=${viewing.file}` : TREE_SRC;
-  if ($('tree3d').dataset.src !== src) { $('tree3d').src = src; $('tree3d').dataset.src = src; }
-  document.body.classList.toggle('agent-view', !!viewing);
-  lastJson = ''; opened = null; load(); if (!stay) setView('tree');
+  document.body.classList.toggle('agent-view', !!viewing); clearInterval(rewindT); rewindN = null; watchAgent(null); delete $('phase').dataset.h;
+  if (viewing) { viewI = 0; viewAt = 0; rewind(); }
+  else { if ($('tree3d').dataset.src !== TREE_SRC) { $('tree3d').src = TREE_SRC; $('tree3d').dataset.src = TREE_SRC; } lastJson = ''; opened = null; load(); }
+  if (!stay) setView('tree'); renderRun();
+}
+function rewind() {
+  if (!viewing) return;
+  const src = `${TREE_SRC}&src=${viewing.file}&r=${Date.now()}`; $('tree3d').src = src; $('tree3d').dataset.src = src;
+  clearInterval(rewindT); rewindN = 1; opened = null; lastJson = ''; load();
+  rewindT = setInterval(() => { rewindN++; lastJson = ''; load(); if (rewindN >= viewTotal) { clearInterval(rewindT); rewindN = null; } }, 750);
+}
+function renderDone() {
+  const st = runStats[viewing.key], set = app.sets.find(x => x.key === viewing.key), pc = x => Math.round(x * 100), ph = $('phase');
+  $('go').disabled = true; $('halt').disabled = true; ph.className = '';
+  const html = `<span class="dot" style="background:var(--moss)"></span><b>✓ Completed</b> · ${esc(set?.name || viewing.key)} · ${pc(st.seed)}% → ${pc(st.best)}% · ${st.kept} kept · ${st.cut} cut<button type="button" onclick="rewind()" title="Play the whole growth again, sped up">⟲ rewind</button><button type="button" onclick="setView('home')">← all agents</button>`;
+  if (ph.dataset.h !== html) { ph.innerHTML = html; ph.dataset.h = html; }
+}
+// Which of its problems the lower box shows: they rotate, in the newest version reached so far.
+function doneTarget() {
+  const set = app?.sets.find(x => x.key === viewing.key), V = window.__d?.versions || []; if (!set || !V.length) return null;
+  const tasks = /chess/.test(set.view) ? CHESS_GAMES : /steps\.html/.test(set.view) ? [] : Array.from({length: set.count}, (_, i) => `${set.key}/q${String(i + 1).padStart(3, '0')}`);
+  if (!tasks.length) return null;
+  if (Date.now() - viewAt > (/chess/.test(set.view) ? 30000 : 7000)) { viewAt = Date.now(); viewI++; }
+  const kept = keptChain(V);
+  return {task: tasks[viewI % tasks.length], version: kept.at(-1).id, status: 'completed', model: 'haiku', split: 'heldout', role: 'solver'};
 }
 function openSet(key) { $('set').value = key; fillCount(); fillTools(); openAgent(null); }
 // Replay compares the seed with the best kept version of the chess tree when there is one.
