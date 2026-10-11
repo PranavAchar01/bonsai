@@ -28,7 +28,7 @@ LOG = ROOT / "runs" / "versions.jsonl"
 ALLOWED_TOOLS = ["Read", "Edit", "Write", "Bash", "Glob", "Grep"]
 MAX_TURNS_CAP = 30
 
-PROPOSER = """You improve a coding agent by editing its harness. The harness is JSON:
+PROPOSER = """You improve an agent by editing its harness. The harness is JSON:
 {{"rules": system prompt, "tools": subset of {tools}, "max_turns": int up to {cap}, "model": fixed}}
 
 Current harness:
@@ -157,12 +157,15 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="sonnet",
         best = {**parent["harness"], "id": parent["id"]}
         best_score, first = parent["score"], parent["generation"] + 1
     else:
-        best, first = {**runner.BASE_HARNESS, "id": "g0"}, 1
+        # A connected set may bring its own starting harness ("seed" in set.json).
+        spec = runner.task_set(heldout[0].rpartition("/")[0]) or {}
+        seed = {**runner.BASE_HARNESS, **spec.get("seed", {})}
+        best, first = {**seed, "id": "g0"}, 1
         emit("phase", text="scoring the seed on held-out problems", version="g0")
         held = score(best, heldout, scratch / "g0-held", workers, tasks_cb("g0", "held-out"))
         best_score = held["score"]
         (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
-        doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": dict(runner.BASE_HARNESS),
+        doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": seed,
                "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
                "trace_id": None, "ts": time.time()}  # fmt: skip
         store(doc)

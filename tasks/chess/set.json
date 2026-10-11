@@ -1,7 +1,13 @@
 {
-  "name": "Chess: mate in one",
-  "prompt": "Solve the chess puzzle in .docs/instructions.md and write your move to answer.txt.",
-  "solution": ["answer.txt"],
+  "name": "Chess: games against Stockfish",
+  "prompt": "Play the game described in .docs/instructions.md.",
+  "solution": ["game-record.json"],
   "hidden": [],
-  "grade": "uv run -q --no-project --with chess python {root}/tasks/chess/_grade.py answer.txt {task}/position.fen"
+  "agent": "uv run -q --no-project --with chess python {root}/tasks/chess/_agent.py",
+  "grade": "uv run -q --no-project --with chess python {root}/tasks/chess/_grade.py game-record.json {task}/game.json",
+  "seed": {
+    "rules": "You are a chess player. Look at the position and choose a good legal move.",
+    "tools": [],
+    "max_turns": 1
+  }
 }

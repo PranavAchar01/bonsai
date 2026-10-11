@@ -1,27 +1,42 @@
-"""Grade one chess answer: python _grade.py answer.txt position.fen. Exit 0 only for a legal move that checkmates."""
+"""Grade one game: python _grade.py game-record.json game.json. Exit 0 if the agent held its own.
 
+Pass: the agent won or drew, or it reached the move limit without a forfeit and without being
+more than `margin` points of material behind (pawn 1, knight 3, bishop 3, rook 5, queen 9).
+"""
+
+import json
 import sys
 from pathlib import Path
 
 import chess
 
-answer, fen = Path(sys.argv[1]), Path(sys.argv[2])
-if not answer.exists():
-    sys.exit("no answer.txt")
-text = answer.read_text().split()
-if len(text) != 1:
-    sys.exit("answer.txt must hold exactly one move")
-board = chess.Board(fen.read_text().strip())
-try:
-    move = chess.Move.from_uci(text[0].lower())
-except ValueError:
-    try:
-        move = board.parse_san(text[0])
-    except ValueError:
-        sys.exit("not a move")
-if move not in board.legal_moves:
-    sys.exit("illegal move")
-board.push(move)
-if not board.is_checkmate():
-    sys.exit("legal, but not checkmate")
-print("checkmate")
+VALUE = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
+record, cfg = Path(sys.argv[1]), json.loads(Path(sys.argv[2]).read_text())
+if not record.exists():
+    sys.exit("no game was played")
+rec = json.loads(record.read_text())
+mine, board = (chess.WHITE if cfg["color"] == "white" else chess.BLACK), chess.Board()
+if rec["moves"][: len(cfg["opening"])] != cfg["opening"]:
+    sys.exit("the game did not start from the set opening")
+for uci in rec["moves"]:
+    move = chess.Move.from_uci(uci)
+    if move not in board.legal_moves:
+        sys.exit(f"illegal move in the record: {uci}")
+    board.push(move)
+if rec["forfeit"]:
+    sys.exit(rec["forfeit"])
+if board.is_checkmate():
+    if board.turn == mine:
+        sys.exit(f"checkmated at move {board.fullmove_number}")
+    print("won by checkmate")
+    sys.exit(0)
+if board.is_game_over():
+    print("drawn")
+    sys.exit(0)
+if board.fullmove_number <= cfg["moves"]:
+    sys.exit("the game stopped early")
+count = lambda color: sum(v * len(board.pieces(p, color)) for p, v in VALUE.items())  # noqa: E731
+diff = count(mine) - count(not mine)
+if diff < -cfg["margin"]:
+    sys.exit(f"alive at move {cfg['moves']} but {-diff} points of material behind")
+print(f"held to move {cfg['moves']}, material {diff:+d}")
