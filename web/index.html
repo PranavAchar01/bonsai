@@ -4,201 +4,480 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bonsai</title>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --paper:#1a1b26; --deep:#16161e; --ink:#c0caf5; --seal:#f7768e; --faint:#565f89; --line:rgba(122,162,247,.18); --moss:#9ece6a; --blue:#7aa2f7; --cyan:#7dcfff; --violet:#bb9af7; }
+  /* Layout: the tree is the page; one ledger runs down the right margin. Pixel garden on paper, no cards. */
+  :root { --paper:#efe7d6; --deep:#e7ddc8; --ink:#1d1b19; --seal:#b5332a; --faint:#8b8272; --moss:#4f6e3f; --line:rgba(29,27,25,.16); --margin:420px; --term:0px; }
   * { box-sizing:border-box; }
   html, body { height:100%; }
-  body { margin:0; background:var(--paper); color:var(--ink); font-family:"Chakra Petch",sans-serif; display:flex; flex-direction:column; overflow:hidden; }
-  .mono, table, button, select, input, .stat, pre, dl { font-family:"JetBrains Mono",monospace; }
-  .ask { display:flex; align-items:center; gap:10px; padding:9px 22px; border-bottom:1px solid var(--line); }
-  .ask label { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
-  .ask input { flex:1; min-width:120px; background:none; border:0; border-bottom:1px solid var(--line); font-family:"Chakra Petch",sans-serif; font-size:15px; color:var(--ink); padding:3px 2px; outline:none; }
-  .ask input::placeholder { color:var(--faint); }
-  .ask select { padding:4px 4px; font-size:11px; } .ask select.big { font-family:"Chakra Petch",sans-serif; font-size:16px; padding:4px 6px; border-color:var(--ink); max-width:420px; }
-  .rd { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); white-space:nowrap; } .rd.on { color:var(--moss); }
-  .ag .what u { text-decoration:none; color:var(--moss); }
-  .ask button { font-size:12px; padding:6px 16px; }
-  .ask button.go { color:var(--paper); background:var(--ink); border-color:var(--ink); }
-  .ask button.halt { color:var(--seal); border-color:var(--seal); }
-  .ask button:disabled { opacity:.35; cursor:default; }
-  #phase { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); padding:6px 22px; border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body { margin:0; color:var(--ink); font:12px/1.5 "IBM Plex Mono", monospace; overflow:hidden; transition:background-color 6s, color 6s;
+    background:radial-gradient(ellipse at 40% 35%, rgba(255,252,244,.45), transparent 60%), radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(60,48,30,.14) 100%), var(--paper); }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; mix-blend-mode:multiply; z-index:5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .px { font-family:"DotGothic16", monospace; font-weight:400; }
+  .faint { color:var(--faint); }
+  button, select, input, textarea { font:inherit; color:var(--ink); }
+  button { background:none; border:1px solid var(--line); padding:3px 10px; cursor:pointer; font-family:"DotGothic16"; font-size:12px; }
+  button.on, button.go { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  button:disabled { opacity:.35; cursor:default; }
+  button.halt { border-color:var(--seal); color:var(--seal); }
+
+  /* stage: tree on the left, ledger on the right */
+  #stage { position:fixed; left:var(--term); top:0; bottom:0; right:var(--margin); }
+  #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  #margin { position:fixed; right:0; top:0; bottom:0; width:var(--margin); border-left:1px solid var(--line); display:flex; flex-direction:column; background:color-mix(in srgb, var(--deep) 35%, transparent); }
+
+  /* terminal: the agent's files and every change to them, down the left side */
+  body.term { --term:400px; }
+  #term { position:fixed; left:0; top:0; bottom:0; width:400px; display:none; flex-direction:column; z-index:6; background:#191715; color:#e6decb; font:11.5px/1.6 "IBM Plex Mono", monospace; }
+  body.term #term { display:flex; }
+  #term .tbar { display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid rgba(230,222,203,.14); color:#9a917f; font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+  #term .tbar span { flex:1; } #term button { color:#e6decb; border-color:rgba(230,222,203,.25); font-size:10.5px; padding:1px 7px; }
+  #t-files { max-height:30%; overflow-y:auto; padding:8px 14px; border-bottom:1px solid rgba(230,222,203,.14); }
+  #t-files a { display:grid; grid-template-columns:14px 1fr auto; gap:6px; cursor:pointer; color:#e6decb; } #t-files a:hover, #t-files a.on { background:rgba(230,222,203,.09); }
+  #t-files a.cut { color:#9a917f; } #t-files i { font-style:normal; color:#9a917f; }
+  #t-out { flex:1; overflow-y:auto; padding:10px 14px 18px; white-space:pre-wrap; word-break:break-word; }
+  #t-out .cmd { color:#e6decb; margin-top:10px; } #t-out .cmd::before { content:"$ "; color:#8fae78; } #t-out .dim { color:#9a917f; }
+  #t-out .add, #t-files .ok { color:#8fae78; } #t-out .del, #t-files .no { color:#d46a5c; }
+  #t-out .cur { display:inline-block; width:7px; height:13px; background:#e6decb; vertical-align:-2px; animation:pulse 1.2s infinite; }
+
+  /* the ask, as one sentence across the top of the stage */
+  .askbar { position:absolute; left:32px; right:32px; top:22px; z-index:2; }
+  header { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 12px; }
+  header h1 { margin:0 18px 0 0; font:400 28px "DotGothic16"; letter-spacing:.04em; }
+  .sel { appearance:none; background:transparent; border:0; border-bottom:1px solid var(--ink); padding:1px 16px 1px 2px; font:14px "DotGothic16"; cursor:pointer; max-width:340px;
+    background-image:linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-size:4px 4px; background-position:right 6px top 9px, right 2px top 9px; background-repeat:no-repeat; }
+  select option, select optgroup { background:var(--paper); }
+  #phase { margin-top:10px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #phase b { color:var(--ink); font-weight:400; } #phase.err b { color:var(--seal); }
-  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; }
-  .live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
-  #agents-box { flex:0 0 42%; min-height:0; display:flex; flex-direction:column; border-bottom:1px solid var(--line); }
-  #agents { overflow-y:auto; flex:1; font-family:"JetBrains Mono",monospace; font-size:11px; }
-  .ag { display:grid; grid-template-columns:62px 1fr auto; gap:8px; padding:5px 18px; border-bottom:1px solid rgba(122,162,247,.06); align-items:baseline; }
-  .ag .role { color:var(--faint); } .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; }
-  .ag.working { background:rgba(122,162,247,.06); } .ag.working .st { color:var(--ink); } .ag.queued { color:var(--faint); }
-  .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
-  .empty { padding:10px 18px; color:var(--faint); font-family:"JetBrains Mono",monospace; font-size:11px; line-height:1.7; }
-  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; font-family:"JetBrains Mono",monospace; font-size:12px; line-height:1.7; } .logline span { color:var(--faint); }
-  header { display:flex; align-items:baseline; gap:26px; padding:12px 22px; border-bottom:1px solid var(--line); }
-  header > * { white-space:nowrap; }
-  header h1 { font-weight:600; font-size:24px; letter-spacing:.08em; margin:0; }
-  header .tag { color:var(--faint); font-size:13px; }
-  .stat { font-size:11px; color:var(--faint); letter-spacing:.06em; }
-  .stat b { font-family:"Chakra Petch",sans-serif; font-weight:400; font-size:19px; color:var(--ink); margin-left:5px; }
-  .stat.red b { color:var(--seal); }
-  .wrap { flex:1; min-height:0; display:grid; grid-template-columns:410px minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
-  .panel { min-height:0; min-width:0; display:flex; flex-direction:column; }
-  #panel-board { border-right:1px solid var(--line); }
-  #panel-graph { border-top:1px solid var(--line); }
-  h2 { font-size:11px; font-weight:400; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0; padding:12px 18px 8px; display:flex; align-items:center; gap:8px; font-family:"JetBrains Mono",monospace; }
-  h2 .sp { flex:1; } h2 .name { color:var(--ink); letter-spacing:.04em; text-transform:none; }
-  button { background:none; border:1px solid var(--line); color:var(--faint); font-size:10.5px; padding:3px 8px; cursor:pointer; letter-spacing:.04em; }
-  button.on { color:var(--paper); background:var(--ink); border-color:var(--ink); }
-  select { background:none; border:1px solid var(--line); font-size:10.5px; color:var(--ink); }
-  .tablescroll { overflow-y:auto; flex:1; }
-  table { width:100%; border-collapse:collapse; font-size:11.5px; }
-  th { text-align:left; font-weight:400; color:var(--faint); font-size:10px; letter-spacing:.1em; padding:5px 8px; position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line); }
-  td { padding:7px 8px; border-bottom:1px solid rgba(122,162,247,.08); vertical-align:top; }
-  td:first-child, th:first-child { padding-left:18px; } .num { text-align:right; padding-right:18px !important; }
-  tr { cursor:pointer; } tbody tr:hover { background:rgba(122,162,247,.05); }
-  tr.sel { background:rgba(122,162,247,.09); box-shadow:inset 3px 0 0 var(--ink); }
-  tr.cut { color:var(--seal); } tr.cut td.chg { text-decoration:line-through; text-decoration-color:rgba(247,118,142,.5); } tr.cut.sel { box-shadow:inset 3px 0 0 var(--seal); }
-  td .shed { display:block; color:var(--faint); font-size:10px; margin-top:2px; text-decoration:none; }
-  .seg { display:flex; gap:0; padding:0 18px 8px; } .seg button + button { border-left:0; }
-  .viewer { position:relative; flex:1; min-height:0; }
-  .viewer canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
-  #fx { pointer-events:none; }
-  .layer { position:absolute; inset:0; overflow:auto; padding:6px 22px 18px; background:var(--paper); display:none; }
-  .layer pre { font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; margin:0; }
-  .layer .add { color:var(--moss); } .layer .del { color:var(--seal); }
-  .layer dl { display:grid; grid-template-columns:110px 1fr; gap:8px 14px; font-size:12.5px; max-width:760px; } .layer dt { color:var(--faint); } .layer dd { margin:0; }
-  .layer .lede { font-size:22px; margin:6px 0 16px; max-width:760px; line-height:1.4; }
-  .stats { display:flex; gap:24px; padding:8px 18px; border-top:1px solid var(--line); font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--faint); flex-wrap:wrap; }
-  .stats b { color:var(--ink); font-weight:400; } .stats .cut b { color:var(--seal); }
-  #chart { flex:1; min-height:0; width:100%; display:block; }
-  .chart-footer { display:flex; justify-content:space-between; padding:2px 18px 8px; font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--faint); }
-  @media (max-width:860px){ body{overflow:auto} .wrap{display:block} .viewer{height:70vh} #panel-board{border-right:0} #chart{height:180px} }
-  /* Tokyo Night: neon on indigo. */
-  body { background:radial-gradient(ellipse at 70% 0%, rgba(187,154,247,.10), transparent 55%), radial-gradient(ellipse at 0% 100%, rgba(125,207,255,.07), transparent 50%), var(--paper); }
-  header h1 { color:var(--cyan); text-shadow:0 0 8px rgba(125,207,255,.55), 0 0 26px rgba(187,154,247,.35); }
-  header .tag { color:var(--violet); } #s-note { color:var(--moss); }
-  h2 { color:var(--blue); } h2 .name { color:var(--ink); }
-  #panel-board { background:rgba(22,22,30,.72); }
-  .ask button.go { background:var(--violet); border-color:var(--violet); color:var(--deep); font-weight:600; box-shadow:0 0 14px rgba(187,154,247,.45); }
-  .ask button.go:disabled { box-shadow:none; }
-  .ask select.big { border-color:var(--blue); background:var(--deep); color:var(--ink); } select option, select optgroup { background:var(--deep); color:var(--ink); }
-  button.on { background:var(--blue); border-color:var(--blue); color:var(--deep); }
-  .live .dot { background:var(--moss); box-shadow:0 0 8px var(--moss); } #phase b { color:var(--cyan); }
-  tr.sel { box-shadow:inset 3px 0 0 var(--cyan); } td.none { color:var(--faint); padding:14px 18px; cursor:default; }
-  .ag.working .st { color:var(--cyan); } .layer .lede { color:var(--cyan); }
-  #tree3d { position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }
-  ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-thumb { background:rgba(122,162,247,.25); }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:8px; vertical-align:1px; }
+  #phase.live .dot { background:var(--seal); animation:pulse 1.2s infinite; } @keyframes pulse { 50% { opacity:.25; } }
+  .seal { position:absolute; left:32px; bottom:24px; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; z-index:2; transition:background-color 6s; }
+
+  /* new benchmark, unfolds under the ask */
+  #newset { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
+  #newset[hidden] { display:none; }
+  #newset .row { display:flex; align-items:center; gap:10px; margin:6px 0; } #newset .row.top { align-items:flex-start; }
+  #newset label { width:110px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  #newset input, #newset textarea { flex:1; background:transparent; border:1px solid var(--line); padding:6px 8px; outline:none; resize:vertical; font-size:12px; }
+  #ns-note { color:var(--faint); } #ns-note.err { color:var(--seal); }
+
+  /* new agent: same paper form as the new benchmark */
+  #newagent { position:relative; margin-top:12px; width:min(640px, 100%); padding:14px 16px; background:var(--paper); border:1px solid var(--line); }
+  #newagent[hidden] { display:none; }
+  #newagent .row { display:flex; align-items:center; gap:10px; margin:6px 0; } #newagent .row.top { align-items:flex-start; }
+  #newagent label.k { width:110px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  #newagent input[type=text], #newagent input[type=number], #newagent textarea, #newagent select { flex:1; background:transparent; border:1px solid var(--line); padding:6px 8px; outline:none; resize:vertical; font-size:12px; }
+  #newagent input[type=number] { flex:0 0 80px; }
+  #na-tools { display:flex; flex-wrap:wrap; gap:6px 14px; flex:1; } #na-tools label { display:flex; gap:5px; align-items:center; }
+  #newagent button { white-space:nowrap; }
+  #na-note { color:var(--faint); } #na-note.err { color:var(--seal); }
+
+  /* margin */
+  .sec { padding:16px 26px 0; }
+  .lbl { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .lbl .sp { flex:1; } .lbl button { font-size:10.5px; padding:1px 7px; letter-spacing:0; text-transform:none; }
+  #score { display:flex; align-items:baseline; gap:12px; } #score .n { font:400 66px/1 "DotGothic16"; }
+  #agents { max-height:150px; overflow-y:auto; }
+  .ag { display:grid; grid-template-columns:1fr auto; gap:8px; padding:3px 0; border-bottom:1px solid var(--line); font-size:11px; }
+  .ag .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ag .what i { color:var(--faint); font-style:normal; } .ag u { text-decoration:none; color:var(--moss); }
+  .ag { cursor:pointer; } .ag:hover { background:color-mix(in srgb, var(--ink) 4%, transparent); }
+  .ag.queued { color:var(--faint); } .ag.passed .st { color:var(--moss); } .ag.failed .st, .ag.cheat .st { color:var(--seal); }
+  .empty { color:var(--faint); padding:4px 0 8px; line-height:1.6; }
+  #ledger { flex:1; overflow-y:auto; padding:0 26px 24px; }
+  .entry { display:grid; grid-template-columns:44px 1fr 34px; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .entry:hover { background:color-mix(in srgb, var(--ink) 4%, transparent); }
+  .entry .id { font-family:"DotGothic16"; font-size:13px; } .entry .n { text-align:right; font-family:"DotGothic16"; font-size:13px; }
+  .entry .sub { display:block; color:var(--faint); font-size:10.5px; margin-top:2px; }
+  .entry.cut { color:var(--seal); } .entry.cut .chg { text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--seal) 50%, transparent); }
+
+  /* one version open in the margin */
+  #version { display:none; flex:1; overflow-y:auto; padding:18px 26px 26px; }
+  .open #version { display:block; } .open #ledger, .open #list-head { display:none; }
+  #watch { display:none; flex:1; overflow-y:auto; padding:18px 26px 26px; }
+  .watching #watch { display:block; } .watching #ledger, .watching #list-head, .watching #version { display:none !important; }
+  .step { display:grid; grid-template-columns:54px 1fr; gap:10px; padding:5px 0; border-bottom:1px solid var(--line); }
+  .step .w { color:var(--faint); font-size:10.5px; } .step.tool .w { color:var(--moss); } .step.bad { color:var(--seal); }
+  .step .said { display:block; color:var(--faint); font-size:10.5px; margin-top:2px; white-space:pre-wrap; }
+  .step.move b { font-family:"DotGothic16"; font-weight:400; font-size:14px; }
+  #w-board { width:220px; margin:10px 0 4px; }
+  #version h2 { margin:6px 0 2px; font:400 30px "DotGothic16"; } #version h2 small { font-size:16px; margin-left:8px; }
+  .kept { color:var(--moss); } .cut-t { color:var(--seal); }
+  .tabs { display:flex; gap:14px; margin:16px 0 12px; border-bottom:1px solid var(--line); }
+  .tabs button { border:0; padding:4px 0; color:var(--faint); } .tabs button.on { background:none; color:var(--ink); box-shadow:inset 0 -1px 0 var(--ink); }
+  .story .k { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:14px 0 3px; }
+  .story .big { font:400 17px/1.4 "DotGothic16"; }
+  pre { margin:0; font:11.5px/1.6 "IBM Plex Mono"; white-space:pre-wrap; word-break:break-word; } .add { color:var(--moss); } .del { color:var(--seal); }
+  .grid { display:grid; grid-template-columns:1fr 52px 52px; }
+  .grid div { padding:4px 0; border-bottom:1px solid var(--line); } .grid .h { color:var(--faint); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+  .grid .m { text-align:center; font-family:"DotGothic16"; } .won { color:var(--moss); } .lost { color:var(--seal); }
+  .grid a { color:inherit; } .grid a.on { text-decoration:underline; }
+  .boards { display:flex; gap:16px; margin-top:14px; } .boards > div { flex:1; }
+  .board { display:grid; grid-template-columns:repeat(8, 1fr); aspect-ratio:1; border:1px solid var(--ink); margin:4px 0; }
+  .board i { display:grid; place-items:center; font-style:normal; font-size:15px; line-height:1; } .board i.d { background:color-mix(in srgb, var(--ink) 16%, var(--paper)); }
+  .logline { display:grid; grid-template-columns:70px 1fr; gap:10px; line-height:1.7; } .logline span { color:var(--faint); }
+
+  /* first-time clarity: one primary action, readable steps, a guide, a legend */
+  .lead { font:15px "DotGothic16"; color:var(--faint); }
+  .sel.big { font-size:17px; max-width:300px; }
+  button.big { font-size:15px; padding:6px 22px; }
+  button.link { border:0; color:var(--faint); text-decoration:underline; text-underline-offset:3px; }
+  #halt:disabled { display:none; }
+  #opts { flex-basis:100%; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:baseline; padding-top:4px; color:var(--faint); }
+  #opts[hidden] { display:none; } #opts label { display:flex; gap:6px; align-items:baseline; }
+  #steps { display:flex; gap:0; margin:12px 0 0; padding:0; list-style:none; counter-reset:s; flex-wrap:wrap; }
+  #steps[hidden] { display:none; }
+  #steps li { counter-increment:s; font:12px "DotGothic16"; color:var(--faint); padding:4px 14px 4px 0; }
+  #steps li::before { content:counter(s); display:inline-grid; place-items:center; width:18px; height:18px; margin-right:6px; border:1px solid currentColor; border-radius:50%; font-size:10px; }
+  #steps li + li::after { content:""; }
+  #steps li.done { color:var(--ink); } #steps li.done::before { content:"✓"; }
+  #steps li.now { color:var(--paper); } #steps li.now::before { background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  #steps li.now { color:var(--ink); }
+  #phase { margin-top:6px; }
+  #guide { position:absolute; left:50%; top:44%; transform:translate(-50%, -50%); width:min(460px, calc(100% - 48px)); z-index:2; text-align:left; }
+  #guide[hidden] { display:none; }
+  #guide .g-title { font-size:32px; margin-bottom:8px; }
+  #guide p { font-size:13px; line-height:1.7; margin:0 0 14px; }
+  #guide ol { margin:0 0 20px; padding-left:22px; font-size:13px; line-height:1.9; } #guide b { font-weight:500; }
+  #guide .g-note { margin-top:10px; }
+  .guide-on #tree3d { opacity:.12; }
+  .legend { position:absolute; left:84px; bottom:30px; z-index:2; display:flex; gap:16px; color:var(--faint); font-size:11px; }
+  .legend i { display:inline-block; width:14px; height:3px; margin-right:6px; vertical-align:3px; border-radius:2px; }
+  .legend .k { background:#4f6e3f; } .legend .c { background:var(--seal); width:8px; height:8px; border-radius:50%; vertical-align:0; } .legend .t { background:#c8d67a; }
+  .lbl .i { display:inline-grid; place-items:center; width:13px; height:13px; border:1px solid currentColor; border-radius:50%; font-size:9px; letter-spacing:0; cursor:help; }
+  [title] { cursor:help; } button[title], select[title], label[title] { cursor:pointer; }
+  ::-webkit-scrollbar { width:7px; } ::-webkit-scrollbar-thumb { background:rgba(29,27,25,.2); }
+
+  @media (max-width:900px) {
+    body { overflow:auto; } :root { --margin:0px; }
+    #stage { position:relative; height:78vh; right:0; left:0; } #term { display:none !important; } #margin { position:relative; width:auto; border-left:0; border-top:1px solid var(--line); }
+    #ledger, #version { overflow:visible; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>盆栽 Bonsai</h1><span class="tag">a harness that prunes itself</span>
-  <span class="stat" style="margin-left:auto" id="s-note"></span>
-</header>
-<form class="ask" id="ask" onsubmit="grow(event)">
-  <label for="set">Improve it on</label><select id="set" class="big"></select>
-  <span style="flex:1"></span>
-  <button class="go" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="halt()" disabled>Stop</button>
-</form>
-<div id="phase"><span class="dot"></span><b>idle</b> · pick what it should improve on, then Grow</div>
-<div class="wrap">
-  <div class="panel" id="panel-board">
-    <div id="agents-box">
-      <h2>Agents <span id="ag-count" class="name"></span><span class="sp"></span>
-        <button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></h2>
-      <div id="agents"></div>
-    </div>
-    <h2>Lineage <span class="sp"></span>
-      <button id="sort-latest" class="on" onclick="setSort('latest')">latest</button><button id="sort-score" onclick="setSort('score')">highest score</button></h2>
-    <div class="tablescroll"><table>
-      <thead><tr><th>version</th><th>change</th><th class="num">held-out</th></tr></thead>
-      <tbody id="rows"></tbody></table></div>
+<div id="stage">
+  <iframe id="tree3d" src="tree.html?embed=1&bare=1" title="The bonsai"></iframe>
+  <div class="askbar">
+  <header>
+    <h1>盆栽 Bonsai</h1>
+    <form id="ask" onsubmit="grow(event)" style="display:contents">
+      <span class="lead">Improve at</span><select id="set" class="sel big" onchange="fillCount(); fillTools()" title="What the agent should get better at"></select>
+      <button class="go big" id="go" type="submit">Grow</button><button class="halt" id="halt" type="button" onclick="stopRun()" disabled title="Finish the current step, then stop">Stop</button>
+      <button type="button" class="link" id="opt-btn" onclick="toggleOpts()" aria-expanded="false">Options</button>
+      <div id="opts" hidden>
+        <label title="The agent to start from. The starting version is the plain one each benchmark comes with.">start from <select id="agent" class="sel" onchange="pickAgent()"></select></label>
+        <label title="Each round: find its mistakes, write one change, test the change, keep it or cut it.">rounds <select id="gens" class="sel"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label>
+        <label title="How many problems to use. Half are for practice, half are kept back to test each change fairly.">problems <select id="count" class="sel"></select></label>
+        <button type="button" id="new-btn" onclick="toggleNew()">+ new benchmark</button>
+        <button type="button" id="term-btn" onclick="toggleTerm()">terminal</button>
+      </div>
+    </form>
+  </header>
+  <ol id="steps" hidden><li>Test the start</li><li>Find mistakes</li><li>Write a change</li><li>Test the change</li><li>Keep or cut</li></ol>
+  <div id="phase"><span class="dot"></span><b>Ready</b> · pick what to improve at, then press Grow</div>
+  <form id="newset" onsubmit="createSet(event)" hidden>
+    <div class="row"><label for="ns-name">Name</label><input id="ns-name" maxlength="60" placeholder="Contract clauses, drug interactions, 10-K questions..."></div>
+    <div class="row"><label for="ns-rules">Starting rules</label><input id="ns-rules" maxlength="1000" placeholder="What the agent is told before any change. Leave empty for a plain default."></div>
+    <div class="row top"><label for="ns-items">Questions</label><textarea id="ns-items" rows="7" placeholder="One per line, question then answer, separated by =>&#10;Is a signed NDA with no end date enforceable in California? Answer yes or no. => yes&#10;&#10;Or paste JSON lines: {&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}"></textarea></div>
+    <div class="row"><span id="ns-note">At least 4 questions. Half are held out and never shown to the proposer. Answers match exactly, or within 1% for numbers.</span><span style="flex:1"></span><button type="button" onclick="toggleNew()">Cancel</button><button class="go" id="ns-go" type="submit">Connect</button></div>
+  </form>
+  <form id="newagent" onsubmit="saveAgent(event)" hidden>
+    <div class="row"><label class="k" for="na-name">Name</label><input type="text" id="na-name" maxlength="40" placeholder="careful-player, test-first coder..."></div>
+    <div class="row"><label class="k" for="na-model">Model</label><select id="na-model"><option>haiku</option><option>sonnet</option><option>opus</option></select>
+      <label class="k" for="na-turns" style="width:auto;margin-left:10px">Turns</label><input type="number" id="na-turns" min="1" max="30" value="12"></div>
+    <div class="row top"><label class="k" for="na-rules">Starting rules</label><textarea id="na-rules" rows="5" placeholder="What it is told before any change. The loop will rewrite these as it learns."></textarea></div>
+    <div class="row"><label class="k">Tools</label><div id="na-tools"></div></div>
+    <div class="row"><span id="na-note">Every call it makes is traced to Raindrop when RAINDROP_WRITE_KEY is set. Planting it starts a new tree.</span><span style="flex:1"></span>
+      <button type="button" onclick="toggleAgent()">Cancel</button><button type="submit" id="na-save">Save</button><button class="go" type="submit" id="na-grow" onclick="growAfterSave = true">Save and grow</button></div>
+  </form>
   </div>
-  <div class="panel" id="panel-solution">
-    <h2>Selected version <span id="sel-name" class="name"></span><span class="sp"></span>
-      <button id="follow-btn" class="on" onclick="toggleFollow()">following latest</button></h2>
-    <div class="seg" id="seg">
-      <button data-layer="tree" class="on" onclick="setLayer('tree')">tree</button><button data-layer="diff" onclick="setLayer('diff')">diff</button><button data-layer="signal" onclick="setLayer('signal')">signal</button><button data-layer="harness" onclick="setLayer('harness')">harness</button><button data-layer="activity" onclick="setLayer('activity')">activity</button>
-    </div>
-    <div class="viewer" id="viewer">
-      <iframe id="tree3d" src="tree.html?embed=1&p=tokyo" title="The bonsai"></iframe>
-      <div class="layer" id="layer-diff"></div><div class="layer" id="layer-signal"></div><div class="layer" id="layer-harness"></div><div class="layer" id="layer-activity"></div>
-    </div>
-    <div class="stats" id="sel-stats"></div>
+  <div id="guide" hidden>
+    <div class="px g-title">Grow a better agent</div>
+    <p>An AI agent works through problems. A second agent reads its mistakes and rewrites its instructions. A change is kept only if the agent then scores higher on problems it has never seen.</p>
+    <ol>
+      <li><b>Pick</b> what it should get better at, at the top.</li>
+      <li><b>Press Grow.</b> Everything after that runs by itself.</li>
+      <li><b>Watch the tree.</b> Each kept change grows a branch. Each rejected change is cut.</li>
+    </ol>
+    <button class="go big" onclick="grow()">Grow on <span id="g-set">chess</span></button>
+    <div class="faint g-note" id="g-note">A run takes a while: each round tests every problem twice.</div>
   </div>
+  <div class="legend" title="How to read the tree">
+    <span><i class="k"></i>kept change</span><span><i class="c"></i>cut change</span><span><i class="t"></i>being tested</span>
+  </div>
+  <div class="seal">盆</div>
 </div>
+
+<section id="term">
+  <div class="tbar"><span>agent files · versions/</span><button id="t-back" onclick="openFile(null)" hidden>← log</button><button onclick="toggleTerm()">close</button></div>
+  <div id="t-files"></div>
+  <div id="t-out"></div>
+</section>
+
+<aside id="margin">
+  <div class="sec">
+    <div class="lbl" title="The share of problems it solves that it never practised on. Every change is judged on these alone.">score on new problems <span class="i">?</span></div>
+    <div id="score"><span class="n" id="s-num">--</span><span class="faint" id="s-note">no run yet</span></div>
+  </div>
+  <div class="sec">
+    <div class="lbl" title="Every agent in the current run. Click one to watch it work.">agents <span id="ag-count" class="faint" style="letter-spacing:0;text-transform:none"></span><span class="sp"></span><button id="ag-live" class="on" onclick="setAgents('live')">live</button><button id="ag-all" onclick="setAgents('all')">all</button></div>
+    <div id="agents"></div>
+  </div>
+  <div class="sec" id="list-head">
+    <div class="lbl" title="Every change it tried, newest first. Click one to see what happened.">history<span class="sp"></span><button id="sort-latest" class="on" onclick="setSort('latest')">newest</button><button id="sort-score" onclick="setSort('score')">best</button></div>
+  </div>
+  <div id="ledger"></div>
+  <div id="version"></div>
+  <div id="watch"></div>
+</aside>
+
+<script type="module">
+// The page and the tree share one palette: sumi paper and matcha, crossfading every 45 s.
+import { PALETTES } from './palettes.js';
+const LIGHT = ['paper', 'matcha'];
+let pal = 0;
+function setPalette(k) {
+  const P = PALETTES[k], r = document.documentElement.style, deep = k === 'paper' ? '#e7ddc8' : '#d9e0c2';
+  r.setProperty('--paper', P.bg); r.setProperty('--ink', P.ink); r.setProperty('--faint', P.faint); r.setProperty('--seal', P.accent); r.setProperty('--deep', deep);
+  document.getElementById('tree3d').contentWindow?.postMessage({palette:k}, location.origin);
+}
+document.getElementById('tree3d').addEventListener('load', () => setPalette(LIGHT[pal]));
+setPalette(LIGHT[pal]);
+setInterval(() => { pal = 1 - pal; setPalette(LIGHT[pal]); }, 45000);
+</script>
 <script>
 // The lineage is whatever the loop has stored. Nothing is shown that a run did not produce.
-let selected = null, lastJson = '', follow = true, sortBy = 'latest', layer = 'tree';
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function draw(data) {
-  const kept = [], byParent = {};
-  data.versions.forEach(v => (byParent[v.parent] ??= []).push(v));
-  for (let v = data.versions.find(v => !v.parent); v; v = (byParent[v.id] || []).find(c => c.kept)) kept.push(v);
-  window.__kept = kept; renderUI(data, kept);
-}
-
-const pct = x => Math.round(x*100) + '%';
-function renderUI(data, kept) {
-  const vs = data.versions, best = kept[kept.length-1];
-  $('s-note').textContent = vs.length ? `${kept.length - 1} kept · ${vs.length - kept.length} pruned · best ${pct(best.score)} held-out` : 'no run yet';
-  if (!vs.length) {
-    $('rows').innerHTML = '<tr><td colspan="3" class="none">No versions yet. Press Grow and the first one appears when the seed has been scored.</td></tr>';
-    $('sel-name').textContent = ''; $('sel-stats').innerHTML = '';
-    ['diff','signal','harness'].forEach(n => $('layer-' + n).innerHTML = '<pre>Nothing has been stored yet.</pre>'); return;
-  }
-  const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
-  $('rows').innerHTML = order.map(v => `<tr class="${v.kept ? '' : 'cut'} ${v.id === selected ? 'sel' : ''}" data-id="${esc(v.id)}"><td>${esc(v.id)}</td><td class="chg">${esc(v.change)}${v.kept && v.shed && v.shed !== 'nothing' ? `<span class="shed">shed: ${esc(v.shed)}</span>` : ''}</td><td class="num">${pct(v.score)}</td></tr>`).join('');
-  const v = vs.find(v => v.id === selected), par = vs.find(p => p.id === v.parent);
-  const verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'pruned';
-  $('sel-name').textContent = `${v.id} · ${verdict}`;
-  $('layer-diff').innerHTML = v.diff ? `<pre>${esc(v.diff).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n')}</pre>` : '<pre>The seed has no parent to differ from.</pre>';
-  $('layer-signal').innerHTML = `<div class="lede">${esc(v.signal || 'No signal: this is where the tree starts.')}</div><dl>
-    <dt>change tried</dt><dd>${esc(v.change)}</dd><dt>shed</dt><dd>${esc(v.shed || 'n/a')}</dd>
-    <dt>verdict</dt><dd>${verdict}${par ? `: held-out ${pct(par.score)} → ${pct(v.score)}` : ''}</dd>
-    <dt>Raindrop trace</dt><dd>${esc(v.trace_id || 'none recorded')}</dd></dl>`;
-  $('layer-harness').innerHTML = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
-  $('sel-stats').innerHTML = `<span class="${v.kept ? '' : 'cut'}">verdict <b>${verdict}</b></span><span>held-out <b>${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}</b></span><span>parent <b>${esc(par ? par.id : 'none')}</b></span><span>rules <b>${v.tokens ? '~' + v.tokens + ' tokens' : 'n/a'}</b></span><span>shed <b>${esc(v.shed || 'n/a')}</b></span>`;
-}
+let opened = null, lastJson = '', sortBy = 'latest', tab = 'story', game = null;
 const $ = id => document.getElementById(id);
-function select(id, user) { selected = id; if (user) { follow = false; $('follow-btn').classList.remove('on'); $('follow-btn').textContent = 'follow latest'; } draw(window.__d); }
-function toggleFollow() { follow = !follow; $('follow-btn').classList.toggle('on', follow); $('follow-btn').textContent = follow ? 'following latest' : 'follow latest'; if (follow) { selected = window.__d.versions.at(-1)?.id; draw(window.__d); } }
-function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderUI(window.__d, window.__kept); }
-function setLayer(l) { layer = l; document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.layer === l)); ['diff','signal','harness','activity'].forEach(n => $('layer-' + n).style.display = n === l ? 'block' : 'none'); }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = x => Math.round(x * 100) + '%';
+const short = t => String(t).split('/').pop().replace(/^game-/, '');
 
+function keptChain(vs) {
+  const by = {}, kept = []; vs.forEach(v => (by[v.parent] ??= []).push(v));
+  for (let v = vs.find(v => !v.parent); v; v = (by[v.id] || []).find(c => c.kept)) kept.push(v);
+  return kept;
+}
+function renderLedger() {
+  const vs = window.__d.versions, kept = keptChain(vs), best = kept.at(-1);
+  $('s-num').textContent = vs.length ? pct(best.score) : '--';
+  $('s-note').innerHTML = vs.length ? `started at ${pct(kept[0].score)}<br>${kept.length - 1} kept · ${vs.length - kept.length} cut` : 'nothing grown yet';
+  if (!vs.length) { $('ledger').innerHTML = '<div class="empty">Nothing yet. Press Grow: the first entry appears once the starting version has been tested.</div>'; return; }
+  const order = sortBy === 'score' ? [...vs].sort((a, b) => b.score - a.score) : [...vs].reverse();
+  $('ledger').innerHTML = order.map(v => {
+    const sub = !v.parent ? 'where it started' : v.kept ? `because: ${v.signal || 'n/a'} · removed: ${v.shed || 'nothing'}` : `cut: ${v.signal === 'cheat caught' ? 'it tampered with the tests' : 'it did not score higher'}`;
+    return `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}" data-id="${esc(v.id)}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change)}</span><span class="sub">${esc(sub)}</span></span><span class="n">${pct(v.score)}</span></div>`;
+  }).join('');
+}
+$('ledger').addEventListener('click', e => { const r = e.target.closest('.entry'); if (r) openVersion(r.dataset.id); });
+function openVersion(id) { if (id && watching) watchAgent(null); opened = id; tab = 'story'; game = null; document.body.classList.toggle('open', !!id); renderVersion(); }
+function setTab(t) { tab = t; renderVersion(); }
+
+function renderVersion() {
+  if (!opened) return;
+  const vs = window.__d.versions, v = vs.find(x => x.id === opened); if (!v) return openVersion(null);
+  const par = vs.find(p => p.id === v.parent), verdict = !v.parent ? 'seed' : v.kept ? 'kept' : 'cut';
+  const head = `<button onclick="openVersion(null)">← history</button>
+    <h2>${esc(v.id)}<small class="${verdict === 'cut' ? 'cut-t' : 'kept'}">${verdict}</small></h2>
+    <div class="faint">${par ? `parent ${esc(par.id)} · ${pct(par.score)} → ${pct(v.score)} held-out` : `held-out ${pct(v.score)}`}${v.tokens ? ` · ~${v.tokens} tokens of rules` : ''}</div>
+    <div class="tabs">${Object.entries(TABS).map(([t, name]) => `<button class="${t === tab ? 'on' : ''}" onclick="setTab('${t}')">${name}</button>`).join('')}</div>`;
+  let body = '';
+  if (tab === 'story') body = `<div class="story">
+      <div class="k">what failed</div><div class="big">${esc(v.signal || (v.parent ? 'not recorded' : 'nothing yet: this is where the tree starts'))}</div>
+      <div class="k">what it changed</div><div class="big">${esc(v.change)}</div>
+      <div class="k">what it shed</div><div>${esc(v.shed || (v.parent ? 'nothing' : 'n/a'))}</div>
+      <div class="k">verdict</div><div>${verdict === 'seed' ? 'the starting point' : verdict === 'kept' ? `kept: held-out went up${par ? ` from ${pct(par.score)} to ${pct(v.score)}` : ''}` : `cut: ${v.signal === 'cheat caught' ? 'it edited the tests' : `held-out ${par ? pct(par.score) + ' → ' : ''}${pct(v.score)}, not higher`}`}</div>
+      <div class="k">raindrop trace</div><div>${esc(v.trace_id || 'none recorded')}</div></div>`;
+  else if (tab === 'proof') body = proof(v, par);
+  else if (tab === 'diff') body = v.diff ? `<pre>${esc(v.diff).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n')}</pre>` : '<pre>The seed has no parent to differ from.</pre>';
+  else if (tab === 'harness') body = `<pre>${esc(v.harness ? JSON.stringify(v.harness, null, 2) : 'Harness body not recorded for this version.')}</pre>`;
+  else body = app?.log?.length ? [...app.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts * 1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
+  $('version').innerHTML = head + body;
+  if (tab === 'proof') loadBoards(v, par);
+}
+
+// Proof: the same held-out problems, parent against this version. Chess also shows both final positions.
+function proof(v, par) {
+  if (!v.results) return '<div class="empty">This version was stored before the loop recorded results per problem. Runs from now on have them.</div>';
+  const before = Object.fromEntries((par?.results || []).map(r => [r.task, r]));
+  const mark = r => !r ? '<span class="faint">·</span>' : r.cheat ? '<span class="lost">✕</span>' : r.passed ? '<span class="won">●</span>' : '<span class="lost">○</span>';
+  const won = v.results.filter(r => r.passed && before[r.task] && !before[r.task].passed).length, lost = v.results.filter(r => !r.passed && before[r.task]?.passed).length;
+  const chess = v.results.some(r => r.task.startsWith('chess/'));
+  if (chess) game ??= short(v.results[0].task);
+  return `<div class="faint" style="margin-bottom:8px">${par ? `${won} newly passed, ${lost} newly failed against ${esc(par.id)} · ● passed ○ failed ✕ edited tests` : 'the seed on every held-out problem'}</div>
+    <div class="grid"><div class="h">held-out problem</div><div class="h m">${esc(par?.id || '')}</div><div class="h m">${esc(v.id)}</div>
+    ${v.results.map(r => `<div>${chess ? `<a href="#" class="${short(r.task) === game ? 'on' : ''}" onclick="pickGame('${esc(short(r.task))}');return false">${esc(short(r.task))}</a>` : esc(short(r.task))}</div><div class="m">${mark(before[r.task])}</div><div class="m">${mark(r)}</div>`).join('')}</div>
+    ${chess ? `<div class="lbl" style="margin-top:16px">final position · ${esc(game)}</div><div class="boards" id="boards"></div>` : ''}`;
+}
+function pickGame(g) { game = g; renderVersion(); }
+const GLYPH = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
+function board(fen) {
+  let h = '', i = 0;
+  for (const row of fen.split(' ')[0].split('/')) for (const c of row) {
+    if (/\d/.test(c)) for (let k = 0; k < +c; k++, i++) h += `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''}"></i>`;
+    else { h += `<i class="${(Math.floor(i / 8) + i) % 2 ? 'd' : ''}">${GLYPH[c] || ''}</i>`; i++; }
+  }
+  return `<div class="board">${h}</div>`;
+}
+async function loadBoards(v, par) {
+  const el = $('boards'); if (!el || !game) return;
+  const get = async id => { try { const r = await fetch(`replays/chess/${id}/game-${game}.json`); return r.ok ? r.json() : null; } catch { return null; } };
+  const [a, b] = await Promise.all([par ? get(par.id) : null, get(v.id)]);
+  const side = (id, g) => `<div><div class="px" style="font-size:14px">${esc(id)}</div>${g ? board(g.final_fen) + `<div class="faint">${g.san.length} moves${g.forfeit ? ' · forfeit: ' + esc(g.forfeit) : ''}</div>` : '<div class="empty">no saved game</div>'}</div>`;
+  if ($('boards') === el) el.innerHTML = (par ? side(par.id, a) : '') + side(v.id, b);
+}
+
+// Terminal: every harness file the loop has written, and what changed between them. Same data as the ledger.
+let termFile = null, termSig = '';
+const paint = d => esc(d).split('\n').map(l => l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n');
+function toggleTerm(on) { const b = document.body.classList; b.toggle('term', on); $('term-btn').classList.toggle('on', b.contains('term')); try { localStorage.term = b.contains('term') ? '1' : '0'; } catch {} termSig = ''; renderTerm(); }
+function openFile(id) { termFile = id; renderTerm(); }
+function renderTerm() {
+  if (!document.body.classList.contains('term')) return;
+  const vs = window.__d?.versions || [], log = app?.log || [], running = app?.job?.status === 'running';
+  const sig = JSON.stringify([vs.length, vs.at(-1)?.id, log.length, termFile, running]); if (sig === termSig) return; termSig = sig;
+  const by = Object.fromEntries(vs.map(v => [v.id, v])), state = v => !v.parent ? 'seed' : v.kept ? 'kept' : 'cut';
+  $('t-back').hidden = !termFile;
+  $('t-files').innerHTML = vs.length ? vs.map(v => `<a class="${state(v) === 'cut' ? 'cut' : ''} ${v.id === termFile ? 'on' : ''}" onclick="openFile('${esc(v.id)}')"><span class="${state(v) === 'cut' ? 'no' : 'ok'}">${state(v) === 'cut' ? '✕' : '●'}</span><span>versions/${esc(v.id)}.json</span><i>${pct(v.score)} ${state(v)}</i></a>`).join('') : '<span class="dim">no files yet: the seed is written when a run starts</span>';
+  const out = $('t-out'), atEnd = out.scrollTop + out.clientHeight >= out.scrollHeight - 30;
+  const step = v => { const p = by[v.parent];
+    return !p ? `<div class="cmd">bonsai score versions/${esc(v.id)}.json</div>held-out ${pct(v.score)} · the seed harness`
+      : `<div class="cmd">bonsai propose --from ${esc(p.id)} --out versions/${esc(v.id)}.json</div><span class="dim">signal </span>${esc(v.signal || 'not recorded')}\n<span class="dim">change </span>${esc(v.change)}\n<span class="dim">shed   </span>${esc(v.shed || 'nothing')}\n${v.diff ? paint(v.diff) + '\n' : ''}held-out ${pct(p.score)} → ${pct(v.score)} · <span class="${v.kept ? 'add' : 'del'}">${v.kept ? 'kept' : 'cut'}</span>`; };
+  const f = by[termFile];
+  out.innerHTML = f ? `<div class="cmd">cat versions/${esc(f.id)}.json</div>${esc(JSON.stringify(f.harness ?? 'harness body not recorded', null, 2))}${f.parent ? `<div class="cmd">diff versions/${esc(f.parent)}.json versions/${esc(f.id)}.json</div>${f.diff ? paint(f.diff) : '<span class="dim">no diff recorded</span>'}` : ''}\n\n${step(f).replace(/^<div class="cmd">.*?<\/div>/, '')}`
+    : vs.map(step).join('\n') + `<div class="cmd">tail -f runs/activity.log</div>${log.slice(-40).map(l => `<span class="dim">${new Date(l.ts * 1000).toLocaleTimeString()}</span> ${esc(l.text)}`).join('\n') || '<span class="dim">nothing has run in this session yet</span>'}\n${running ? '<span class="cur"></span>' : ''}`;
+  if (!f && atEnd) out.scrollTop = out.scrollHeight;
+}
+
+function setSort(k) { sortBy = k; $('sort-latest').classList.toggle('on', k === 'latest'); $('sort-score').classList.toggle('on', k === 'score'); renderLedger(); }
 async function load() {
   let data = {versions:[]};
   try { const r = await fetch('lineage.json', {cache:'no-store'}); if (r.ok) data = await r.json(); } catch {}
   const j = JSON.stringify(data); if (j === lastJson) return; lastJson = j;
-  window.__d = data; if (follow || !data.versions.some(v => v.id === selected)) selected = data.versions.at(-1)?.id;
-  draw(data);
+  if (window.__d && data.versions.length > window.__d.versions.length) lastStoredAt = Date.now();
+  window.__d = data; renderLedger(); renderVersion(); renderGuide(); renderTerm();
 }
-$('rows').addEventListener('click', e => { const r = e.target.closest('tr'); if (r) select(r.dataset.id, true); });
 
 // The run: what was asked, every agent working on it, and the log. Polled from the local server.
-let agentView = 'live', app = null;
-const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2, '0');
+let agentView = 'live', app = null, growErr = null, setsSig = '', wantSet = null, stopping = false;
+function fillCount() {
+  const n = (app?.sets.find(x => x.key === $('set').value) || {}).count || 0;
+  const opts = [...new Set([4, 8, 12, 20, 40, n].filter(k => k >= 4 && k <= n))].sort((x, y) => x - y);
+  $('count').innerHTML = opts.map(k => `<option value="${k}" ${k === n ? 'selected' : ''}>${k === n ? 'all ' + k : k} problems</option>`).join('');
+}
+function toggleNew() { const f = $('newset'); f.hidden = !f.hidden; if (!f.hidden) $('newagent').hidden = true; $('new-btn').classList.toggle('on', !f.hidden); if (!f.hidden) $('ns-name').focus(); }
+function parseItems(text) {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    if (l.startsWith('{')) { try { const o = JSON.parse(l); return {q: o.question ?? o.q, a: String(o.answer ?? o.a ?? '')}; } catch { return null; } }
+    const i = l.lastIndexOf('=>'); return i < 0 ? null : {q: l.slice(0, i).trim(), a: l.slice(i + 2).trim()};
+  });
+}
+async function createSet(e) {
+  e.preventDefault(); const note = $('ns-note'), items = parseItems($('ns-items').value), bad = items.findIndex(x => !x || !x.q || !x.a);
+  const fail = t => { note.className = 'err'; note.textContent = t; };
+  if (!$('ns-name').value.trim()) return fail('Give it a name.');
+  if (bad >= 0) return fail(`Line ${bad + 1} has no "=>" answer, or is not valid JSON.`);
+  if (items.length < 4) return fail('It needs at least 4 questions.');
+  $('ns-go').disabled = true;
+  const r = await fetch('api/sets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:$('ns-name').value, rules:$('ns-rules').value, items})});
+  const j = await r.json().catch(() => ({})); $('ns-go').disabled = false;
+  if (!r.ok) return fail(j.error || 'could not create it');
+  note.className = ''; note.textContent = `Connected with ${j.count} questions. It is selected: press Grow.`;
+  wantSet = j.key; $('ns-items').value = ''; $('ns-name').value = ''; await poll(); toggleNew();
+}
+const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s / 60) + 'm' + String(Math.round(s % 60)).padStart(2, '0');
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
 function renderRun() {
   const a = app; if (!a) return;
   const job = a.job, running = job && job.status === 'running';
-  if (!$('set').options.length) { const groups = [...new Set(a.sets.map(x => x.group))];
-    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.count ? ` · ${x.count} problems` : ''}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join(''); }
-  $('go').disabled = running; $('halt').disabled = !running;
+  const sig = JSON.stringify(a.sets.map(x => [x.key, x.ready, x.count]));
+  if (sig !== setsSig) { setsSig = sig; const keep = wantSet || $('set').value; wantSet = null; const groups = [...new Set(a.sets.map(x => x.group))];
+    $('set').innerHTML = groups.map(g => `<optgroup label="${esc(g)}">${a.sets.filter(x => x.group === g).map(x => `<option value="${esc(x.key)}" ${x.ready ? '' : 'disabled'}>${esc(x.name)}${x.ready ? '' : ` · ${esc(x.why)}`}</option>`).join('')}</optgroup>`).join('');
+    if (keep && a.sets.some(x => x.key === keep && x.ready)) $('set').value = keep; fillCount(); }
+  $('go').disabled = running; $('halt').disabled = !running; $('go').textContent = running ? 'Growing…' : 'Grow'; if (!running) stopping = false; $('halt').textContent = stopping ? 'Stopping…' : 'Stop';
   const ph = $('phase'); ph.className = running ? 'live' : job && job.status === 'error' ? 'err' : '';
-  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>idle</b> · pick what it should improve on, then Grow'
-    : running ? `<b>${esc(job.phase)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · ${secs(a.now - job.started)}`
+  renderSteps(job, running);
+  ph.innerHTML = '<span class="dot"></span>' + (!job ? '<b>Ready</b> · pick what to improve at, then press Grow'
+    : running ? `<b>${esc(plain(job.phase))}</b>${progress()} · ${esc(job.set)} · ${secs(a.now - job.started)}`
     : job.status === 'error' ? `<b>run failed</b> · ${esc(job.error)}`
     : `<b>${esc(job.status)}</b> · ${esc(job.set)}${job.goal ? ' · steer: ' + esc(job.goal) : ''} · took ${secs(job.ended - job.started)}`);
+  // A refused Grow stays on screen long enough to read, instead of being wiped by the next poll.
+  if (growErr && Date.now() < growErr.until) { ph.className = 'err'; ph.innerHTML = `<span class="dot"></span><b>${esc(growErr.text)}</b>`; }
   const all = a.agents, live = all.filter(x => x.status === 'working' || x.status === 'queued');
   const done = all.filter(x => x.ended).sort((x, y) => y.ended - x.ended);
-  const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 6)] : [...all].reverse();
-  $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${live.filter(x => x.status === 'queued').length} queued · ${done.length} done` : '';
+  const show = agentView === 'live' ? [...live.filter(x => x.status === 'working'), ...live.filter(x => x.status === 'queued'), ...done.slice(0, 4)] : [...all].reverse();
+  $('ag-count').textContent = all.length ? `${live.filter(x => x.status === 'working').length} working · ${done.length} done` : '';
   $('agents').innerHTML = show.length ? show.map(x => {
-    const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status + (x.turns ? ` · ${x.turns} turns` : '');
-    return `<div class="ag ${esc(x.status)}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="role">${esc(x.role)}</span><span class="what">${esc(x.task)} <i>${esc(x.version)} · ${esc(x.split)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
-  }).join('') : `<div class="empty">No agents yet. A run starts solver agents (one per problem, on the model being improved) and a proposer agent that reads their failures and rewrites the harness.</div>`;
-  $('layer-activity').innerHTML = a.log.length ? [...a.log].reverse().map(l => `<div class="logline"><span>${new Date(l.ts*1000).toLocaleTimeString()}</span><div>${esc(l.text)}</div></div>`).join('') : '<pre>Nothing has run in this session yet.</pre>';
+    const st = x.status === 'working' ? 'working ' + secs(a.now - x.started) : x.status === 'queued' ? 'queued' : x.status === 'cheat' ? 'edited tests' : x.status;
+    return `<div class="ag ${esc(x.status)}" data-key="${esc(JSON.stringify({version:x.version, task:x.task, split:x.split, role:x.role}))}" title="${esc((x.trace ? 'Raindrop trace ' + x.trace + '. ' : '') + (x.said || ''))}"><span class="what">${esc(ROLE[x.role] || x.role)} · ${esc(short(x.task))} <i>${esc(x.version)} · ${esc(x.model)}</i>${x.trace ? ' <u>◆</u>' : ''}</span><span class="st">${esc(st)}</span></div>`;
+  }).join('') : `<div class="empty">None yet. A run starts one player per problem and one writer who studies their mistakes. Click any of them to watch it work.</div>`;
+  if (opened && tab === 'activity') renderVersion();
+  const sig2 = JSON.stringify(a.studio || []);
+  if (sig2 !== studioSig) { studioSig = sig2; const keep = wantAgent ?? $('agent').value; wantAgent = null;
+    $('agent').innerHTML = `<option value="">the starting version</option>${(a.studio || []).map(x => `<option value="${esc(x.key)}">${esc(x.name)} · ${esc(x.model)}</option>`).join('')}<option value="+">+ new agent…</option>`;
+    $('agent').value = (a.studio || []).some(x => x.key === keep) ? keep : ''; fillTools(); }
+  if (watching) renderWatchHead();
+  renderGuide();
+  renderTerm();
+}
+
+// Agent studio: make an agent (model, rules, tools, turns), save it, and grow a tree from it.
+let studioSig = '', wantAgent = null, growAfterSave = false;
+function pickAgent() { if ($('agent').value === '+') { $('agent').value = ''; toggleAgent(true); } }
+function toggleAgent(show) { const f = $('newagent'); f.hidden = show === undefined ? !f.hidden : !show; if (!f.hidden) { $('newset').hidden = true; fillTools(); $('na-name').focus(); } }
+function fillTools() {
+  const set = app?.sets.find(x => x.key === $('set').value), on = new Set([...$('na-tools').querySelectorAll('input:checked')].map(i => i.value));
+  $('na-tools').innerHTML = (set?.tools || []).map(t => `<label><input type="checkbox" value="${esc(t)}" ${on.has(t) ? 'checked' : ''}>${esc(t)}</label>`).join('') || '<span class="faint">this benchmark has no tools to switch on</span>';
+}
+async function saveAgent(e) {
+  e.preventDefault(); const note = $('na-note'), andGrow = growAfterSave; growAfterSave = false;
+  const body = {name:$('na-name').value, model:$('na-model').value, rules:$('na-rules').value, max_turns:+$('na-turns').value,
+    tools:[...$('na-tools').querySelectorAll('input:checked')].map(i => i.value)};
+  const r = await fetch('api/agents', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { note.className = 'err'; note.textContent = j.error || 'could not save it'; return; }
+  note.className = ''; wantAgent = j.key; await poll(); $('agent').value = j.key; toggleAgent(false);
+  if (andGrow) grow();
+}
+
+// Watch one agent: its live log (each step, tool, move, verdict), streamed from runs/live/ through the server.
+let watching = null, watchTimer = null;
+$('agents').addEventListener('click', e => { const r = e.target.closest('.ag'); if (r) watchAgent(JSON.parse(r.dataset.key)); });
+function watchAgent(k) {
+  watching = k; document.body.classList.toggle('watching', !!k); clearInterval(watchTimer);
+  if (!k) return;
+  $('watch').innerHTML = '<div id="w-head"></div><div id="w-board"></div><div id="w-steps"></div>';
+  renderWatchHead(); pullWatch(); watchTimer = setInterval(pullWatch, 1000);
+}
+function liveAgent() { return app?.agents.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split); }
+function renderWatchHead() {
+  const x = liveAgent(), el = $('w-head'); if (!el) return;
+  const st = !x ? '' : x.status === 'working' ? 'working ' + secs(app.now - x.started) : x.status === 'cheat' ? 'edited tests' : x.status;
+  el.innerHTML = `<button onclick="watchAgent(null)">← back</button>
+    <h2 class="px" style="font-size:24px;font-weight:400;margin:10px 0 2px">${esc(short(watching.task))}</h2>
+    <div class="faint">${esc(ROLE[watching.role] || watching.role)} · ${esc(watching.version)} · ${esc(watching.split)} · ${esc(x?.model || '')}</div>
+    <div style="margin-top:4px"><span class="${x?.status === 'passed' ? 'kept' : /failed|cheat/.test(x?.status) ? 'cut-t' : ''}">${esc(st)}</span>${x?.trace ? ` · <span class="faint">raindrop trace</span> ${esc(x.trace)}` : app?.raindrop ? '' : ' · <span class="faint">not traced: no RAINDROP_WRITE_KEY</span>'}</div>`;
+  document.getElementById('tree3d').contentWindow?.postMessage({focus:watching.version}, location.origin);
+}
+async function pullWatch() {
+  if (!watching) return;
+  if (watching.role === 'proposer') { $('w-steps').innerHTML = `<div class="empty">The proposer reads the failures in one call and writes one change. Its answer shows here when it lands.</div>${liveAgent()?.said ? `<div class="step"><span class="w">wrote</span><span>${esc(liveAgent().said)}</span></div>` : ''}`; return; }
+  let lines = [];
+  try { const r = await fetch(`api/watch?version=${encodeURIComponent(watching.version)}&task=${encodeURIComponent(watching.task)}`, {cache:'no-store'}); if (r.ok) lines = (await r.json()).lines; } catch {}
+  const fen = [...lines].reverse().find(l => l.fen)?.fen;
+  $('w-board').innerHTML = fen ? board(fen) : '';
+  const t0 = lines[0]?.t || 0, ago = l => '+' + secs(l.t - t0);
+  const row = l => l.kind === 'move' ? `<div class="step move"><span class="w">${l.by === 'agent' ? 'move ' + l.n : 'reply'}</span><span><b>${esc(l.san)}</b> <span class="faint">${l.by === 'agent' ? 'played' : 'by Stockfish'}</span>${l.said ? `<span class="said">${esc(l.said.slice(-160))}</span>` : ''}</span></div>`
+    : l.kind === 'tool' ? `<div class="step tool"><span class="w">${esc(l.tool)}</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'said' ? `<div class="step"><span class="w">said</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'result_of_tool' ? `<div class="step"><span class="w">got</span><span class="faint">${esc(l.text)}</span></div>`
+    : l.kind === 'illegal' ? `<div class="step bad"><span class="w">illegal</span><span>${esc(l.text)}</span></div>`
+    : l.kind === 'verdict' ? `<div class="step ${l.passed && !l.edited_tests ? '' : 'bad'}"><span class="w">graded</span><span class="${l.passed && !l.edited_tests ? 'kept' : ''}">${l.edited_tests ? 'edited the tests' : l.passed ? 'passed' : 'failed'}<span class="said">${esc(l.text)}</span></span></div>`
+    : `<div class="step"><span class="w">${esc(l.kind)}</span><span class="faint">${esc(l.text || '')}</span></div>`;
+  const box = $('watch'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  $('w-steps').innerHTML = lines.length ? lines.map(l => row(l).replace('<span class="w">', `<span class="w" title="${ago(l)}">`)).join('') : '<div class="empty">Waiting for its first step.</div>';
+  if (atEnd) box.scrollTop = box.scrollHeight;
 }
 async function poll() {
   try { const r = await fetch('api/state', {cache:'no-store'}); if (!r.ok) throw 0; app = await r.json(); renderRun(); }
@@ -206,15 +485,63 @@ async function poll() {
 }
 async function post(path, body) {
   const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  const j = await r.json().catch(() => ({})); if (!r.ok) { $('phase').className = 'err'; $('phase').innerHTML = `<span class="dot"></span><b>${esc(j.error || 'request failed')}</b>`; } return r.ok;
+  const j = await r.json().catch(() => ({})); growErr = r.ok ? null : {text: j.error || 'request failed', until: Date.now() + 8000}; return r.ok;
 }
 async function grow(e) {
-  e.preventDefault(); $('go').disabled = true;
-  const ok = await post('api/grow', {set:$('set').value});
-  if (ok) { lastJson = ''; setLayer('tree'); follow = true; $('follow-btn').classList.add('on'); $('follow-btn').textContent = 'following latest'; }
+  e?.preventDefault(); $('go').disabled = true; $('go').textContent = 'Starting…';
+  const ok = await post('api/grow', {set:$('set').value, generations:+$('gens').value, count:+$('count').value, agent:$('agent').value || null});
+  if (ok) { lastJson = ''; openVersion(null); }
   poll(); load();
 }
-async function halt() { await post('api/stop', {}); poll(); }
+
+// Plain words for what the loop reports, and the five steps of one round.
+const ROLE = {solver:'player', proposer:'writer'};
+const TABS = {story:'What happened', proof:'Before & after', diff:'Exact change', harness:'Full setup', activity:'Log'};
+function plain(t) {
+  return String(t || '').replace(/^scoring the seed on held-out problems/, 'Testing the starting version on new problems')
+    .replace(/^running (\S+) on practice problems to find what fails/, 'Finding what $1 gets wrong on practice problems')
+    .replace(/^proposer is reading the failures and writing (\S+)/, 'The writer is studying the mistakes and writing $1')
+    .replace(/^scoring (\S+) on held-out problems:?/, 'Testing $1 on new problems:')
+    .replace(/^starting$/, 'Starting');
+}
+function stepOf(t) {
+  t = String(t || '');
+  return /seed|^starting/.test(t) ? 0 : /practice/.test(t) ? 1 : /proposer|writing/.test(t) ? 2 : /held-out/.test(t) ? 3 : -1;
+}
+function progress() {
+  const t = app?.job?.phase || '', vid = (t.match(/(g\d+[a-z]?)/) || [])[1] || (stepOf(t) === 0 ? 'g0' : null);
+  const split = stepOf(t) === 1 ? 'practice' : 'held-out';
+  const mine = (app?.agents || []).filter(x => x.split === split && (!vid || x.version === vid));
+  return mine.length ? ` · ${mine.filter(x => x.ended).length} of ${mine.length} done` : '';
+}
+let lastStoredAt = 0;
+function renderSteps(job, running) {
+  const el = $('steps'); el.hidden = !running;
+  if (!running) return;
+  let n = stepOf(job.phase);
+  if (Date.now() - lastStoredAt < 6000) n = 4;          // a version was just stored: keep or cut
+  [...el.children].forEach((li, i) => li.className = i < n ? 'done' : i === n ? 'now' : '');
+}
+function renderGuide() {
+  const empty = !(window.__d?.versions?.length), busy = app?.job?.status === 'running';
+  $('guide').hidden = !empty || busy; document.body.classList.toggle('guide-on', empty && !busy);
+  const set = app?.sets.find(x => x.key === $('set').value);
+  $('g-set').textContent = set ? set.name.split(':')[0].toLowerCase() : 'this';
+}
+function toggleOpts(show) { const o = $('opts'); o.hidden = show === undefined ? !o.hidden : !show; $('opt-btn').setAttribute('aria-expanded', !o.hidden); }
+// Esc closes whatever is open, innermost first.
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('newagent').hidden) return toggleAgent(false);
+  if (!$('newset').hidden) return toggleNew();
+  if (watching) return watchAgent(null);
+  if (opened) return openVersion(null);
+  if (!$('opts').hidden) return toggleOpts(false);
+  if (document.body.classList.contains('term')) return toggleTerm(false);
+});
+async function stopRun() { stopping = true; await post('api/stop', {}); poll(); }
+let termOn = innerWidth > 1300; try { if (localStorage.term === '0') termOn = false; } catch {}
+if (termOn) toggleTerm(true);
 load(); poll(); setInterval(load, 3000); setInterval(poll, 1000);
 </script>
 </body>

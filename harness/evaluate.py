@@ -42,6 +42,61 @@ BASE_HARNESS = {
 }
 
 
+def live_path(version: str, task: str) -> Path:
+    """Where one agent writes what it is doing, step by step, so the page can watch it: runs/live/<version>/<task>.jsonl."""
+    return ROOT / "runs" / "live" / version / (task.replace("/", "__") + ".jsonl")
+
+
+def stream_claude(cmd: list[str], cwd: Path, timeout: int, live: Path) -> dict:
+    """Run `claude -p` with stream-json output: every step goes to the live log, the final result is returned."""
+    import threading
+
+    proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    timer = threading.Timer(timeout, proc.kill)
+    timer.start()
+    out, tail = None, []
+    try:
+        with live.open("a") as log:
+            for line in proc.stdout:
+                tail.append(line)
+                del tail[:-20]
+                try:
+                    ev = json.loads(line)
+                except ValueError:
+                    continue
+                if ev.get("type") == "result":
+                    out = ev
+                for step in steps(ev):
+                    log.write(json.dumps({"t": time.time(), **step}) + "\n")
+                    log.flush()
+        proc.wait()
+    finally:
+        timer.cancel()
+    if out is None:
+        return {"result": "agent timeout" if proc.returncode in (-9, 137) else "".join(tail)[-500:] or proc.stderr.read()[-500:]}
+    return out
+
+
+def steps(ev: dict) -> list[dict]:
+    """One stream-json event as short, readable steps: what the agent said, which tool it used, what came back."""
+    kind, msg = ev.get("type"), ev.get("message") or {}
+    if kind == "result":
+        return [{"kind": "result", "text": str(ev.get("result") or ev.get("subtype") or "")[-600:]}]
+    out = []
+    for part in msg.get("content") or [] if isinstance(msg.get("content"), list) else []:
+        if part.get("type") == "text" and kind == "assistant":
+            out.append({"kind": "said", "text": part["text"][-600:]})
+        elif part.get("type") == "tool_use":
+            arg = part.get("input") or {}
+            brief = arg.get("file_path") or arg.get("command") or arg.get("pattern") or json.dumps(arg)[:160]
+            out.append({"kind": "tool", "tool": part.get("name"), "text": str(brief)[-200:]})
+        elif part.get("type") == "tool_result":
+            body = part.get("content")
+            body = " ".join(b.get("text", "") for b in body if isinstance(b, dict)) if isinstance(body, list) else str(body or "")
+            out.append({"kind": "result_of_tool", "text": body[:240]})
+    return out
+
+
 def task_set(key: str) -> dict | None:
     """A connected task set: tasks/<key>/set.json. See tasks/README.md."""
     f = TASKS / key / "set.json"
@@ -72,46 +127,33 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
     if spec:
         prompt = spec["prompt"]
     t0 = time.time()
+    live = live_path(harness.get("id", "seed"), name)
+    live.parent.mkdir(parents=True, exist_ok=True)
+    live.write_text(json.dumps({"t": t0, "kind": "start", "text": prompt[:300]}) + "\n")
     try:
         own = None
         if spec and spec.get("agent"):
             # The set brings its own agent: a shell command that reads the harness and the prompt from the environment.
             (work / ".harness.json").write_text(json.dumps(harness))
-            own = {**os.environ, "BONSAI_HARNESS": str(work / ".harness.json"), "BONSAI_PROMPT": prompt, "BONSAI_TASK": str(src)}
-        agent = subprocess.run(
-            ["sh", "-c", spec["agent"].replace("{root}", str(ROOT))]
-            if own
-            else [
-                CLAUDE,
-                "-p",
-                prompt,
-                "--model",
-                harness["model"],
-                "--output-format",
-                "json",
-                "--system-prompt",
-                harness["rules"],
-                "--allowedTools",
-                ",".join(harness["tools"]),
-                "--max-turns",
-                str(harness["max_turns"]),
-                "--permission-mode",
-                "acceptEdits",
-                "--strict-mcp-config",
-                "--mcp-config",
-                '{"mcpServers":{}}',
-            ],
-            cwd=work,
-            env=own,
-            capture_output=True,
-            text=True,
-            timeout=600,
-        )
-        out = (
-            json.loads(agent.stdout)
-            if agent.stdout.strip().startswith("{")
-            else {"result": (agent.stdout or agent.stderr)[-500:]}
-        )
+            own = {**os.environ, "BONSAI_HARNESS": str(work / ".harness.json"), "BONSAI_PROMPT": prompt, "BONSAI_TASK": str(src),
+                   "BONSAI_LIVE": str(live)}  # fmt: skip
+        if not own:
+            out = stream_claude([
+                CLAUDE, "-p", prompt, "--model", harness["model"], "--output-format", "stream-json", "--verbose",
+                "--system-prompt", harness["rules"], "--allowedTools", ",".join(harness["tools"]),
+                "--max-turns", str(harness["max_turns"]), "--permission-mode", "acceptEdits",
+                "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
+            ], work, (spec or {}).get("timeout", 600), live)  # fmt: skip
+        agent = None if not own else subprocess.run(
+            ["sh", "-c", spec["agent"].replace("{root}", str(ROOT))],
+            cwd=work, env=own, capture_output=True, text=True, timeout=spec.get("timeout", 600),
+        )  # fmt: skip
+        if agent:
+            out = (
+                json.loads(agent.stdout)
+                if agent.stdout.strip().startswith("{")
+                else {"result": (agent.stdout or agent.stderr)[-500:]}
+            )
     except subprocess.TimeoutExpired:
         out = {"result": "agent timeout"}
     agent_s = time.time() - t0
@@ -141,6 +183,8 @@ def run_one(name: str, harness: dict, scratch: Path) -> dict:
         passed, tail = test.returncode == 0, (test.stdout + test.stderr)[-600:]
     except subprocess.TimeoutExpired:
         passed, tail = False, "test timeout"
+    with live.open("a") as log:
+        log.write(json.dumps({"t": time.time(), "kind": "verdict", "passed": passed, "edited_tests": edited_tests, "text": tail[-300:]}) + "\n")
     row = {
         "task": name,
         "passed": passed,

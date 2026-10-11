@@ -16,6 +16,7 @@ import argparse
 import difflib
 import json
 import os
+import sys
 import subprocess
 import time
 from pathlib import Path
@@ -64,9 +65,20 @@ def store(doc: dict) -> None:
     if uri:
         from pymongo import MongoClient
 
-        MongoClient(uri)["bonsai"]["versions"].replace_one(
-            {"id": doc["id"]}, doc, upsert=True
-        )
+        try:
+            # one tree per run: the seed's timestamp names the run, so trees do not overwrite each other
+            run = str(int(versions[0].get("ts") or 0))
+            MongoClient(uri, serverSelectionTimeoutMS=30000)["bonsai"]["versions"].replace_one(
+                {"id": doc["id"], "run": run}, {**doc, "run": run}, upsert=True
+            )
+            print(f"atlas: stored {doc['id']}", file=sys.stderr, flush=True)
+        except Exception as e:  # the run goes on; the local log already has the version
+            print(f"atlas: write failed for {doc['id']}: {type(e).__name__}: {str(e)[-500:]}", file=sys.stderr, flush=True)
+
+
+def results(tasks: list[str], res: dict) -> list[dict]:
+    """Per-problem outcome on held-out, so the page can show which problems a change won or lost."""
+    return [{"task": t, "passed": bool(r["passed"]), "cheat": bool(r.get("edited_tests"))} for t, r in zip(tasks, res["rows"])]
 
 
 def score(harness: dict, tasks: list[str], scratch: Path, workers: int, on_task=None) -> dict:
@@ -116,13 +128,20 @@ def propose(parent: dict, result: dict, pruned: list[str], model: str, goal: str
         failures=digest or "(none)",
         pruned="\n".join(f"- {p}" for p in pruned) or "(none)",
     )
-    out = subprocess.run(
-        [runner.CLAUDE, "-p", prompt, "--model", model, "--output-format", "json", "--max-turns", "1",
-         "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}'],
-        capture_output=True, text=True, timeout=300, cwd=ROOT / "runs",
-    )  # fmt: skip
-    text = json.loads(out.stdout)["result"]
-    reply = json.loads(text[text.index("{") : text.rindex("}") + 1])
+    for attempt in range(3):  # the proposer sometimes returns no text or broken JSON: ask again
+        out = subprocess.run(
+            [runner.CLAUDE, "-p", prompt, "--model", model, "--output-format", "json", "--max-turns", "1",
+             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}'],
+            capture_output=True, text=True, timeout=300, cwd=ROOT / "runs",
+        )  # fmt: skip
+        try:
+            text = json.loads(out.stdout)["result"]
+            reply = json.loads(text[text.index("{") : text.rindex("}") + 1])
+            reply["harness"]["tools"], reply["harness"]["max_turns"], reply["change"]
+            break
+        except (KeyError, ValueError, TypeError):
+            if attempt == 2:
+                raise RuntimeError(f"proposer gave no usable reply: {(out.stdout or out.stderr)[-300:]}")
     child = reply["harness"]
     child["model"] = parent["model"]
     child["tools"] = [t for t in child["tools"] if t in allowed]
@@ -149,8 +168,9 @@ def diff(a: dict, b: dict) -> str:
 
 
 def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-opus-5-5", scratch=None,
-        goal="", parent=None, emit=None, stopped=lambda: False) -> None:  # fmt: skip
+        goal="", parent=None, emit=None, stopped=lambda: False, start=None) -> None:  # fmt: skip
     """Grow the tree. `parent` is a stored version to branch from; without one the seed is scored first.
+    `start` is an agent made on the page ({name, model, rules, tools, max_turns}); it replaces the set's seed.
 
     emit(kind, **data) reports what is happening: phase, task, proposed, version.
     """
@@ -167,14 +187,14 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
         best_score, first = parent["score"], parent["generation"] + 1
     else:
         # A connected set may bring its own starting harness ("seed" in set.json).
-        seed = {**runner.BASE_HARNESS, **spec.get("seed", {})}
+        seed = {**runner.BASE_HARNESS, **spec.get("seed", {}), **{k: v for k, v in (start or {}).items() if k in runner.BASE_HARNESS}}
         best, first = {**seed, "id": "g0"}, 1
         emit("phase", text="scoring the seed on held-out problems", version="g0")
         held = score(best, heldout, scratch / "g0-held", workers, tasks_cb("g0", "held-out"))
         best_score = held["score"]
         (VERSIONS / "g0.json").write_text(json.dumps(best, indent=1))
-        doc = {"id": "g0", "parent": None, "generation": 0, "change": "seed harness", "signal": None, "harness": seed,
-               "kept": True, "score": best_score, "tokens": len(best["rules"]) // 4, "diff": "",
+        doc = {"id": "g0", "parent": None, "generation": 0, "change": f"seed: {start['name']}" if start else "seed harness", "signal": None, "harness": seed,
+               "kept": True, "score": best_score, "results": results(heldout, held), "tokens": len(best["rules"]) // 4, "diff": "",
                "trace_id": None, "ts": time.time()}  # fmt: skip
         store(doc)
         emit("version", doc=doc)
@@ -204,7 +224,7 @@ def run(practice, heldout, generations=3, tries=2, workers=3, proposer="claude-o
             )
             doc = {"id": vid, "parent": best["id"], "generation": gen, "change": p["change"], "shed": p["shed"], "harness": p["harness"],
                    "signal": "cheat caught" if res["cheated"] else p["signal"], "kept": kept,
-                   "score": res["score"], "tokens": len(child["rules"]) // 4,
+                   "score": res["score"], "results": results(heldout, res), "tokens": len(child["rules"]) // 4,
                    "diff": diff(best, child), "trace_id": fail_trace, "ts": time.time()}  # fmt: skip
             store(doc)
             emit("version", doc=doc)

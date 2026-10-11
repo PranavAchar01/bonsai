@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonsai Layouts</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --deep:#e5dac3; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f6f3ee; color:var(--ink); font:15px/1.5 "Inter Tight", system-ui, sans-serif; padding:28px 24px 80px; }
+  .intro { max-width:900px; margin-bottom:26px; }
+  .intro h2 { font-size:13px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin:0 0 6px; font-weight:600; }
+  .intro p { margin:0 0 6px; color:#55504a; }
+  .opt { margin-bottom:40px; }
+  .opt h3 { margin:0 0 2px; font-size:17px; }
+  .opt p { margin:0 0 4px; color:#55504a; max-width:900px; font-size:14px; }
+  .opt .why { color:var(--faint); font-size:13px; margin-bottom:10px; }
+  .frame { width:100%; aspect-ratio:16/10; position:relative; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+  .page { position:absolute; left:0; top:0; width:1280px; height:800px; transform-origin:0 0; font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--ink);
+    background:radial-gradient(ellipse at 55% 35%, rgba(255,252,244,.5), transparent 60%), radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(60,48,30,.14) 100%), var(--paper); }
+  .page::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.22; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .page iframe { position:absolute; border:0; pointer-events:none; }
+  .abs { position:absolute; }
+  .px { font-family:"DotGothic16", monospace; font-weight:400; }
+  .faint { color:var(--faint); } .red { color:var(--seal); } .green { color:var(--moss); }
+  .cut { color:var(--seal); text-decoration:line-through; text-decoration-color:rgba(181,51,42,.5); }
+  .sel { display:inline-block; border-bottom:1px solid var(--ink); padding:1px 16px 1px 2px; font-family:"DotGothic16"; font-size:14px; position:relative; }
+  .sel::after { content:"▾"; position:absolute; right:1px; font-size:10px; top:3px; }
+  .btn { display:inline-block; border:1px solid var(--ink); padding:4px 14px; font-family:"DotGothic16"; font-size:13px; }
+  .btn.solid { background:var(--ink); color:var(--paper); }
+  .btn.ghost { border-color:var(--line); color:var(--faint); }
+  .lbl { letter-spacing:.14em; text-transform:uppercase; font-size:10px; color:var(--faint); }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .row .sub { display:block; color:var(--faint); font-size:10.5px; }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--seal); margin-right:7px; vertical-align:middle; }
+  .seal { position:absolute; width:38px; height:38px; background:var(--seal); color:var(--paper); display:grid; place-items:center; font:22px "DotGothic16"; }
+  .tabs span { margin-right:16px; color:var(--faint); } .tabs span.on { color:var(--ink); border-bottom:1px solid var(--ink); }
+  pre { margin:0; font:11.5px/1.6 "IBM Plex Mono"; white-space:pre-wrap; } .add { color:var(--moss); } .del { color:var(--seal); }
+  .board { display:grid; grid-template-columns:repeat(8, 1fr); width:220px; height:220px; border:1px solid var(--ink); }
+  .board i { display:grid; place-items:center; font-style:normal; font-size:19px; } .board i.d { background:#cdbf9f; } .board i.l { background:#efe4cc; }
+  .note { font-size:12px; color:var(--faint); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h2>Main page layouts, round 2</h2>
+  <p>Built from what the repo needs the page to do. It has to <b>start and stop a run</b> (benchmark, generations, problems, Grow, Stop, new benchmark), <b>show the agents</b> (one solver per problem plus the proposer), <b>show the lineage</b> (change, what was shed, signal, score, kept or pruned) and let you <b>open one version</b> (diff, signal, harness, activity).</p>
+  <p>It also has to hold up as a <b>3-minute demo</b>, follow the hackathon rule that the tree is the largest thing and the numbers stay small, and handle <b>five trees</b> (chess, legal, health, finance, coding) once BENCHMARKS.md is done. Trees are the live demo; all text is placeholder.</p>
+</div>
+
+<!-- 1 -->
+<div class="opt"><h3>1 · Grove</h3>
+<p>One small bonsai per benchmark, standing side by side on one long shelf. Under each, its name and held-out score. The one that is running breathes and shows its agents as a line of dots under its pot. Click a tree and the page becomes option 2 for that tree.</p>
+<div class="why">Why: BENCHMARKS.md plans five trees running at once. This is the only layout that shows all of them, and "five self-improving agents in five domains" is a strong opening shot for the demo.</div>
+<div class="frame"><div class="page">
+  <div class="abs" style="left:40px;top:28px"><span class="px" style="font-size:30px">盆栽 Bonsai</span><span class="faint" style="margin-left:16px">five harnesses that prune themselves</span></div>
+  <div class="abs" style="right:40px;top:34px"><span class="btn solid">grow all</span> <span class="btn">+ new benchmark</span></div>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=pine" style="left:10px;top:120px;width:260px;height:470px"></iframe>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=windswept&foliage=blossom" style="left:260px;top:120px;width:260px;height:470px"></iframe>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=blossom" style="left:510px;top:120px;width:260px;height:470px"></iframe>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=windswept&foliage=pine" style="left:760px;top:120px;width:260px;height:470px"></iframe>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=pine" style="left:1010px;top:120px;width:260px;height:470px"></iframe>
+  <div class="abs" style="left:30px;right:30px;top:600px;border-top:2px solid var(--ink)"></div>
+  <div class="abs" style="left:30px;right:30px;top:614px;display:grid;grid-template-columns:repeat(5,1fr);text-align:center">
+    <div><div class="px" style="font-size:18px">chess</div><div class="px" style="font-size:38px">48%</div><div class="faint">from 20% · 3 kept · 4 cut</div><div style="margin-top:6px"><span class="dot"></span><span class="faint">8 games playing</span></div></div>
+    <div><div class="px" style="font-size:18px">legal</div><div class="px" style="font-size:38px">71%</div><div class="faint">from 55% · 2 kept · 5 cut</div></div>
+    <div><div class="px" style="font-size:18px">health</div><div class="px" style="font-size:38px">64%</div><div class="faint">from 60% · 1 kept · 3 cut</div></div>
+    <div><div class="px" style="font-size:18px">finance</div><div class="px" style="font-size:38px">52%</div><div class="faint">from 35% · 4 kept · 2 cut</div></div>
+    <div><div class="px" style="font-size:18px">coding</div><div class="px" style="font-size:38px">83%</div><div class="faint">from 70% · 2 kept · 6 cut</div></div>
+  </div>
+  <div class="seal" style="right:24px;bottom:22px">盆</div>
+</div></div></div>
+
+<!-- 2 -->
+<div class="opt"><h3>2 · One tree, ledger in the margin</h3>
+<p>The tree takes the left two thirds. The right margin is a ledger with no boxes: the score, then every version as a ruled entry (change, what it shed, signal, score), newest first, cut ones struck in red. Click an entry and the margin turns into that version: diff, signal, harness. The ask bar is one sentence at the top; agents show as a single status line under it.</p>
+<div class="why">Why: closest to DESIGN.md (tree largest, numbers small beside it, no cards) and it keeps every control and every field the page has today, only rearranged.</div>
+<div class="frame"><div class="page">
+  <div class="abs" style="left:40px;top:26px;right:420px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+    <span class="px" style="font-size:28px;margin-right:14px">盆栽 Bonsai</span><span class="faint">improve it on</span><span class="sel">Chess vs Stockfish</span><span class="faint">for</span><span class="sel">3 generations</span><span class="faint">on</span><span class="sel">20 problems</span><span class="btn solid">grow</span><span class="btn ghost">stop</span>
+  </div>
+  <div class="abs faint" style="left:40px;top:66px"><span class="dot"></span>scoring g4a on held-out · 5 of 10 games done · proposer: opus · solvers: haiku ×10</div>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=pine" style="left:0;top:90px;width:860px;height:710px"></iframe>
+  <div class="abs" style="right:0;top:0;bottom:0;width:400px;border-left:1px solid var(--line);padding:28px 30px">
+    <div class="lbl">held-out</div>
+    <div style="display:flex;align-items:baseline;gap:12px"><span class="px" style="font-size:72px;line-height:1">48%</span><span class="faint">from 20%<br>3 kept · 4 cut</span></div>
+    <div class="lbl" style="margin:24px 0 4px">lineage</div>
+    <div class="row"><span>g3b  add a hanging-pieces tool<span class="sub">shed: one rule about openings · signal: lost material early</span></span><span>48</span></div>
+    <div class="row cut"><span>g3a  longer opening book<span class="sub" style="text-decoration:none">pruned: tokens up, score down</span></span><span>41</span></div>
+    <div class="row"><span>g2a  list legal moves each turn<span class="sub">shed: 2 turns · signal: illegal moves</span></span><span>39</span></div>
+    <div class="row cut"><span>g1b  play faster<span class="sub" style="text-decoration:none">pruned: no gain</span></span><span>18</span></div>
+    <div class="row"><span>g1a  check for checks first<span class="sub">shed: nothing · signal: missed mate</span></span><span>30</span></div>
+    <div class="row"><span>g0  seed</span><span>20</span></div>
+  </div>
+  <div class="seal" style="right:420px;bottom:22px">盆</div>
+</div></div></div>
+
+<!-- 3 -->
+<div class="opt"><h3>3 · Version open</h3>
+<p>What option 2 looks like after clicking a version. The tree stays, the clicked branch is lit and the rest dims. The margin holds the story of that one change in order: what failed (signal), what it changed (diff, green and red lines), what it shed, and the verdict with the score before and after. Raindrop trace link at the bottom.</p>
+<div class="why">Why: this is the "click a branch" moment from the brief, and it is where judges see that changes are real edits to a real harness.</div>
+<div class="frame"><div class="page">
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=windswept&foliage=pine" style="left:0;top:40px;width:820px;height:760px;opacity:.85"></iframe>
+  <div class="abs" style="left:40px;top:26px"><span class="px" style="font-size:22px">盆栽 Bonsai</span><span class="faint" style="margin-left:14px">← all versions</span></div>
+  <div class="abs" style="right:0;top:0;bottom:0;width:460px;border-left:1px solid var(--line);padding:28px 32px">
+    <div class="px" style="font-size:30px">g3b <span class="green" style="font-size:18px">kept</span></div>
+    <div class="faint" style="margin-bottom:16px">parent g2a · 39% → 48% held-out · ~210 tokens of rules</div>
+    <div class="lbl">what failed</div><div class="px" style="font-size:18px;margin:4px 0 16px">left pieces hanging in 6 of 10 practice games</div>
+    <div class="lbl" style="margin-bottom:4px">what changed</div>
+<pre> "tools": ["legal_moves"<span class="add">, "hanging"</span>],
+<span class="del">-"rules": "...Prefer developing knights before bishops..."</span>
+<span class="add">+"rules": "...Before each move, check the hanging list..."</span></pre>
+    <div class="lbl" style="margin-top:16px">what it shed</div><div>one rule about openings</div>
+    <div class="tabs" style="margin-top:22px"><span class="on">story</span><span>diff</span><span>harness</span><span>activity</span><span>trace ◆</span></div>
+  </div>
+</div></div></div>
+
+<!-- 4 -->
+<div class="opt"><h3>4 · Run in progress</h3>
+<p>While a run is going, the page centres on the tree and the agents gather around the pot: one small mark per solver (filling as games finish, green won, red lost), the proposer above the tree with the sentence it is writing. The shoot being tested grows pale at the same pace. When the verdict lands the marks clear and the page returns to option 2.</p>
+<div class="why">Why: the agents are the most alive data the page has. Today they sit in a list; here you can see eight Haiku players and one Opus proposer working on the tree.</div>
+<div class="frame"><div class="page">
+  <div class="abs" style="left:40px;top:26px"><span class="px" style="font-size:22px">盆栽 Bonsai</span></div>
+  <div class="abs" style="right:40px;top:26px"><span class="btn">stop after this step</span></div>
+  <div class="abs" style="left:0;right:0;top:70px;text-align:center"><div class="lbl">proposer · opus · writing g4a</div><div class="px" style="font-size:20px;margin-top:6px">"Before each move, list the opponent's best capture."</div></div>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=blossom" style="left:240px;top:130px;width:800px;height:520px"></iframe>
+  <div class="abs" style="left:0;right:0;top:660px;display:flex;justify-content:center;gap:26px">
+    <div style="text-align:center"><div class="px green" style="font-size:22px">●</div><div class="faint">caro-kann</div></div>
+    <div style="text-align:center"><div class="px red" style="font-size:22px">●</div><div class="faint">english</div></div>
+    <div style="text-align:center"><div class="px" style="font-size:22px">◐</div><div class="faint">french</div></div>
+    <div style="text-align:center"><div class="px" style="font-size:22px">◐</div><div class="faint">italian</div></div>
+    <div style="text-align:center"><div class="px green" style="font-size:22px">●</div><div class="faint">king's indian</div></div>
+    <div style="text-align:center"><div class="px faint" style="font-size:22px">○</div><div class="faint">ruy lopez</div></div>
+    <div style="text-align:center"><div class="px faint" style="font-size:22px">○</div><div class="faint">scandinavian</div></div>
+    <div style="text-align:center"><div class="px faint" style="font-size:22px">○</div><div class="faint">sicilian</div></div>
+  </div>
+  <div class="abs faint" style="left:0;right:0;bottom:30px;text-align:center"><span class="dot"></span>g4a on held-out · 3 of 8 games done · 2 won · needs more than 48% to be kept</div>
+</div></div></div>
+
+<!-- 5 -->
+<div class="opt"><h3>5 · Before and after</h3>
+<p>The tree on the left. On the right, proof: the same chess opening played by the seed and by the best version, two boards side by side with the move where they diverge, and the result under each. For question sets the boards become the same question answered both ways. The score sits between them.</p>
+<div class="why">Why: the repo already saves replays (tasks/chess/_replays, replay.html). A score going from 20% to 48% is abstract; a game the seed lost and the best version holds is not.</div>
+<div class="frame"><div class="page">
+  <div class="abs" style="left:40px;top:26px"><span class="px" style="font-size:24px">盆栽 Bonsai</span><span class="faint" style="margin-left:14px">chess vs Stockfish</span></div>
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=moyogi&foliage=pine" style="left:0;top:60px;width:560px;height:740px"></iframe>
+  <div class="abs" style="left:600px;top:110px;right:40px">
+    <div class="lbl" style="margin-bottom:12px">italian game, white · same opening, two harnesses</div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
+      <div><div class="px" style="font-size:18px;margin-bottom:6px">g0 seed</div><div class="board" id="b1"></div><div class="red" style="margin-top:8px">lost a knight on move 11</div></div>
+      <div style="padding-top:90px;text-align:center"><div class="px" style="font-size:42px">20%</div><div class="faint">→</div><div class="px" style="font-size:42px">48%</div></div>
+      <div><div class="px" style="font-size:18px;margin-bottom:6px">g3b best</div><div class="board" id="b2"></div><div class="green" style="margin-top:8px">level on material at move 18</div></div>
+    </div>
+    <div class="faint" style="margin-top:22px">diverged on move 9: seed played Nxe5?, g3b checked the hanging list and played O-O</div>
+    <div style="margin-top:18px"><span class="btn solid">▶ replay both</span> <span class="btn">another game</span></div>
+  </div>
+</div></div></div>
+
+<!-- 6 -->
+<div class="opt"><h3>6 · Stage (demo mode)</h3>
+<p>For the 3 minutes on stage. Full-screen tree, nothing else but one large caption that tells the story from the real lineage, one step per key press: the seed, what it failed, the change, the verdict, and the growth. The tree acts out each step (the shoot grows, the cut falls). Press D to leave stage mode and get the working page back.</p>
+<div class="why">Why: the submission is a live demo. A page built for running is not the same as a page built for telling; this gives you both from the same data.</div>
+<div class="frame"><div class="page">
+  <iframe data-src="tree.html?embed=1&bare=1&p=paper&demo=1&form=windswept&foliage=blossom" style="left:0;top:0;width:1280px;height:800px"></iframe>
+  <div class="abs" style="left:60px;bottom:70px;max-width:560px">
+    <div class="lbl">step 4 of 9</div>
+    <div class="px" style="font-size:34px;line-height:1.25;margin-top:6px">g2a tried to pass by editing the test file. Caught, and cut.</div>
+  </div>
+  <div class="abs" style="right:60px;bottom:74px;text-align:right"><div class="px" style="font-size:56px">39%</div><div class="faint">held-out · from 20%</div></div>
+  <div class="abs faint" style="left:60px;bottom:30px">← → step · D leave stage</div>
+</div></div></div>
+
+<script>
+// scale each 1280x800 mock to its frame
+const fit = () => document.querySelectorAll('.frame').forEach(f => f.querySelector('.page').style.transform = `scale(${f.clientWidth / 1280})`);
+addEventListener('resize', fit); fit();
+// load the live trees only when a mock scrolls into view, so the page stays light
+// and unload them again when they scroll away, so only one or two mocks run 3D at a time
+const io = new IntersectionObserver(es => es.forEach(e => e.target.querySelectorAll('iframe').forEach(f => {
+  if (e.isIntersecting && !f.dataset.on) { f.src = f.dataset.src; f.dataset.on = 1; }
+  else if (!e.isIntersecting && f.dataset.on) { f.src = 'about:blank'; delete f.dataset.on; }
+})), {rootMargin:'100px'});
+document.querySelectorAll('.frame').forEach(f => io.observe(f));
+// two placeholder positions for option 5
+const P1 = 'rnbqk2r/pppp1ppp/5n2/2b1N3/2B1P3/8/PPPP1PPP/RNBQK2R', P2 = 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1';
+const G = {r:'♜',n:'♞',b:'♝',q:'♛',k:'♚',p:'♟',R:'♖',N:'♘',B:'♗',Q:'♕',K:'♔',P:'♙'};
+function board(el, fen) { let h = '', i = 0; for (const row of fen.split('/')) { for (const c of row) { if (/\d/.test(c)) for (let k = 0; k < +c; k++) h += `<i class="${(Math.floor(i / 8) + i++) % 2 ? 'd' : 'l'}"></i>`; else h += `<i class="${(Math.floor(i / 8) + i++) % 2 ? 'd' : 'l'}">${G[c]}</i>`; } } el.innerHTML = h; }
+board(document.getElementById('b1'), P1); board(document.getElementById('b2'), P2);
+</script>
+</body>
+</html>

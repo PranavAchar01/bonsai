@@ -1,20 +1,21 @@
 {
- "name": "Chess: games against Stockfish",
- "prompt": "Play the game described in .docs/instructions.md.",
- "solution": [
-  "game-record.json"
- ],
- "hidden": [],
- "agent": "uv run -q --no-project --with chess python {root}/tasks/chess/_agent.py",
- "grade": "uv run -q --no-project --with chess python {root}/tasks/chess/_grade.py game-record.json {task}/game.json",
- "seed": {
-  "rules": "You are a chess player. Look at the position and choose a good legal move.",
-  "tools": [],
-  "max_turns": 1
- },
- "tools": {
-  "legal_moves": "adds the list of legal moves to what the player sees each turn",
-  "hanging": "adds which of its own pieces are attacked and undefended, and which enemy pieces can be captured for free",
-  "checks": "adds which moves give check and whether its own king is in check"
- }
+  "name": "Chess: games against Stockfish",
+  "prompt": "Play the game described in .docs/instructions.md.",
+  "solution": [
+    "game-record.json"
+  ],
+  "hidden": [],
+  "agent": "uv run -q --no-project --with chess python {root}/tasks/chess/_agent.py",
+  "grade": "uv run -q --no-project --with chess python {root}/tasks/chess/_grade.py game-record.json {task}/game.json",
+  "seed": {
+    "rules": "You are a chess player. Look at the position and choose a good legal move.",
+    "tools": [],
+    "max_turns": 1
+  },
+  "tools": {
+    "legal_moves": "adds the list of legal moves to what the player sees each turn",
+    "hanging": "adds which of its own pieces are attacked and undefended, and which enemy pieces can be captured for free",
+    "checks": "adds which moves give check and whether its own king is in check"
+  },
+  "timeout": 1800
 }

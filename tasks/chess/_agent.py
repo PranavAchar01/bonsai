@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import chess
@@ -20,6 +21,13 @@ cfg = json.loads((Path(os.environ["BONSAI_TASK"]) / "game.json").read_text())
 CLAUDE = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 MOVE = re.compile(r"\b([a-h][1-8][a-h][1-8][qrbn]?)\b")
 mine = chess.WHITE if cfg["color"] == "white" else chess.BLACK
+
+
+def live(**step) -> None:
+    """One line per move to the live log the page watches (BONSAI_LIVE), if there is one."""
+    if os.environ.get("BONSAI_LIVE"):
+        with open(os.environ["BONSAI_LIVE"], "a") as f:
+            f.write(json.dumps({"t": time.time(), **step}) + "\n")
 
 
 def sight(board: chess.Board) -> str:
@@ -40,7 +48,7 @@ def sight(board: chess.Board) -> str:
     return "\n".join(out) + "\n" if out else ""
 
 
-def ask(board: chess.Board, history: list[str], rejected: list[str]) -> str:
+def ask(board: chess.Board, history: list[str], rejected: list[str]) -> tuple[str, str]:
     prompt = (
         f"You are playing {cfg['color']} against a chess engine. It is your move.\n\n"
         f"Moves so far: {' '.join(history) or '(none)'}\nFEN: {board.fen()}\n\n{board}\n\n"
@@ -59,13 +67,14 @@ def ask(board: chess.Board, history: list[str], rejected: list[str]) -> str:
     except ValueError:
         reply = ""
     found = MOVE.findall(reply.lower())
-    return found[-1] if found else reply.strip()[-12:]
+    return (found[-1] if found else reply.strip()[-12:]), reply
 
 
-board, history, end = chess.Board(), [], None
+board, history, end, said = chess.Board(), [], None, ""
 for uci in cfg["opening"]:
     history.append(board.san(chess.Move.from_uci(uci)))
     board.push_uci(uci)
+live(kind="opening", text=" ".join(history), fen=board.fen())
 start = len(board.move_stack)
 engine = chess.engine.SimpleEngine.popen_uci(shutil.which("stockfish") or "/opt/homebrew/bin/stockfish")
 engine.configure({"Skill Level": cfg["skill"]})
@@ -74,7 +83,7 @@ try:
         if board.turn == mine:
             rejected = []
             while len(rejected) < 3:
-                text = ask(board, history, rejected)
+                text, said = ask(board, history, rejected)
                 try:
                     move = chess.Move.from_uci(text)
                 except ValueError:
@@ -82,13 +91,17 @@ try:
                 if move in board.legal_moves:
                     break
                 rejected.append(text or "(no move)")
+                live(kind="illegal", text=f"tried {text or '(no move)'}: not legal", said=said[-300:])
             else:
                 end = f"forfeit at move {board.fullmove_number}: three illegal moves ({', '.join(rejected)})"
                 break
         else:
             move = engine.play(board, chess.engine.Limit(time=0.05)).move
+        ours = board.turn == mine
         history.append(board.san(move))
         board.push(move)
+        live(kind="move", by="agent" if ours else "stockfish", san=history[-1], fen=board.fen(), n=board.fullmove_number,
+             said=said[-300:] if ours else "")  # fmt: skip
 finally:
     engine.quit()
 record = {"game": Path(os.environ["BONSAI_TASK"]).name, "harness": harness.get("id", "seed"), "agent_plays": cfg["color"],
