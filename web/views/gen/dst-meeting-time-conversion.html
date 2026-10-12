@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:"><meta charset="utf-8">
+
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --paper:#efe7d6; --ink:#1d1b19; --faint:#8b8272; --seal:#b5332a; --moss:#4f6e3f; --line:rgba(29,27,25,.16); }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; padding:8px 14px; background:var(--paper); color:var(--ink); font:11px/1.45 "IBM Plex Mono", monospace; overflow:hidden; display:flex; flex-direction:column; gap:5px; }
+  .faint { color:var(--faint); } .ok { color:var(--moss); } .bad { color:var(--seal); }
+  .k { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .stamp { font:14px "DotGothic16"; padding:0 7px; border:1px solid currentColor; display:inline-block; }
+  .cur { display:inline-block; width:6px; height:11px; background:var(--ink); vertical-align:-2px; animation:b 1s steps(2) infinite; } @keyframes b { 50% { opacity:0; } }
+
+  #head { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:3px; min-height:24px; }
+  #dial { display:grid; grid-template-columns:1fr 70px 1fr; align-items:start; text-align:center; }
+  #dial .t { font:21px/1.1 "DotGothic16"; } #dial .o { font-size:10px; }
+  #mid { padding-top:20px; } #mid .g { font:19px/1.1 "DotGothic16"; } #mid .u { font-size:9.5px; color:var(--faint); text-decoration:line-through; }
+  #mid .ar { border-top:1px solid var(--ink); margin:6px 6px 0; position:relative; }
+  #mid .ar:after { content:""; position:absolute; right:-1px; top:-4px; border:solid var(--ink); border-width:1px 1px 0 0; width:6px; height:6px; transform:rotate(45deg); }
+  #trap { text-align:center; font-size:10.5px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:2px 0; }
+  #qq { white-space:pre-wrap; max-height:120px; overflow:hidden; }
+  #now { flex:1; min-height:0; overflow:hidden; font-size:10px; color:var(--faint); word-break:break-word; }
+  #now b { font-weight:500; color:var(--moss); }
+</style></head><body>
+<div id="head"></div>
+<div id="dial"></div><div id="qq"></div>
+<div id="trap"></div>
+<div id="now"></div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const cache = {};
+const set = (id, html) => { if (cache[id] !== html) { cache[id] = html; $(id).innerHTML = html; } };
+// The host posts {lines, question, agent, set, colors} about once a second.
+addEventListener('message', e => { const d = e.data; if (!d || !Array.isArray(d.lines)) return;
+  for (const [k, v] of Object.entries(d.colors || {})) if (/^#[0-9a-f]{3,8}$/i.test(v)) document.documentElement.style.setProperty('--' + k, v);
+  render(d); });
+
+// City names that are not the last part of an IANA zone name.
+const ALIAS = { mumbai:'Asia/Kolkata', delhi:'Asia/Kolkata', 'new delhi':'Asia/Kolkata', bangalore:'Asia/Kolkata', beijing:'Asia/Shanghai',
+  'san francisco':'America/Los_Angeles', seattle:'America/Los_Angeles', boston:'America/New_York', washington:'America/New_York', miami:'America/New_York',
+  atlanta:'America/New_York', dallas:'America/Chicago', houston:'America/Chicago', montreal:'America/Toronto', 'rio de janeiro':'America/Sao_Paulo',
+  'cape town':'Africa/Johannesburg', 'abu dhabi':'Asia/Dubai', frankfurt:'Europe/Berlin', munich:'Europe/Berlin', geneva:'Europe/Zurich', milan:'Europe/Rome',
+  barcelona:'Europe/Madrid', edinburgh:'Europe/London', wellington:'Pacific/Auckland', canberra:'Australia/Sydney', 'tel aviv':'Asia/Jerusalem',
+  hanoi:'Asia/Ho_Chi_Minh', osaka:'Asia/Tokyo', kolkata:'Asia/Kolkata', kyiv:'Europe/Kiev', utc:'UTC', gmt:'UTC' };
+function zone(city) {
+  const k = String(city || '').toLowerCase().trim(); if (!k) return null;
+  if (ALIAS[k]) return ALIAS[k];
+  let all = []; try { all = Intl.supportedValuesOf('timeZone'); } catch (e) {}
+  return all.find(z => z.toLowerCase().split('/').pop() === k.replace(/\s+/g, '_')) || null;
+}
+// Minutes east of UTC for a zone at a UTC instant (whole minutes only).
+function off(tz, ms) {
+  const p = {};
+  new Intl.DateTimeFormat('en-US', { timeZone:tz, hourCycle:'h23', year:'numeric', month:'numeric', day:'numeric', hour:'numeric', minute:'numeric' })
+    .formatToParts(new Date(ms)).forEach(x => p[x.type] = +x.value);
+  return (Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute) - ms) / 60000;
+}
+const pad = n => String(n).padStart(2, '0');
+const utcLabel = m => 'UTC' + (m < 0 ? '-' : '+') + Math.floor(Math.abs(m) / 60) + (m % 60 ? ':' + pad(Math.abs(m) % 60) : '');
+const gapLabel = m => (m < 0 ? '-' : '+') + Math.abs(m) / 60 + 'h';
+
+function parse(q) {
+  const tm = q.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/), dt = q.match(/(\d{4})-(\d{2})-(\d{2})/);
+  const src = q.match(/\d{1,2}:\d{2}\s+(?:in\s+)?([A-Z][A-Za-z .'\-]*?)\s+time\b/), tgt = q.match(/time in ([A-Z][A-Za-z .'\-]*?)\s*[?.,]/);
+  const P = { h: tm ? +tm[1] : null, m: tm ? +tm[2] : null, date: dt ? dt[0] : '', src: src ? src[1] : '', tgt: tgt ? tgt[1] : '' };
+  if (!tm || !dt) return P;
+  try {
+    const sz = zone(P.src), tz = zone(P.tgt); if (!sz || !tz) return P;
+    const y = +dt[1], guess = Date.UTC(y, dt[2] - 1, +dt[3], P.h, P.m);
+    let utc = guess - off(sz, guess) * 6e4; utc = guess - off(sz, utc) * 6e4;
+    const std = z => Math.min(off(z, Date.UTC(y, 0, 1, 12)), off(z, Date.UTC(y, 6, 1, 12)));
+    const so = off(sz, utc), to = off(tz, utc), tl = new Date(utc + to * 6e4);
+    Object.assign(P, { so, to, sd: so !== std(sz), td: to !== std(tz), gap: to - so, usual: std(tz) - std(sz),
+      want: pad(tl.getUTCHours()) + ':' + pad(tl.getUTCMinutes()),
+      shift: Math.round((Date.UTC(tl.getUTCFullYear(), tl.getUTCMonth(), tl.getUTCDate()) - Date.UTC(y, dt[2] - 1, +dt[3])) / 864e5) });
+  } catch (e) {}
+  return P;
+}
+
+function clock(h, m) {
+  let s = `<svg viewBox="0 0 80 80" width="74" height="74"><circle cx="40" cy="40" r="36" fill="none" stroke="var(--ink)" stroke-width="1.5"${h == null ? ' stroke-dasharray="3 3"' : ''}/>`;
+  for (let i = 0; i < 12; i++) s += `<line x1="40" y1="5" x2="40" y2="${i % 3 ? 8 : 12}" transform="rotate(${i * 30} 40 40)" stroke="var(--ink)" stroke-width="1"/>`;
+  if (h == null) s += '<text x="40" y="49" text-anchor="middle" font-family="DotGothic16" font-size="26" fill="var(--faint)">?</text>';
+  else s += `<text x="40" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="var(--faint)">${h < 6 || h >= 18 ? 'night' : 'day'}</text>`
+    + `<line x1="40" y1="40" x2="40" y2="22" transform="rotate(${(h % 12 + m / 60) * 30} 40 40)" stroke="var(--ink)" stroke-width="3"/>`
+    + `<line x1="40" y1="40" x2="40" y2="11" transform="rotate(${m * 6} 40 40)" stroke="var(--seal)" stroke-width="1.5"/><circle cx="40" cy="40" r="2.5" fill="var(--ink)"/>`;
+  return s + '</svg>';
+}
+const side = (city, h, m, text, o, dst) => `<div><div class="k">${esc(city || '?')}</div>${clock(h, m)}<div class="t">${text}</div>`
+  + `<div class="o ${dst ? 'ok' : 'faint'}">${o == null ? '&nbsp;' : esc(utcLabel(o)) + (dst ? ' summer' : ' standard')}</div></div>`;
+
+function render(d) {
+  const agent = d.agent || {}, P = parse(String(d.question || ''));
+  const tools = d.lines.filter(l => l && l.kind === 'tool'), verdict = d.lines.find(l => l && l.kind === 'verdict');
+  const working = agent.status === 'working' && !verdict;
+  // The answer is whatever the agent last put into answer.txt.
+  const write = [...tools].reverse().find(l => /answer\.txt/.test(String(l.text)) && /write|edit|bash|shell|exec|run|python/i.test(String(l.tool)) && !/^\s*(cat|head|ls)\b/.test(String(l.text)));
+  const times = write ? String(write.text).match(/\b([01]?\d|2[0-3]):[0-5]\d\b/g) : null;
+  const ans = times ? times[times.length - 1] : '', ah = ans ? +ans.split(':')[0] : null, am = ans ? +ans.split(':')[1] : 0;
+
+  const cheat = agent.status === 'cheat' || (verdict && verdict.edited_tests);
+  const pass = verdict ? verdict.passed : agent.status === 'passed', done = verdict || /passed|failed|cheat/.test(agent.status);
+  set('head', `<span class="k">DST meeting${P.date ? ' · ' + esc(P.date) : ''}</span>` + (cheat ? '<span class="stamp bad">cheat</span>'
+    : done ? `<span class="stamp ${pass ? 'ok' : 'bad'}">${pass ? 'correct' : 'wrong'}</span>` : '<span class="faint">working <span class="cur"></span></span>'));
+
+  if (P.h == null) { set('dial', ''); set('qq', esc(String(d.question || '').trim() || 'waiting for the question')); }
+  else {
+    set('qq', '');
+    const ansText = ans ? esc(ans) : write ? '<span class="faint" style="font-size:13px">written</span>' : '<span class="faint">--:--</span>' + (working ? '<span class="cur"></span>' : '');
+    const trap = P.gap != null && P.gap !== P.usual;
+    set('dial', side(P.src, P.h, P.m, esc(pad(P.h) + ':' + pad(P.m)), P.so, P.sd)
+      + `<div id="mid"><div class="g ${trap ? 'bad' : ''}">${P.gap == null ? '?' : esc(gapLabel(P.gap))}</div><div class="ar"></div>`
+      + (trap ? `<div class="u">${esc(gapLabel(P.usual))}</div>` : '') + '</div>'
+      + side(P.tgt, ah, am, ansText, P.to, P.td));
+  }
+  let trapLine = '<span class="faint">zone not recognised, no offset check</span>';
+  if (P.gap != null) {
+    const ref = `<span class="faint"> · tz table ${esc(P.want)}${P.shift ? ' (' + (P.shift > 0 ? '+' : '') + P.shift + 'd)' : ''}</span>`;
+    trapLine = (P.gap !== P.usual ? `<span class="bad">DST trap: only ${esc(P.td ? P.tgt : P.src)} is on summer time</span>`
+      : `<span class="faint">both on ${P.sd ? 'summer' : 'standard'} time</span>`) + ref;
+  }
+  set('trap', P.h == null ? '' : trapLine);
+
+  const last = [...d.lines].reverse().find(l => l && (l.kind === 'tool' || l.kind === 'said' || l.kind === 'result'));
+  const vtext = verdict && verdict.text ? esc(String(verdict.text).slice(-110)) : '';
+  set('now', vtext ? vtext : last ? (last.kind === 'tool' ? `<b>${esc(last.tool)}</b> ` : '') + esc(String(last.text ?? '').replace(/\s+/g, ' ').slice(-130))
+    : `<span>${tools.length ? '' : 'no steps yet'}</span>`);
+}
+</script></body></html>

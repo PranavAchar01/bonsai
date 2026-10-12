@@ -1,0 +1,676 @@
+{
+ "game": "ruy-lopez-white-2ba74ff4",
+ "harness": "g0",
+ "agent_plays": "white",
+ "moves": [
+  "e2e4",
+  "e7e5",
+  "g1f3",
+  "b8c6",
+  "f1b5",
+  "g8f6",
+  "b1a3",
+  "c6b4",
+  "f3g5",
+  "g7g6",
+  "b2b3",
+  "f6e4",
+  "g5h3",
+  "d8f6",
+  "d1f3",
+  "f6d8",
+  "f3e4",
+  "b4c6",
+  "h3f4",
+  "f8a3",
+  "d2d3",
+  "d8f6",
+  "e4g6",
+  "d7d6",
+  "g6f6",
+  "b7b6",
+  "c1e3",
+  "e8f8",
+  "e1f1",
+  "a7a6",
+  "e3d2",
+  "a6a5",
+  "h2h4",
+  "f8g8",
+  "h4h5",
+  "a5a4",
+  "g2g3",
+  "a8a7",
+  "f6h4",
+  "c6d4",
+  "g3g4",
+  "d4c2",
+  "h4h2",
+  "a3c1",
+  "h5h6",
+  "c1a3",
+  "f4e2",
+  "c2a1",
+  "b5c6",
+  "a1b3",
+  "d2a5",
+  "b3d2",
+  "f1g2",
+  "d2e4",
+  "e2g3",
+  "a3b4",
+  "c6a8",
+  "a4a3",
+  "a8b7",
+  "c8b7",
+  "g2h3",
+  "a7a6",
+  "f2f4",
+  "b4e1",
+  "g3h5",
+  "c7c5",
+  "f4f5",
+  "c5c4",
+  "a5c3",
+  "e4g5"
+ ],
+ "san": [
+  "e4",
+  "e5",
+  "Nf3",
+  "Nc6",
+  "Bb5",
+  "Nf6",
+  "Na3",
+  "Nb4",
+  "Ng5",
+  "g6",
+  "b3",
+  "Nxe4",
+  "Nh3",
+  "Qf6",
+  "Qf3",
+  "Qd8",
+  "Qxe4",
+  "Nc6",
+  "Nf4",
+  "Bxa3",
+  "d3",
+  "Qf6",
+  "Qxg6",
+  "d6",
+  "Qxf6",
+  "b6",
+  "Be3",
+  "Kf8",
+  "Kf1",
+  "a6",
+  "Bd2",
+  "a5",
+  "h4",
+  "Kg8",
+  "h5",
+  "a4",
+  "g3",
+  "Ra7",
+  "Qh4",
+  "Nd4",
+  "g4",
+  "Nxc2",
+  "Qh2",
+  "Bc1",
+  "h6",
+  "Ba3",
+  "Ne2",
+  "Nxa1",
+  "Bc6",
+  "Nxb3",
+  "Ba5",
+  "Nd2+",
+  "Kg2",
+  "Ne4",
+  "Ng3",
+  "Bb4",
+  "Ba8",
+  "a3",
+  "Bb7",
+  "Bxb7",
+  "Kh3",
+  "Ra6",
+  "f4",
+  "Be1",
+  "Nh5",
+  "c5",
+  "f5",
+  "c4",
+  "Bc3",
+  "Ng5#"
+ ],
+ "final_fen": "6kr/1b3p1p/rp1p3P/4pPnN/2p3P1/p1BP3K/P6Q/4b2R w - - 2 36",
+ "forfeit": null,
+ "status": "complete",
+ "result": "0-1",
+ "score": 0.0,
+ "how": "checkmate",
+ "adjudication": null,
+ "infra": null,
+ "infra_kind": null,
+ "reset_at": null,
+ "run": "dry3",
+ "slot": "g0r3-s03",
+ "gen": 0,
+ "seed": "d4566c0f2f",
+ "color": "white",
+ "family": "ruy-lopez",
+ "eco": "C60",
+ "split": "train",
+ "opening_plies": 6,
+ "target": 407.0,
+ "slot_elo": 257,
+ "opp": {
+  "name": "T6.22_d1",
+  "elo": 257,
+  "spec": {
+   "kind": "policy",
+   "temp": 6.22,
+   "depth": 1
+  },
+  "label": "T6.22_d1"
+ },
+ "opp_elo": 257,
+ "model": "dry-bot",
+ "think": 0,
+ "tools": [],
+ "tier": 0,
+ "plies": 70,
+ "per_move": [
+  {
+   "ply": 6,
+   "move": "b1a3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b1a3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 8,
+   "move": "f3g5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f3g5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 10,
+   "move": "b2b3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b2b3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 12,
+   "move": "g5h3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g5h3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 14,
+   "move": "d1f3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d1f3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 16,
+   "move": "f3e4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f3e4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.09
+  },
+  {
+   "ply": 18,
+   "move": "h3f4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h3f4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.09
+  },
+  {
+   "ply": 20,
+   "move": "d2d3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d2d3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.1
+  },
+  {
+   "ply": 22,
+   "move": "e4g6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e4g6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 24,
+   "move": "g6f6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g6f6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.07
+  },
+  {
+   "ply": 26,
+   "move": "c1e3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "c1e3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.2
+  },
+  {
+   "ply": 28,
+   "move": "e1f1",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e1f1"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.16
+  },
+  {
+   "ply": 30,
+   "move": "e3d2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e3d2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 32,
+   "move": "h2h4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h2h4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.11
+  },
+  {
+   "ply": 34,
+   "move": "h4h5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h4h5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.13
+  },
+  {
+   "ply": 36,
+   "move": "g2g3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g2g3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.08
+  },
+  {
+   "ply": 38,
+   "move": "f6h4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f6h4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.08
+  },
+  {
+   "ply": 40,
+   "move": "g3g4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g3g4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.09
+  },
+  {
+   "ply": 42,
+   "move": "h4h2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h4h2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.11
+  },
+  {
+   "ply": 44,
+   "move": "h5h6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h5h6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 46,
+   "move": "f4e2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f4e2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 48,
+   "move": "b5c6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b5c6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 50,
+   "move": "d2a5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d2a5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.13
+  },
+  {
+   "ply": 52,
+   "move": "f1g2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f1g2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.02
+  },
+  {
+   "ply": 54,
+   "move": "e2g3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e2g3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.2
+  },
+  {
+   "ply": 56,
+   "move": "c6a8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "c6a8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 58,
+   "move": "a8b7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "a8b7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 60,
+   "move": "g2h3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g2h3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.07
+  },
+  {
+   "ply": 62,
+   "move": "f2f4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f2f4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 64,
+   "move": "g3h5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g3h5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 66,
+   "move": "f4f5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f4f5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 68,
+   "move": "a5c3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "a5c3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  }
+ ],
+ "calls": 32,
+ "cost_usd": 0,
+ "max_moves": 100,
+ "time_cap_s": 1500,
+ "elapsed_s": 5.03,
+ "resumed": 0,
+ "started": 1791760955.4189088,
+ "finished": 1791760962.599322
+}

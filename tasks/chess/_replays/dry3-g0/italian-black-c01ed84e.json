@@ -1,0 +1,733 @@
+{
+ "game": "italian-black-c01ed84e",
+ "harness": "g0",
+ "agent_plays": "black",
+ "moves": [
+  "e2e4",
+  "e7e5",
+  "g1f3",
+  "b8c6",
+  "f1c4",
+  "f8c5",
+  "b2b4",
+  "b7b5",
+  "c4f1",
+  "c5b4",
+  "d1e2",
+  "d8f6",
+  "g2g4",
+  "f6e6",
+  "c1a3",
+  "b4e7",
+  "e2b5",
+  "e7f8",
+  "c2c3",
+  "h7h6",
+  "f1c4",
+  "e6f6",
+  "c4d5",
+  "f8e7",
+  "a3e7",
+  "f6f3",
+  "b5b2",
+  "f7f5",
+  "e4f5",
+  "c6d4",
+  "c3d4",
+  "f3d5",
+  "b2b5",
+  "e5e4",
+  "e7h4",
+  "d5b5",
+  "a2a4",
+  "b5d5",
+  "h1g1",
+  "a8b8",
+  "e1e2",
+  "h8h7",
+  "e2e3",
+  "d5b3",
+  "b1c3",
+  "g7g6",
+  "h4d8",
+  "e8f8",
+  "f5f6",
+  "b8a8",
+  "d8e7",
+  "g8e7",
+  "a1a3",
+  "b3a3",
+  "f6e7",
+  "a3e7",
+  "f2f4",
+  "e4f3",
+  "e3f2",
+  "c8a6",
+  "c3d1",
+  "h7f7",
+  "d1e3",
+  "e7h4",
+  "g1g3",
+  "h4h2",
+  "g3g2",
+  "h2h4",
+  "g2g3",
+  "h4h2",
+  "f2e1",
+  "g6g5",
+  "d4d5",
+  "a8d8",
+  "a4a5",
+  "h2e2"
+ ],
+ "san": [
+  "e4",
+  "e5",
+  "Nf3",
+  "Nc6",
+  "Bc4",
+  "Bc5",
+  "b4",
+  "b5",
+  "Bf1",
+  "Bxb4",
+  "Qe2",
+  "Qf6",
+  "g4",
+  "Qe6",
+  "Ba3",
+  "Be7",
+  "Qxb5",
+  "Bf8",
+  "c3",
+  "h6",
+  "Bc4",
+  "Qf6",
+  "Bd5",
+  "Be7",
+  "Bxe7",
+  "Qxf3",
+  "Qb2",
+  "f5",
+  "exf5",
+  "Nd4",
+  "cxd4",
+  "Qxd5",
+  "Qb5",
+  "e4",
+  "Bh4",
+  "Qxb5",
+  "a4",
+  "Qd5",
+  "Rg1",
+  "Rb8",
+  "Ke2",
+  "Rh7",
+  "Ke3",
+  "Qb3+",
+  "Nc3",
+  "g6",
+  "Bd8",
+  "Kf8",
+  "f6",
+  "Ra8",
+  "Be7+",
+  "Nxe7",
+  "Ra3",
+  "Qxa3",
+  "fxe7+",
+  "Qxe7",
+  "f4",
+  "exf3+",
+  "Kf2",
+  "Ba6",
+  "Nd1",
+  "Rf7",
+  "Ne3",
+  "Qh4+",
+  "Rg3",
+  "Qxh2+",
+  "Rg2",
+  "Qh4+",
+  "Rg3",
+  "Qh2+",
+  "Ke1",
+  "g5",
+  "d5",
+  "Rd8",
+  "a5",
+  "Qe2#"
+ ],
+ "final_fen": "3r1k2/p1pp1r2/b6p/P2P2p1/6P1/4NpR1/3Pq3/4K3 w - - 1 39",
+ "forfeit": null,
+ "status": "complete",
+ "result": "0-1",
+ "score": 1.0,
+ "how": "checkmate",
+ "adjudication": null,
+ "infra": null,
+ "infra_kind": null,
+ "reset_at": null,
+ "run": "dry3",
+ "slot": "g0r3-s01",
+ "gen": 0,
+ "seed": "c18cdbf9b7",
+ "color": "black",
+ "family": "italian",
+ "eco": "C50",
+ "split": "train",
+ "opening_plies": 6,
+ "target": 407.0,
+ "slot_elo": 407,
+ "opp": {
+  "name": "T3.856_d1",
+  "elo": 407,
+  "spec": {
+   "kind": "policy",
+   "temp": 3.856,
+   "depth": 1
+  },
+  "label": "T3.856_d1"
+ },
+ "opp_elo": 407,
+ "model": "dry-bot",
+ "think": 0,
+ "tools": [],
+ "tier": 0,
+ "plies": 76,
+ "per_move": [
+  {
+   "ply": 7,
+   "move": "b7b5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b7b5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 9,
+   "move": "c5b4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "c5b4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.02
+  },
+  {
+   "ply": 11,
+   "move": "d8f6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d8f6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 13,
+   "move": "f6e6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f6e6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 15,
+   "move": "b4e7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b4e7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.08
+  },
+  {
+   "ply": 17,
+   "move": "e7f8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e7f8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 19,
+   "move": "h7h6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h7h6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 21,
+   "move": "e6f6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e6f6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 23,
+   "move": "f8e7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f8e7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 25,
+   "move": "f6f3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f6f3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 27,
+   "move": "f7f5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f7f5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.29
+  },
+  {
+   "ply": 29,
+   "move": "c6d4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "c6d4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.3
+  },
+  {
+   "ply": 31,
+   "move": "f3d5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "f3d5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 33,
+   "move": "e5e4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e5e4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.09
+  },
+  {
+   "ply": 35,
+   "move": "d5b5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d5b5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.43
+  },
+  {
+   "ply": 37,
+   "move": "b5d5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b5d5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.11
+  },
+  {
+   "ply": 39,
+   "move": "a8b8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "a8b8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 41,
+   "move": "h8h7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h8h7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.79
+  },
+  {
+   "ply": 43,
+   "move": "d5b3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "d5b3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.56
+  },
+  {
+   "ply": 45,
+   "move": "g7g6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g7g6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.37
+  },
+  {
+   "ply": 47,
+   "move": "e8f8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e8f8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.59
+  },
+  {
+   "ply": 49,
+   "move": "b8a8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b8a8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.13
+  },
+  {
+   "ply": 51,
+   "move": "g8e7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g8e7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.04
+  },
+  {
+   "ply": 53,
+   "move": "b3a3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "b3a3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.27
+  },
+  {
+   "ply": 55,
+   "move": "a3e7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "a3e7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 57,
+   "move": "e4f3",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e4f3"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 59,
+   "move": "c8a6",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "c8a6"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.02
+  },
+  {
+   "ply": 61,
+   "move": "h7f7",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h7f7"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 63,
+   "move": "e7h4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "e7h4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.07
+  },
+  {
+   "ply": 65,
+   "move": "h4h2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h4h2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 67,
+   "move": "h2h4",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h2h4"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.05
+  },
+  {
+   "ply": 69,
+   "move": "h4h2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h4h2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 71,
+   "move": "g6g5",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "g6g5"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.06
+  },
+  {
+   "ply": 73,
+   "move": "a8d8",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "a8d8"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  },
+  {
+   "ply": 75,
+   "move": "h2e2",
+   "reason": "dry bot",
+   "attempts": [
+    {
+     "kind": "ok",
+     "move": "h2e2"
+    }
+   ],
+   "calls": 1,
+   "cost": 0.0,
+   "think": 0,
+   "wall_s": 0.03
+  }
+ ],
+ "calls": 35,
+ "cost_usd": 0,
+ "max_moves": 100,
+ "time_cap_s": 1500,
+ "elapsed_s": 10.45,
+ "resumed": 0,
+ "started": 1791760943.171999,
+ "finished": 1791760955.406085
+}

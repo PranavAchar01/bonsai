@@ -1,0 +1,19 @@
+{
+ "name": "DST Meeting Time Conversion",
+ "prompt": "Answer the question in .docs/instructions.md and write only the answer to answer.txt.",
+ "solution": [
+  "answer.txt"
+ ],
+ "hidden": [
+  "expected.json"
+ ],
+ "grade": "python3 {root}/harness/grade_exact.py answer.txt {task}/expected.json",
+ "seed": {
+  "rules": "Convert each meeting time using the real time zone and daylight saving rules in force on the stated date, and reply with only the answer in the exact form the question asks for.",
+  "tools": [
+   "Read",
+   "Write"
+  ],
+  "max_turns": 4
+ }
+}

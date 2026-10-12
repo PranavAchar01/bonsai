@@ -333,9 +333,9 @@ const LBL = $('s-lbl').innerHTML;
 // On the chess replay the right column is the Elo ladder's, not the tree's: rating in place of a percent.
 function renderElo() {
   const L = ladder, e = v => Math.round(v.elo), at = ladderAt?.playing ? ladderAt : null;
-  $('s-lbl').textContent = 'estimated elo · stockfish-anchored ladder';
+  $('s-lbl').textContent = ladderSim() ? 'estimated elo · simulation, stand-in bot player' : 'estimated elo · stockfish-anchored ladder';
   $('s-num').textContent = at ? (at.n ? Math.round(at.elo) : '--') : L ? e(L.best) : '--';
-  $('s-note').innerHTML = L ? `started at ${e(L.seed)}<br>${L.kept} kept · ${L.cut} cut${L.best.elo_lo != null ? `<br>range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)}` : ''}${L.n ? ` · ${L.n} games` : ''}${L.run && !L.done ? '<br>run still playing' : ''}<br><a href="judge.html" target="_blank">open the ladder page</a>` : 'no ladder run loaded yet';
+  $('s-note').innerHTML = L ? `started at ${e(L.seed)}<br>${L.kept} kept · ${L.cut} cut${L.best.elo_lo != null ? `<br>range ${Math.round(L.best.elo_lo)} to ${Math.round(L.best.elo_hi)}` : ''}${L.n ? ` · ${L.n} games` : ''}${L.run && !L.done ? '<br>run still playing' : ''}<br><a href="${ladderFile}" target="_blank">open the ladder page</a>` : 'no ladder run loaded yet';
   $('ledger').innerHTML = L ? [...L.all].reverse().map(v => `<div class="entry ${v.kept || !v.parent ? '' : 'cut'}"><span class="id">${esc(v.id)}</span><span><span class="chg">${esc(v.change || (v.parent ? '' : 'seed rating'))}</span><span class="sub">${v.elo_lo != null ? `range ${Math.round(v.elo_lo)} to ${Math.round(v.elo_hi)}` : ''}${v.games ? ` · ${v.games} games` : ''}</span></span><span class="n">${e(v)}</span></div>`).join('')
     : '<div class="empty">The ladder rates the agent in Elo against calibrated Stockfish opponents. Its log (runs/chess-ladder-versions.jsonl) is not on this machine yet.</div>';
 }
@@ -475,7 +475,7 @@ const secs = s => s < 60 ? Math.round(s) + 's' : Math.floor(s / 60) + 'm' + Stri
 function setAgents(v) { agentView = v; $('ag-live').classList.toggle('on', v === 'live'); $('ag-all').classList.toggle('on', v === 'all'); renderRun(); }
 function renderLadderLine() {
   const L = ladder, at = ladderAt, ph = $('phase'), playing = at?.playing; $('go').disabled = true; ph.className = '';
-  const html = L ? `<span class="dot" style="background:var(--moss)"></span><b>${L.done ? '✓ Completed' : '● Run in progress'}</b> · Chess ladder · est. Elo ${at?.playing && at.n ? Math.round(at.elo) : Math.round(L.best.elo)} · ${at?.playing ? `game ${Math.min((at.n || 0) + 1, L.n || 0)} of ${L.n || 0}` : `${L.n || 0} games`} · ${L.kept} kept · ${L.cut} cut<button type="button" onclick="ladderReplay()" title="Play every game in order and watch the rating move">${playing ? '■ skip to the end' : '▶ replay'}</button><button type="button" onclick="setView('home')">← all agents</button>`
+  const html = L ? `<span class="dot" style="background:var(--moss)"></span><b>${L.done ? '✓ Completed' : '● Run in progress'}</b> · Chess ladder${ladderSim() ? ' · simulation, stand-in bot player' : ''} · est. Elo ${at?.playing && at.n ? Math.round(at.elo) : Math.round(L.best.elo)} · ${at?.playing ? `game ${Math.min((at.n || 0) + 1, L.n || 0)} of ${L.n || 0}` : `${L.n || 0} games`} · ${L.kept} kept · ${L.cut} cut<button type="button" onclick="ladderReplay()" title="Play every game in order and watch the rating move">${playing ? '■ skip to the end' : '▶ replay'}</button><button type="button" onclick="ladderPick()" title="Switch between the real run and the offline dry run">${ladderSim() ? 'show the real run' : 'show the simulation'}</button><button type="button" onclick="setView('home')">← all agents</button>`
     : `<b>Chess ladder</b> · no run on this machine yet<button type="button" onclick="setView('home')">← all agents</button>`;
   if (ph.dataset.h !== html) { ph.innerHTML = html; ph.dataset.h = html; }
 }
@@ -581,7 +581,10 @@ function liveTarget() {
   if (watching && watching.role !== 'proposer') return A.find(x => x.version === watching.version && x.task === watching.task && x.split === watching.split) || watching;
   return A.filter(x => x.status === 'working').sort((x, y) => x.started - y.started)[0] || A.filter(x => x.ended).sort((x, y) => y.ended - x.ended)[0] || null;
 }
-let ladderData = null, ladderAt = null;
+let ladderData = null, ladderAt = null, ladderFile = 'judge.html';
+// judge-dry.html is the ladder's offline dry run (rsi.run --dry): real Stockfish games and exams, a stand-in bot player
+const ladderSim = () => ladderFile !== 'judge.html';
+function ladderPick() { ladderFile = ladderSim() ? 'judge.html' : 'judge-dry.html'; ladderData = null; pullStats().then(() => { if (document.body.classList.contains('replay')) setView('replay'); }); }
 function ladderReplay() { $('lv-frame').contentWindow?.postMessage({cmd:'replay'}, '*'); $('live').classList.remove('small'); }
 addEventListener('message', e => { if (e.source === $('lv-frame').contentWindow && e.data?.ladderAt) { ladderAt = e.data.ladderAt; if (document.body.classList.contains('replay') && window.__d) { renderLedger(); renderRun(); } } });
 function liveLadder() {
@@ -660,7 +663,7 @@ function renderGuide() {
 function setView(v) {
   const src = v === 'scores' ? 'benchmarks.html?embed=1' : '', wasLadder = document.body.classList.contains('replay');
   // the chess ladder is an agent like the rest: its tree on the stage, its games in the lower-right box, Elo on the right
-  if (v === 'replay') { if (viewing) openAgent(null, true); const t = `${TREE_SRC}&nolabels=1&src=runs/chess-ladder-versions.jsonl`; $('tree3d').src = t; $('tree3d').dataset.src = t; liveSrc = 'ladder'; $('lv-frame').src = 'views/ladder.html?b=1'; ladderAt = null; delete $('phase').dataset.h; }
+  if (v === 'replay') { if (viewing) openAgent(null, true); const t = `${TREE_SRC}&nolabels=1&src=runs/chess-ladder${ladderSim() ? '-dry' : ''}-versions.jsonl`; $('tree3d').src = t; $('tree3d').dataset.src = t; liveSrc = 'ladder'; $('lv-frame').src = 'views/ladder.html?b=1'; ladderAt = null; delete $('phase').dataset.h; }
   else if (wasLadder) { liveSrc = ''; ladderAt = null; delete $('phase').dataset.h; if (!viewing) { $('tree3d').src = TREE_SRC; $('tree3d').dataset.src = TREE_SRC; } }
   document.body.classList.toggle('pane', !!src); document.body.classList.toggle('home', v === 'home'); document.body.classList.toggle('replay', v === 'replay'); if (window.__d) renderLedger(); renderRun();
   if (src && $('pane').dataset.src !== src) { $('pane').src = src; $('pane').dataset.src = src; }
@@ -690,7 +693,7 @@ async function pullStats() {
   const lv = lad.split('\n').map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(v => v?.id && v.elo != null);
   ladder = lv.length ? {all: lv, seed: lv[0], best: keptChain(lv).at(-1) || lv[0], kept: lv.filter(v => v.kept && v.parent).length, cut: lv.filter(v => !v.kept).length} : null;
   // the ladder's own page (web/judge.html, written by rsi/judge.py) carries the run's estimates: prefer it
-  const jd = await fetch('judge.html', {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
+  const jd = await fetch(ladderFile, {cache:'no-store'}).then(r => r.ok ? r.text() : '').catch(() => '');
   try {
     const d = JSON.parse(jd.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/)[1]), E = x => ({elo: x.elo, elo_lo: x.lo, elo_hi: x.hi});
     if (d.cur_est?.elo != null) {

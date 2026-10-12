@@ -1,0 +1,28 @@
+{
+ "key": "dst-meeting-time-conversion",
+ "name": "DST Meeting Time Conversion",
+ "prompt": "Convert meeting times between time zones, including daylight saving edge cases",
+ "created": 1791757208.170888,
+ "status": "done",
+ "seed": {
+  "rules": "Convert each meeting time using the real time zone and daylight saving rules in force on the stated date, and reply with only the answer in the exact form the question asks for.",
+  "tools": [
+   "Read",
+   "Write"
+  ],
+  "max_turns": 4,
+  "model": "haiku"
+ },
+ "problems": 16,
+ "store": {
+  "db": "bonsai",
+  "agent": "agents",
+  "versions": "versions"
+ },
+ "raindrop": {
+  "traced": true,
+  "signal": "task_outcome"
+ },
+ "atlas": true,
+ "ended": 1791757861.28883
+}
